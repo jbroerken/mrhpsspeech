@@ -30,3 +30,24 @@
 *.exe
 *.out
 *.app
+
+# macOS
+*.DS_Store
+./xcode
+./xcode/*
+xcode/mrhpsspeech/
+xcode/mrhpsspeech/mrhpsspeech.xcodeproj/project.pbxproj
+xcode/mrhpsspeech/mrhpsspeech.xcodeproj/project.xcworkspace/contents.xcworkspacedata
+xcode/mrhpsspeech/mrhpsspeech.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+xcode/mrhpsspeech/mrhpsspeech.xcodeproj/project.xcworkspace/xcuserdata/Jens.xcuserdatad/UserInterfaceState.xcuserstate
+xcode/mrhpsspeech/mrhpsspeech.xcodeproj/xcuserdata/Jens.xcuserdatad/xcschemes/xcschememanagement.plist
+xcode/mrhpsspeech/mrhpsspeech.xcodeproj/project.pbxproj
+xcode/mrhpsspeech/mrhpsspeech.xcodeproj/project.xcworkspace/contents.xcworkspacedata
+xcode/mrhpsspeech/mrhpsspeech.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+xcode/mrhpsspeech/mrhpsspeech.xcodeproj/project.xcworkspace/xcuserdata/Jens.xcuserdatad/UserInterfaceState.xcuserstate
+xcode/mrhpsspeech/mrhpsspeech.xcodeproj/xcuserdata/Jens.xcuserdatad/xcschemes/xcschememanagement.plist
+xcode/mrhpsspeech/mrhpsspeech.xcodeproj/xcuserdata/Jens.xcuserdatad/xcschemes/xcschememanagement.plist
+xcode/mrhpsspeech/mrhpsspeech.xcodeproj/project.xcworkspace/xcuserdata/Jens.xcuserdatad/UserInterfaceState.xcuserstate
+xcode/mrhpsspeech/mrhpsspeech.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+xcode/mrhpsspeech/mrhpsspeech.xcodeproj/project.xcworkspace/contents.xcworkspacedata
+xcode/mrhpsspeech/mrhpsspeech.xcodeproj/project.pbxproj
