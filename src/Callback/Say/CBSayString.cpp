@@ -1,5 +1,5 @@
 /**
- *  CBAvail.cpp
+ *  CBSayString.cpp
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -22,47 +22,28 @@
 // C / C++
 
 // External
-#include <libmrhpsb/MRH_PSBLogger.h>
 
 // Project
-#include "./CBAvail.h"
-
-// Pre-defined
-namespace
-{
-    // Service identification
-    constexpr MRH_Uint32 u32_SupplierID = 0x4d524800;
-    constexpr MRH_Uint32 u32_BinaryID = 0x54414c4b;
-    constexpr MRH_Uint32 u32_Version = 1;
-}
+#include "./CBSayString.h"
+#include "../../Speech/OutputStorage.h"
 
 
 //*************************************************************************************
 // Constructor / Destructor
 //*************************************************************************************
 
-CBAvail::CBAvail(std::shared_ptr<Speech>& p_Speech) noexcept : p_Speech(p_Speech)
+CBSayString::CBSayString(std::shared_ptr<Speech>& p_Speech) noexcept : p_Speech(p_Speech)
 {}
 
-CBAvail::~CBAvail() noexcept
+CBSayString::~CBSayString() noexcept
 {}
 
 //*************************************************************************************
 // Callback
 //*************************************************************************************
 
-void CBAvail::Callback(const MRH_EVBase* p_Event, MRH_Uint32 u32_GroupID) noexcept
+void CBSayString::Callback(const MRH_EVBase* p_Event, MRH_Uint32 u32_GroupID) noexcept
 {
-    bool b_Usable = true;
-    
-    try
-    {
-        MRH_P_AVAIL_S c_Result(b_Usable, u32_SupplierID, u32_BinaryID, u32_Version);
-        MRH_EventStorage::Singleton().Add(c_Result, u32_GroupID);
-    }
-    catch (MRH_PSBException& e)
-    {
-        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, e.what(),
-                                       "CBAvail.cpp", __LINE__);
-    }
+    // No return, sent on output performed!
+    p_Speech->GetOutputStorage().AddEvent(static_cast<const MRH_S_STRING_U*>(p_Event));
 }

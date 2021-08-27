@@ -66,7 +66,16 @@ set(SRC_LIST_CALLBACK "${SRC_DIR_PATH}/Callback/Service/CBAvail.cpp"
                       "${SRC_DIR_PATH}/Callback/Service/CBReset.cpp"
                       "${SRC_DIR_PATH}/Callback/Service/CBReset.h"
                       "${SRC_DIR_PATH}/Callback/Service/CBCustomCommand.cpp"
-                      "${SRC_DIR_PATH}/Callback/Service/CBCustomCommand.h")
+                      "${SRC_DIR_PATH}/Callback/Service/CBCustomCommand.h"
+                      "${SRC_DIR_PATH}/Callback/Say/CBSayString.cpp"
+                      "${SRC_DIR_PATH}/Callback/Say/CBSayString.h")
+                      
+set(SRC_LIST_SPEECH "${SRC_DIR_PATH}/Speech/CLI/CLI.cpp"
+                    "${SRC_DIR_PATH}/Speech/CLI/CLI.h"
+                    "${SRC_DIR_PATH}/Speech/OutputStorage.cpp"
+                    "${SRC_DIR_PATH}/Speech/OutputStorage.h"
+                    "${SRC_DIR_PATH}/Speech/Speech.cpp"
+                    "${SRC_DIR_PATH}/Speech/Speech.h")
                        
 set(SRC_LIST_SERVICE "${SRC_DIR_PATH}/Exception.h"
                      "${SRC_DIR_PATH}/Revision.h"
@@ -86,12 +95,14 @@ set(LIB_BIN_LIST "${LIB_DIR_PATH}/libmrhev.a"
                  "${LIB_DIR_PATH}/libmrhcevs.a"
                  "${LIB_DIR_PATH}/libmrhbf.a"
                  "${LIB_DIR_PATH}/libmrhpsb.a"
+                 "${LIB_DIR_PATH}/libmrvt.a"
                  "${LIB_DIR_PATH}/libsodium.a")
 set(LIB_INCLUDE_LIST "${INCLUDE_DIR_PATH}/mrhshared"
                      "${INCLUDE_DIR_PATH}/libmrhev"
                      "${INCLUDE_DIR_PATH}/libmrhcevs"
                      "${INCLUDE_DIR_PATH}/libmrhbf"
                      "${INCLUDE_DIR_PATH}/libmrhpsb"
+                     "${INCLUDE_DIR_PATH}/libmrhvt"
                      "${INCLUDE_DIR_PATH}/sodium")
 
 #########################################################################
@@ -106,7 +117,7 @@ set(LIB_INCLUDE_LIST "${INCLUDE_DIR_PATH}/mrhshared"
 #  The target(s) to build.
 ###
 add_executable(mrhpsspeech ${SRC_LIST_CALLBACK}
-                           ${SRC_LIST_PASSWORD}
+                           ${SRC_LIST_SPEECH}
                            ${SRC_LIST_SERVICE})
 set_target_properties(mrhpsspeech
                       PROPERTIES

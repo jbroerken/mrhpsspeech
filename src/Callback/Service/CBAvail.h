@@ -23,11 +23,13 @@
 #define CBAvail_h
 
 // C / C++
+#include <memory>
 
 // External
 #include <libmrhpsb/MRH_Callback.h>
 
 // Project
+#include "../../Speech/Speech.h"
 
 
 class CBAvail : public MRH_Callback
@@ -40,9 +42,11 @@ public:
     
     /**
      *  Default constructor.
+     *
+     *  \param p_Speech The used speech to check on callback.
      */
     
-    CBAvail() noexcept;
+    CBAvail(std::shared_ptr<Speech>& p_Speech) noexcept;
     
     /**
      *  Default destructor.
@@ -68,6 +72,8 @@ private:
     //*************************************************************************************
     // Data
     //*************************************************************************************
+    
+    std::shared_ptr<Speech> p_Speech;
     
 protected:
 

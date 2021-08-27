@@ -1,5 +1,5 @@
 /**
- *  CBReset.h
+ *  CBSayString.h
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -19,8 +19,8 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef CBReset_h
-#define CBReset_h
+#ifndef CBSayString_h
+#define CBSayString_h
 
 // C / C++
 #include <memory>
@@ -32,7 +32,7 @@
 #include "../../Speech/Speech.h"
 
 
-class CBReset : public MRH_Callback
+class CBSayString : public MRH_Callback
 {
 public:
 
@@ -46,13 +46,13 @@ public:
      *  \param p_Speech The used speech to check on callback.
      */
     
-    CBReset(std::shared_ptr<Speech>& p_Speech) noexcept;
+    CBSayString(std::shared_ptr<Speech>& p_Speech) noexcept;
     
     /**
      *  Default destructor.
      */
     
-    ~CBReset() noexcept;
+    ~CBSayString() noexcept;
     
     //*************************************************************************************
     // Callback
@@ -79,4 +79,4 @@ protected:
 
 };
 
-#endif /* CBReset_h */
+#endif /* CBSayString_h */

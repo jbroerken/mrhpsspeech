@@ -20,20 +20,19 @@
  */
 
 // C / C++
-#include <unistd.h>
 
 // External
-#include <libmrhpsb/MRH_PSBLogger.h>
 
 // Project
 #include "./CBReset.h"
+#include "../../Speech/OutputStorage.h"
 
 
 //*************************************************************************************
 // Constructor / Destructor
 //*************************************************************************************
 
-CBReset::CBReset() noexcept
+CBReset::CBReset(std::shared_ptr<Speech>& p_Speech) noexcept : p_Speech(p_Speech)
 {}
 
 CBReset::~CBReset() noexcept
@@ -45,5 +44,7 @@ CBReset::~CBReset() noexcept
 
 void CBReset::Callback(const MRH_EVBase* p_Event, MRH_Uint32 u32_GroupID) noexcept
 {
-    
+    // Simply reset output
+    p_Speech->GetOutputStorage().ResetUnfinished();
+    p_Speech->GetOutputStorage().ResetFinished();
 }

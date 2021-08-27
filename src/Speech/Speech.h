@@ -1,5 +1,5 @@
 /**
- *  CBReset.h
+ *  Speech.h
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -19,20 +19,19 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef CBReset_h
-#define CBReset_h
+#ifndef Speech_h
+#define Speech_h
 
 // C / C++
-#include <memory>
 
 // External
 #include <libmrhpsb/MRH_Callback.h>
 
 // Project
-#include "../../Speech/Speech.h"
+#include "./OutputStorage.h"
 
 
-class CBReset : public MRH_Callback
+class Speech : public MRH_Callback
 {
 public:
 
@@ -42,30 +41,27 @@ public:
     
     /**
      *  Default constructor.
-     *
-     *  \param p_Speech The used speech to check on callback.
      */
     
-    CBReset(std::shared_ptr<Speech>& p_Speech) noexcept;
+    Speech() noexcept;
     
     /**
      *  Default destructor.
      */
     
-    ~CBReset() noexcept;
+    ~Speech() noexcept;
     
     //*************************************************************************************
-    // Callback
+    // Getters
     //*************************************************************************************
     
     /**
-     *  Perform a callback with a recieved service available event.
+     *  Get the output storage.
      *
-     *  \param p_Event The recieved service available event.
-     *  \param u32_GroupID The event group id for the user event.
+     *  \return The output storage.
      */
     
-    void Callback(const MRH_EVBase* p_Event, MRH_Uint32 u32_GroupID) noexcept override;
+    OutputStorage& GetOutputStorage() noexcept;
     
 private:
     
@@ -73,10 +69,10 @@ private:
     // Data
     //*************************************************************************************
     
-    std::shared_ptr<Speech> p_Speech;
+    OutputStorage c_OutputStorage;
     
 protected:
 
 };
 
-#endif /* CBReset_h */
+#endif /* Speech_h */
