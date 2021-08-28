@@ -1,5 +1,5 @@
 /**
- *  OutputStorage.h
+ *  SpeechEvent.h
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -19,142 +19,101 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef OutputStorage_h
-#define OutputStorage_h
+#ifndef SpeechEvent_h
+#define SpeechEvent_h
 
 // C / C++
 #include <mutex>
-#include <unordered_map>
-#include <list>
 
 // External
-#include <libmrhcevs/Event/V1/User/MRH_CESayU_V1.h>
-#include <libmrhvt/String/MRH_SpeechString.h>
 
 // Project
 #include "../Exception.h"
 
 
-class OutputStorage
+class SpeechEvent
 {
 public:
     
     //*************************************************************************************
+    // Destructor
+    //*************************************************************************************
+    
+    /**
+     *  Default destructor.
+     */
+    
+    virtual ~SpeechEvent() noexcept;
+    
+private:
+    
+    //*************************************************************************************
     // Types
     //*************************************************************************************
-
-    class String
+    
+    struct ListenID
     {
-    public:
-        
         //*************************************************************************************
         // Constructor
         //*************************************************************************************
         
         /**
          *  Default constructor.
-         *
-         *  \param s_String The output string.
-         *  \param u32_StringID The id of the output string.
-         *  \param u32_GroupID The id of the output string event group.
          */
         
-        String(std::string const& s_String,
-               MRH_Uint32 u32_StringID,
-               MRH_Uint32 u32_GroupID) noexcept;
+        ListenID() noexcept;
         
         //*************************************************************************************
         // Data
         //*************************************************************************************
         
-        std::string s_String;
         MRH_Uint32 u32_StringID;
-        MRH_Uint32 u32_GroupID;
+        std::mutex c_Mutex;
     };
     
     //*************************************************************************************
-    // Constructor / Destructor
+    // Data
+    //*************************************************************************************
+    
+    // Store same for each class to prevent ID reuse on method switch!
+    static ListenID c_ListenID;
+    
+protected:
+    
+    //*************************************************************************************
+    // Constructor
     //*************************************************************************************
     
     /**
      *  Default constructor.
      */
     
-    OutputStorage() noexcept;
-    
-    /**
-     *  Default destructor.
-     */
-    
-    ~OutputStorage() noexcept;
+    SpeechEvent() noexcept;
     
     //*************************************************************************************
-    // Reset
+    // Listen
     //*************************************************************************************
     
     /**
-     *  Reset all unfinished output.
-     */
-    
-    void ResetUnfinished() noexcept;
-    
-    /**
-     *  Reset all finished output.
-     */
-    
-    void ResetFinished() noexcept;
-    
-    //*************************************************************************************
-    // Add
-    //*************************************************************************************
-    
-    /**
-     *  Add a output event to the storage.
+     *  Create speech input events for a string.
      *
-     *  \param p_Event The event to add.
-     *  \param u32_GroupID The group id of the event to add.
+     *  \param s_String The speech input string.
      */
     
-    void AddEvent(const MRH_S_STRING_U* p_Event, MRH_Uint32 u32_GroupID) noexcept;
+    void SendInput(std::string const& s_String);
     
     //*************************************************************************************
-    // Getters
+    // Say
     //*************************************************************************************
     
     /**
-     *  Check if a finished string is available.
+     *  Create a output performed event.
      *
-     *  \return true if available, false if not.
+     *  \param u32_StringID The string id of the performed output.
+     *  \param u32_GroupID The event group id to use.
      */
     
-    bool GetFinishedAvailable() noexcept;
-    
-    /**
-     *  Get the next finished UTF-8 string.
-     *
-     *  \return The next finished UTF-8 string with its string id.
-     */
-    
-    String GetFinishedString();
-    
-private:
-    
-    //*************************************************************************************
-    // Data
-    //*************************************************************************************
-    
-    // one Mutex for adding event data, one for finished strings
-    std::mutex c_UnfinishedMutex;
-    std::mutex c_FinishedMutex;
-    
-    // Unfinished strings (<String ID, <String, Group ID>>
-    std::unordered_map<MRH_Uint32, std::pair<MRH_SpeechString, MRH_Uint32>> m_Unfinished;
-    
-    // Finished output
-    std::list<String> l_Finished; // UTF-8
-    
-protected:
-
+    void OutputPerformed(MRH_Uint32 u32_StringID, MRH_Uint32 u32_GroupID);
 };
 
-#endif /* CBAvail_h */
+#endif /* SpeechEvent_h */

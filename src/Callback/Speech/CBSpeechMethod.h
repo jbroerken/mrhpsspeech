@@ -1,5 +1,5 @@
 /**
- *  Speech.h
+ *  CBSpeechMethod.h
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -19,86 +19,64 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef Speech_h
-#define Speech_h
+#ifndef CBSpeechMethod_h
+#define CBSpeechMethod_h
 
 // C / C++
-#include <atomic>
+#include <memory>
 
 // External
 #include <libmrhpsb/MRH_Callback.h>
 
 // Project
-#include "./OutputStorage.h"
+#include "../../Speech/Speech.h"
 
 
-class Speech : public MRH_Callback
+class CBSpeechMethod : public MRH_Callback
 {
 public:
-    
+
     //*************************************************************************************
     // Constructor / Destructor
     //*************************************************************************************
     
     /**
      *  Default constructor.
+     *
+     *  \param p_Speech The used speech to check on callback.
      */
     
-    Speech() noexcept;
+    CBSpeechMethod(std::shared_ptr<Speech>& p_Speech) noexcept;
     
     /**
      *  Default destructor.
      */
     
-    ~Speech() noexcept;
+    ~CBSpeechMethod() noexcept;
     
     //*************************************************************************************
-    // Getters
+    // Callback
     //*************************************************************************************
     
     /**
-     *  Get the output storage.
+     *  Perform a callback with a recieved service available event.
      *
-     *  \return The output storage.
+     *  \param p_Event The recieved service available event.
+     *  \param u32_GroupID The event group id for the user event.
      */
     
-    OutputStorage& GetOutputStorage() noexcept;
-    
-    /**
-     *  Get the current speech method.
-     *
-     *  \return The current speech method.
-     */
-    
-    MRH_EvSpeechMethod::Method GetMethod() noexcept;
+    void Callback(const MRH_EVBase* p_Event, MRH_Uint32 u32_GroupID) noexcept override;
     
 private:
-    
-    //*************************************************************************************
-    // Types
-    //*************************************************************************************
-    
-    enum Method
-    {
-        CLI = 0,
-        MRH_SRV = 1,
-        VOICE = 2,
-        
-        METHOD_MAX = VOICE,
-        
-        METHOD_VOUND = METHOD_MAX + 1
-    };
     
     //*************************************************************************************
     // Data
     //*************************************************************************************
     
-    OutputStorage c_OutputStorage;
-    
-    std::atomic<Method> e_Method;
+    std::shared_ptr<Speech> p_Speech;
     
 protected:
 
 };
 
-#endif /* Speech_h */
+#endif /* CBSpeechMethod_h */

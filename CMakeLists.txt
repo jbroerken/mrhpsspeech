@@ -67,13 +67,17 @@ set(SRC_LIST_CALLBACK "${SRC_DIR_PATH}/Callback/Service/CBAvail.cpp"
                       "${SRC_DIR_PATH}/Callback/Service/CBReset.h"
                       "${SRC_DIR_PATH}/Callback/Service/CBCustomCommand.cpp"
                       "${SRC_DIR_PATH}/Callback/Service/CBCustomCommand.h"
-                      "${SRC_DIR_PATH}/Callback/Say/CBSayString.cpp"
-                      "${SRC_DIR_PATH}/Callback/Say/CBSayString.h")
+                      "${SRC_DIR_PATH}/Callback/Speech/CBSayString.cpp"
+                      "${SRC_DIR_PATH}/Callback/Speech/CBSayString.h"
+                      "${SRC_DIR_PATH}/Callback/Speech/CBSpeechMethod.cpp"
+                      "${SRC_DIR_PATH}/Callback/Speech/CBSpeechMethod.h")
                       
 set(SRC_LIST_SPEECH "${SRC_DIR_PATH}/Speech/CLI/CLI.cpp"
                     "${SRC_DIR_PATH}/Speech/CLI/CLI.h"
                     "${SRC_DIR_PATH}/Speech/OutputStorage.cpp"
                     "${SRC_DIR_PATH}/Speech/OutputStorage.h"
+                    "${SRC_DIR_PATH}/Speech/SpeechEvent.cpp"
+                    "${SRC_DIR_PATH}/Speech/SpeechEvent.h"
                     "${SRC_DIR_PATH}/Speech/Speech.cpp"
                     "${SRC_DIR_PATH}/Speech/Speech.h")
                        

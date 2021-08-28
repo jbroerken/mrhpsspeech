@@ -57,8 +57,23 @@ void CBAvail::Callback(const MRH_EVBase* p_Event, MRH_Uint32 u32_GroupID) noexce
     
     try
     {
-        MRH_P_AVAIL_S c_Result(b_Usable, u32_SupplierID, u32_BinaryID, u32_Version);
-        MRH_EventStorage::Singleton().Add(c_Result, u32_GroupID);
+        switch (p_Event->GetType())
+        {
+            case MRH_EVENT_LISTEN_AVAIL_U:
+                MRH_EventStorage::Singleton().Add(MRH_L_AVAIL_S(b_Usable,
+                                                                u32_SupplierID,
+                                                                u32_BinaryID,
+                                                                u32_Version),
+                                                  u32_GroupID);
+                break;
+            case MRH_EVENT_SAY_AVAIL_U:
+                MRH_EventStorage::Singleton().Add(MRH_S_AVAIL_S(b_Usable,
+                                                                u32_SupplierID,
+                                                                u32_BinaryID,
+                                                                u32_Version),
+                                                  u32_GroupID);
+                break;
+        }
     }
     catch (MRH_PSBException& e)
     {

@@ -45,5 +45,5 @@ CBSayString::~CBSayString() noexcept
 void CBSayString::Callback(const MRH_EVBase* p_Event, MRH_Uint32 u32_GroupID) noexcept
 {
     // No return, sent on output performed!
-    p_Speech->GetOutputStorage().AddEvent(static_cast<const MRH_S_STRING_U*>(p_Event));
+    p_Speech->GetOutputStorage().AddEvent(static_cast<const MRH_S_STRING_U*>(p_Event), u32_GroupID);
 }

@@ -38,6 +38,13 @@ OutputStorage::OutputStorage() noexcept
 OutputStorage::~OutputStorage() noexcept
 {}
 
+OutputStorage::String::String(std::string const& s_String,
+                              MRH_Uint32 u32_StringID,
+                              MRH_Uint32 u32_GroupID) noexcept : s_String(s_String),
+                                                                 u32_StringID(u32_StringID),
+                                                                 u32_GroupID(u32_GroupID)
+{}
+
 //*************************************************************************************
 // Reset
 //*************************************************************************************
@@ -48,7 +55,7 @@ void OutputStorage::ResetUnfinished() noexcept
     
     for (auto& Unfinished : m_Unfinished)
     {
-        Unfinished.second.Reset(Unfinished.first);
+        Unfinished.second.first.Reset(Unfinished.first);
     }
 }
 
@@ -62,7 +69,7 @@ void OutputStorage::ResetFinished() noexcept
 // Add
 //*************************************************************************************
 
-void OutputStorage::AddEvent(const MRH_S_STRING_U* p_Event) noexcept
+void OutputStorage::AddEvent(const MRH_S_STRING_U* p_Event, MRH_Uint32 u32_GroupID) noexcept
 {
     c_UnfinishedMutex.lock();
     
@@ -79,7 +86,7 @@ void OutputStorage::AddEvent(const MRH_S_STRING_U* p_Event) noexcept
                                       p_Event->GetID(),
                                       p_Event->GetType() == MRH_S_STRING_U::END ? true : false);
             
-            if (m_Unfinished.insert(std::make_pair(p_Event->GetID(), c_String)).second == false)
+            if (m_Unfinished.insert(std::make_pair(p_Event->GetID(), std::make_pair(c_String, u32_GroupID))).second == false)
             {
                 throw Exception("Failed to add output to map!");
             }
@@ -99,23 +106,35 @@ void OutputStorage::AddEvent(const MRH_S_STRING_U* p_Event) noexcept
     // Found, replace or add
     try
     {
-        switch (Unfinished->second.GetState())
+        // Group id needs to be the same, otherwise reset (other sender)
+        if (Unfinished->second.second == u32_GroupID)
         {
-            case MRH_SpeechString::UNFINISHED:
-            case MRH_SpeechString::END_KNOWN:
-                Unfinished->second.Add(p_Event->GetString(),
-                                       p_Event->GetPart(),
-                                       p_Event->GetType() == MRH_S_STRING_U::END ? true : false);
-                break;
-            case MRH_SpeechString::COMPLETE:
-                Unfinished->second.Reset(p_Event->GetString(),
-                                         p_Event->GetID(),
-                                         p_Event->GetPart(),
-                                         p_Event->GetType() == MRH_S_STRING_U::END ? true : false);
-                break;
-                
-            default:
-                throw Exception("Unknown speech string state!");
+            switch (Unfinished->second.first.GetState())
+            {
+                case MRH_SpeechString::UNFINISHED:
+                case MRH_SpeechString::END_KNOWN:
+                    Unfinished->second.first.Add(p_Event->GetString(),
+                                                 p_Event->GetPart(),
+                                                 p_Event->GetType() == MRH_S_STRING_U::END ? true : false);
+                    break;
+                case MRH_SpeechString::COMPLETE:
+                    Unfinished->second.first.Reset(p_Event->GetString(),
+                                                   p_Event->GetID(),
+                                                   p_Event->GetPart(),
+                                                   p_Event->GetType() == MRH_S_STRING_U::END ? true : false);
+                    break;
+                    
+                default:
+                    throw Exception("Unknown speech string state!");
+            }
+        }
+        else
+        {
+            Unfinished->second.second = u32_GroupID;
+            Unfinished->second.first.Reset(p_Event->GetString(),
+                                           p_Event->GetID(),
+                                           p_Event->GetPart(),
+                                           p_Event->GetType() == MRH_S_STRING_U::END ? true : false);
         }
     }
     catch (std::exception& e) // Catch all
@@ -127,7 +146,7 @@ void OutputStorage::AddEvent(const MRH_S_STRING_U* p_Event) noexcept
     }
     
     // String updated, can we add this one to the finished list?
-    if (Unfinished->second.GetState() != MRH_SpeechString::COMPLETE)
+    if (Unfinished->second.first.GetState() != MRH_SpeechString::COMPLETE)
     {
         c_UnfinishedMutex.unlock();
         return;
@@ -135,7 +154,9 @@ void OutputStorage::AddEvent(const MRH_S_STRING_U* p_Event) noexcept
     
     c_FinishedMutex.lock();
     
-    l_Finished.emplace_back(Unfinished->second.GetString());
+    l_Finished.emplace_back(Unfinished->second.first.GetString(),
+                            Unfinished->first,
+                            Unfinished->second.second);
     
     c_FinishedMutex.unlock();
     c_UnfinishedMutex.unlock();
@@ -151,7 +172,7 @@ bool OutputStorage::GetFinishedAvailable() noexcept
     return l_Finished.size() > 0 ? true : false;
 }
 
-std::string OutputStorage::GetFinishedString()
+OutputStorage::String OutputStorage::GetFinishedString()
 {
     std::lock_guard<std::mutex> c_Guard(c_FinishedMutex);
     
@@ -160,8 +181,8 @@ std::string OutputStorage::GetFinishedString()
         throw Exception("No finished string available!");
     }
     
-    std::string s_Result(l_Finished.front());
+    OutputStorage::String c_Result(l_Finished.front());
     l_Finished.pop_front();
     
-    return s_Result;
+    return c_Result;
 }

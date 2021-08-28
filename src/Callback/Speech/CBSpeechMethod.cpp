@@ -1,5 +1,5 @@
 /**
- *  Speech.cpp
+ *  CBSpeechMethod.cpp
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -22,39 +22,45 @@
 // C / C++
 
 // External
+#include <libmrhpsb/MRH_PSBLogger.h>
 
 // Project
-#include "./Speech.h"
+#include "./CBSpeechMethod.h"
 
 
 //*************************************************************************************
 // Constructor / Destructor
 //*************************************************************************************
 
-Speech::Speech() noexcept : e_Method(VOICE)
+CBSpeechMethod::CBSpeechMethod(std::shared_ptr<Speech>& p_Speech) noexcept : p_Speech(p_Speech)
 {}
 
-Speech::~Speech() noexcept
+CBSpeechMethod::~CBSpeechMethod() noexcept
 {}
 
 //*************************************************************************************
-// Getters
+// Callback
 //*************************************************************************************
 
-OutputStorage& Speech::GetOutputStorage() noexcept
+void CBSpeechMethod::Callback(const MRH_EVBase* p_Event, MRH_Uint32 u32_GroupID) noexcept
 {
-    return c_OutputStorage;
-}
-
-MRH_EvSpeechMethod::Method Speech::GetMethod() noexcept
-{
-    switch (e_Method)
+    try
     {
-        case CLI:
-        case MRH_SRV:
-            return MRH_EvSpeechMethod::TEXT;
-            
-        default:
-            return MRH_EvSpeechMethod::VOICE;
+        switch (p_Event->GetType())
+        {
+            case MRH_EVENT_LISTEN_GET_METHOD_U:
+                MRH_EventStorage::Singleton().Add(MRH_L_GET_METHOD_S(p_Speech->GetMethod()),
+                                                  u32_GroupID);
+                break;
+            case MRH_EVENT_SAY_GET_METHOD_U:
+                MRH_EventStorage::Singleton().Add(MRH_S_GET_METHOD_S(p_Speech->GetMethod()),
+                                                  u32_GroupID);
+                break;
+        }
+    }
+    catch (MRH_PSBException& e)
+    {
+        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, e.what(),
+                                       "CBSpeechMethod.cpp", __LINE__);
     }
 }
