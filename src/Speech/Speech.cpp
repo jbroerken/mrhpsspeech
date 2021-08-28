@@ -37,7 +37,28 @@ Speech::Speech() noexcept : e_Method(MRH_EvSpeechMethod::TEXT),
                             b_Update(true)
 {
     // Add methods
-    m_Method.insert(std::make_pair(CLI, new class CLI()));
+    for (size_t i = 0; i < METHOD_COUNT; ++i)
+    {
+        try
+        {
+            switch (i)
+            {
+                case CLI:
+                    m_Method.insert(std::make_pair(CLI, new class CLI()));
+                    break;
+                case MRH_SRV:
+                    break;
+                case VOICE:
+                    break;
+            }
+        }
+        catch (std::exception& e)
+        {
+            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "Failed to add method: " +
+                                                                   std::string(e.what()),
+                                           "Speech.cpp", __LINE__);
+        }
+    }
     
     // Run
     try
@@ -57,7 +78,6 @@ Speech::~Speech() noexcept
     
     for (auto& Method : m_Method)
     {
-        Method.second->Stop();
         delete Method.second;
     }
 }
@@ -78,20 +98,19 @@ void Speech::Update(Speech* p_Instance) noexcept
         // First, check usable
         if (Active->IsUsable() == false)
         {
-            Active->Stop();
+            bool b_Selected = false;
             
             // Grab next usable
             for (auto& Method : p_Instance->m_Method)
             {
-                // Not connected, no output, etc...
-                if (Method.second->IsUsable() == false)
+                // Already set, not connected, no output, etc...
+                if (Method.second->IsUsable() == false || b_Selected == true)
                 {
                     continue;
                 }
                 
                 try
                 {
-                    Method.second->Start(); // Start before setting, catch exception
                     Active = Method.second;
                 }
                 catch (Exception& e)
@@ -114,8 +133,15 @@ void Speech::Update(Speech* p_Instance) noexcept
                         break;
                 }
                 
-                // Setup done, end loop
-                break;
+                // Setup done, avtice method set
+                b_Selected = true;
+            }
+            
+            // Nothing selected, wait and retry
+            if (b_Selected == false)
+            {
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+                continue;
             }
         }
         
@@ -123,7 +149,7 @@ void Speech::Update(Speech* p_Instance) noexcept
         try
         {
             Active->Listen();
-            Active->PerformOutput(c_OutputStorage);
+            Active->Say(c_OutputStorage);
         }
         catch (Exception& e)
         {

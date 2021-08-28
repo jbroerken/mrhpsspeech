@@ -23,6 +23,8 @@
 #define CLI_h
 
 // C / C++
+#include <thread>
+#include <atomic>
 
 // External
 
@@ -42,41 +44,13 @@ public:
      *  Default constructor.
      */
     
-    CLI() noexcept;
+    CLI();
     
     /**
      *  Default destructor.
      */
     
     ~CLI() noexcept;
-    
-    //*************************************************************************************
-    // Start
-    //*************************************************************************************
-    
-    /**
-     *  Check if this speech method is usable.
-     *
-     *  \return true if usable, false if not.
-     */
-    
-    bool IsUsable() noexcept override;
-    
-    /**
-     *  Start using this speech method.
-     */
-    
-    void Start() override;
-    
-    //*************************************************************************************
-    // Stop
-    //*************************************************************************************
-    
-    /**
-     *  Stop using this speech method.
-     */
-    
-    void Stop() noexcept override;
     
     //*************************************************************************************
     // Listen
@@ -98,13 +72,54 @@ public:
      *  \param c_OutputStorage The output storage to use.
      */
     
-    void PerformOutput(OutputStorage& c_OutputStorage) override;
+    void Say(OutputStorage& c_OutputStorage) override;
+    
+    //*************************************************************************************
+    // Getters
+    //*************************************************************************************
+    
+    /**
+     *  Check if this speech method is usable.
+     *
+     *  \return true if usable, false if not.
+     */
+    
+    bool IsUsable() noexcept override;
     
 private:
     
     //*************************************************************************************
+    // Update
+    //*************************************************************************************
+    
+    /**
+     *  Poll a socket.
+     *
+     *  \param i_FD The socket file descriptor to poll.
+     *  \param i_TimeoutMS The poll timeout in milliseconds.
+     *
+     *  \return true if data can be read, false if not.
+     */
+    
+    bool PollSocket(int i_FD, int i_TimeoutMS) noexcept;
+    
+    /**
+     *  Update CLI method.
+     *
+     *  \param p_Instance The CLI instance to update.
+     */
+    
+    static void Update(CLI* p_Instance) noexcept;
+    
+    //*************************************************************************************
     // Data
     //*************************************************************************************
+    
+    std::thread c_Thread;
+    std::atomic<bool> b_Update;
+    
+    int i_ConnectionFD;
+    std::atomic<int> i_ClientFD;
     
 protected:
 

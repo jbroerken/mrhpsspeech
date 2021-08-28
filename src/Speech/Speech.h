@@ -80,6 +80,7 @@ private:
     // Types
     //*************************************************************************************
     
+    // The order is important! Lower numbers are used before higher ones (std::map)
     enum Method
     {
         CLI = 0,
@@ -88,7 +89,7 @@ private:
         
         METHOD_MAX = VOICE,
         
-        METHOD_VOUND = METHOD_MAX + 1
+        METHOD_COUNT = METHOD_MAX + 1
     };
     
     //*************************************************************************************

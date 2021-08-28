@@ -45,34 +45,6 @@ public:
     virtual ~SpeechMethod() noexcept;
     
     //*************************************************************************************
-    // Start
-    //*************************************************************************************
-    
-    /**
-     *  Check if this speech method is usable.
-     *
-     *  \return true if usable, false if not.
-     */
-    
-    virtual bool IsUsable() noexcept;
-    
-    /**
-     *  Start using this speech method.
-     */
-    
-    virtual void Start();
-    
-    //*************************************************************************************
-    // Stop
-    //*************************************************************************************
-    
-    /**
-     *  Stop using this speech method.
-     */
-    
-    virtual void Stop() noexcept;
-    
-    //*************************************************************************************
     // Listen
     //*************************************************************************************
     
@@ -92,7 +64,19 @@ public:
      *  \param c_OutputStorage The output storage to use.
      */
     
-    virtual void PerformOutput(OutputStorage& c_OutputStorage);
+    virtual void Say(OutputStorage& c_OutputStorage);
+    
+    //*************************************************************************************
+    // Getters
+    //*************************************************************************************
+    
+    /**
+     *  Check if this speech method is usable.
+     *
+     *  \return true if usable, false if not.
+     */
+    
+    virtual bool IsUsable() noexcept;
     
 private:
     

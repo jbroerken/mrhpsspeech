@@ -48,33 +48,12 @@ SpeechMethod::ListenID::ListenID() noexcept : u32_StringID(0)
 {}
 
 //*************************************************************************************
-// Start
-//*************************************************************************************
-
-bool SpeechMethod::IsUsable() noexcept
-{
-    return false;
-}
-
-void SpeechMethod::Start()
-{
-    throw Exception("Default speech method start function called!");
-}
-
-//*************************************************************************************
-// Stop
-//*************************************************************************************
-
-void SpeechMethod::Stop() noexcept
-{}
-
-//*************************************************************************************
 // Listen
 //*************************************************************************************
 
 void SpeechMethod::Listen()
 {
-    throw Exception("Default listen function called!");
+    throw Exception("Default speech listen function called!");
 }
 
 void SpeechMethod::SendInput(std::string const& s_String)
@@ -113,9 +92,9 @@ void SpeechMethod::SendInput(std::string const& s_String)
 // Say
 //*************************************************************************************
 
-void SpeechMethod::PerformOutput(OutputStorage& c_OutputStorage)
+void SpeechMethod::Say(OutputStorage& c_OutputStorage)
 {
-    throw Exception("Default perform output function called!");
+    throw Exception("Default speech say function called!");
 }
 
 void SpeechMethod::OutputPerformed(MRH_Uint32 u32_StringID, MRH_Uint32 u32_GroupID)
@@ -128,4 +107,13 @@ void SpeechMethod::OutputPerformed(MRH_Uint32 u32_StringID, MRH_Uint32 u32_Group
     {
         throw Exception("Failed to create output performed event!");
     }
+}
+
+//*************************************************************************************
+// Getters
+//*************************************************************************************
+
+bool SpeechMethod::IsUsable() noexcept
+{
+    return false;
 }
