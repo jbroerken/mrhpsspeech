@@ -49,6 +49,14 @@ public:
     //*************************************************************************************
     
     /**
+     *  Check if this speech method is usable.
+     *
+     *  \return true if usable, false if not.
+     */
+    
+    virtual bool IsUsable() noexcept;
+    
+    /**
      *  Start using this speech method.
      */
     
@@ -62,7 +70,7 @@ public:
      *  Stop using this speech method.
      */
     
-    virtual void Stop();
+    virtual void Stop() noexcept;
     
     //*************************************************************************************
     // Listen

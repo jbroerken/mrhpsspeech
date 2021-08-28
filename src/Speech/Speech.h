@@ -23,6 +23,7 @@
 #define Speech_h
 
 // C / C++
+#include <thread>
 #include <atomic>
 
 // External
@@ -91,13 +92,27 @@ private:
     };
     
     //*************************************************************************************
+    // Update
+    //*************************************************************************************
+    
+    /**
+     *  Update speech methods.
+     *
+     *  \param p_Instance The speech instance to update.
+     */
+    
+    static void Update(Speech* p_Instance) noexcept;
+    
+    //*************************************************************************************
     // Data
     //*************************************************************************************
+    
+    std::thread c_Thread;
+    std::atomic<bool> b_Update;
     
     OutputStorage c_OutputStorage;
     
     std::map<Method, SpeechMethod*> m_Method;
-    std::map<Method, SpeechMethod*>::iterator Method;
     std::atomic<MRH_EvSpeechMethod::Method> e_Method; // Separate for thread safety
     
 protected:

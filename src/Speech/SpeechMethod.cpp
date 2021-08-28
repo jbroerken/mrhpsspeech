@@ -51,6 +51,11 @@ SpeechMethod::ListenID::ListenID() noexcept : u32_StringID(0)
 // Start
 //*************************************************************************************
 
+bool SpeechMethod::IsUsable() noexcept
+{
+    return false;
+}
+
 void SpeechMethod::Start()
 {
     throw Exception("Default speech method start function called!");
@@ -60,10 +65,8 @@ void SpeechMethod::Start()
 // Stop
 //*************************************************************************************
 
-void SpeechMethod::Stop()
-{
-    throw Exception("Default speech method stop function called!");
-}
+void SpeechMethod::Stop() noexcept
+{}
 
 //*************************************************************************************
 // Listen

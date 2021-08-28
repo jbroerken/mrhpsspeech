@@ -41,6 +41,11 @@ CLI::~CLI() noexcept
 // Start
 //*************************************************************************************
 
+bool CLI::IsUsable() noexcept
+{
+    return false;
+}
+
 void CLI::Start()
 {
     
@@ -50,7 +55,7 @@ void CLI::Start()
 // Stop
 //*************************************************************************************
 
-void CLI::Stop()
+void CLI::Stop() noexcept
 {
     
 }

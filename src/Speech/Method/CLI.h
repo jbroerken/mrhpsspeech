@@ -55,6 +55,14 @@ public:
     //*************************************************************************************
     
     /**
+     *  Check if this speech method is usable.
+     *
+     *  \return true if usable, false if not.
+     */
+    
+    bool IsUsable() noexcept override;
+    
+    /**
      *  Start using this speech method.
      */
     
@@ -68,7 +76,7 @@ public:
      *  Stop using this speech method.
      */
     
-    void Stop() override;
+    void Stop() noexcept override;
     
     //*************************************************************************************
     // Listen

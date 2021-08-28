@@ -22,6 +22,7 @@
 // C / C++
 
 // External
+#include <libmrhpsb/MRH_PSBLogger.h>
 
 // Project
 #include "./Speech.h"
@@ -32,17 +33,105 @@
 // Constructor / Destructor
 //*************************************************************************************
 
-Speech::Speech() noexcept : e_Method(MRH_EvSpeechMethod::TEXT)
+Speech::Speech() noexcept : e_Method(MRH_EvSpeechMethod::TEXT),
+                            b_Update(true)
 {
     // Add methods
     m_Method.insert(std::make_pair(CLI, new class CLI()));
     
-    // Set initial method
-    Method = m_Method.find(CLI);
+    // Run
+    try
+    {
+        c_Thread = std::thread(Update, this);
+    }
+    catch (std::exception& e)
+    {
+        throw Exception("Failed to start update thread: " + std::string(e.what()));
+    }
 }
 
 Speech::~Speech() noexcept
-{}
+{
+    b_Update = false;
+    c_Thread.join();
+    
+    for (auto& Method : m_Method)
+    {
+        Method.second->Stop();
+        delete Method.second;
+    }
+}
+
+//*************************************************************************************
+// Update
+//*************************************************************************************
+
+void Speech::Update(Speech* p_Instance) noexcept
+{
+    // Set starting method
+    MRH_PSBLogger& c_Logger = MRH_PSBLogger::Singleton();
+    OutputStorage& c_OutputStorage = p_Instance->c_OutputStorage;
+    auto Active = p_Instance->m_Method.begin()->second;
+    
+    while (p_Instance->b_Update == true)
+    {
+        // First, check usable
+        if (Active->IsUsable() == false)
+        {
+            Active->Stop();
+            
+            // Grab next usable
+            for (auto& Method : p_Instance->m_Method)
+            {
+                // Not connected, no output, etc...
+                if (Method.second->IsUsable() == false)
+                {
+                    continue;
+                }
+                
+                try
+                {
+                    Method.second->Start(); // Start before setting, catch exception
+                    Active = Method.second;
+                }
+                catch (Exception& e)
+                {
+                    c_Logger.Log(MRH_PSBLogger::WARNING, e.what(),
+                                 "Speech.cpp", __LINE__);
+                    continue;
+                }
+                
+                // Method callback - set correct method
+                switch (Method.first)
+                {
+                    case CLI:
+                    case MRH_SRV:
+                        p_Instance->e_Method = MRH_EvSpeechMethod::TEXT;
+                        break;
+                        
+                    default:
+                        p_Instance->e_Method = MRH_EvSpeechMethod::VOICE;
+                        break;
+                }
+                
+                // Setup done, end loop
+                break;
+            }
+        }
+        
+        // Exchange data
+        try
+        {
+            Active->Listen();
+            Active->PerformOutput(c_OutputStorage);
+        }
+        catch (Exception& e)
+        {
+            c_Logger.Log(MRH_PSBLogger::WARNING, e.what(),
+                         "Speech.cpp", __LINE__);
+        }
+    }
+}
 
 //*************************************************************************************
 // Getters
