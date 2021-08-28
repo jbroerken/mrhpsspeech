@@ -1,5 +1,5 @@
 /**
- *  Speech.h
+ *  CLI.h
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -19,21 +19,18 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef Speech_h
-#define Speech_h
+#ifndef CLI_h
+#define CLI_h
 
 // C / C++
-#include <atomic>
 
 // External
-#include <libmrhcevs/Event/MRH_EvSpeechMethod.h>
 
 // Project
-#include "./OutputStorage.h"
-#include "./SpeechMethod.h"
+#include "../SpeechMethod.h"
 
 
-class Speech
+class CLI : public SpeechMethod
 {
 public:
     
@@ -45,63 +42,64 @@ public:
      *  Default constructor.
      */
     
-    Speech() noexcept;
+    CLI() noexcept;
     
     /**
      *  Default destructor.
      */
     
-    ~Speech() noexcept;
+    ~CLI() noexcept;
     
     //*************************************************************************************
-    // Getters
+    // Start
     //*************************************************************************************
     
     /**
-     *  Get the output storage. This function is thread safe.
-     *
-     *  \return The output storage.
+     *  Start using this speech method.
      */
     
-    OutputStorage& GetOutputStorage() noexcept;
+    void Start() override;
+    
+    //*************************************************************************************
+    // Stop
+    //*************************************************************************************
     
     /**
-     *  Get the current speech method. This function is thread safe.
-     *
-     *  \return The current speech method.
+     *  Stop using this speech method.
      */
     
-    MRH_EvSpeechMethod::Method GetMethod() noexcept;
+    void Stop() override;
+    
+    //*************************************************************************************
+    // Listen
+    //*************************************************************************************
+    
+    /**
+     *  Listen to speech input.
+     */
+    
+    void Listen() override;
+    
+    //*************************************************************************************
+    // Say
+    //*************************************************************************************
+    
+    /**
+     *  Perform speech output.
+     *
+     *  \param c_OutputStorage The output storage to use.
+     */
+    
+    void PerformOutput(OutputStorage& c_OutputStorage) override;
     
 private:
-    
-    //*************************************************************************************
-    // Types
-    //*************************************************************************************
-    
-    enum Method
-    {
-        CLI = 0,
-        MRH_SRV = 1,
-        VOICE = 2,
-        
-        METHOD_MAX = VOICE,
-        
-        METHOD_VOUND = METHOD_MAX + 1
-    };
     
     //*************************************************************************************
     // Data
     //*************************************************************************************
     
-    OutputStorage c_OutputStorage;
-    
-    std::map<Method, SpeechMethod*> m_Method;
-    std::map<Method, SpeechMethod*>::iterator Method;
-    std::atomic<MRH_EvSpeechMethod::Method> e_Method; // Separate for thread safety
-    
 protected:
 
 };
 
-#endif /* Speech_h */
+#endif /* CLI_h */

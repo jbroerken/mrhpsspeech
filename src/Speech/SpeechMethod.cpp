@@ -1,5 +1,5 @@
 /**
- *  SpeechEvent.cpp
+ *  SpeechMethod.cpp
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -29,29 +29,52 @@
 #include <libmrhpsb/MRH_PSBLogger.h>
 
 // Project
-#include "./SpeechEvent.h"
+#include "./SpeechMethod.h"
 
 
 //*************************************************************************************
 // Constructor / Destructor
 //*************************************************************************************
 
-SpeechEvent::ListenID SpeechEvent::c_ListenID;
+SpeechMethod::ListenID SpeechMethod::c_ListenID;
 
-SpeechEvent::SpeechEvent() noexcept
+SpeechMethod::SpeechMethod() noexcept
 {}
 
-SpeechEvent::~SpeechEvent() noexcept
+SpeechMethod::~SpeechMethod() noexcept
 {}
 
-SpeechEvent::ListenID::ListenID() noexcept : u32_StringID(0)
+SpeechMethod::ListenID::ListenID() noexcept : u32_StringID(0)
 {}
+
+//*************************************************************************************
+// Start
+//*************************************************************************************
+
+void SpeechMethod::Start()
+{
+    throw Exception("Default speech method start function called!");
+}
+
+//*************************************************************************************
+// Stop
+//*************************************************************************************
+
+void SpeechMethod::Stop()
+{
+    throw Exception("Default speech method stop function called!");
+}
 
 //*************************************************************************************
 // Listen
 //*************************************************************************************
 
-void SpeechEvent::SendInput(std::string const& s_String)
+void SpeechMethod::Listen()
+{
+    throw Exception("Default listen function called!");
+}
+
+void SpeechMethod::SendInput(std::string const& s_String)
 {
     MRH_EventStorage& c_Storage = MRH_EventStorage::Singleton();
     
@@ -59,7 +82,7 @@ void SpeechEvent::SendInput(std::string const& s_String)
     c_ListenID.c_Mutex.lock();
     
     MRH_Uint32 u32_CurrentID = c_ListenID.u32_StringID;
-    c_ListenID.u32_StringID += 1;
+    c_ListenID.u32_StringID += 1; // Next ID for use
     
     c_ListenID.c_Mutex.unlock();
     
@@ -87,7 +110,12 @@ void SpeechEvent::SendInput(std::string const& s_String)
 // Say
 //*************************************************************************************
 
-void SpeechEvent::OutputPerformed(MRH_Uint32 u32_StringID, MRH_Uint32 u32_GroupID)
+void SpeechMethod::PerformOutput(OutputStorage& c_OutputStorage)
+{
+    throw Exception("Default perform output function called!");
+}
+
+void SpeechMethod::OutputPerformed(MRH_Uint32 u32_StringID, MRH_Uint32 u32_GroupID)
 {
     try
     {

@@ -93,13 +93,13 @@ public:
     //*************************************************************************************
     
     /**
-     *  Reset all unfinished output.
+     *  Reset all unfinished output. This function is thread safe.
      */
     
     void ResetUnfinished() noexcept;
     
     /**
-     *  Reset all finished output.
+     *  Reset all finished output. This function is thread safe.
      */
     
     void ResetFinished() noexcept;
@@ -109,7 +109,7 @@ public:
     //*************************************************************************************
     
     /**
-     *  Add a output event to the storage.
+     *  Add a output event to the storage. This function is thread safe.
      *
      *  \param p_Event The event to add.
      *  \param u32_GroupID The group id of the event to add.
@@ -122,7 +122,7 @@ public:
     //*************************************************************************************
     
     /**
-     *  Check if a finished string is available.
+     *  Check if a finished string is available. This function is thread safe.
      *
      *  \return true if available, false if not.
      */
@@ -130,7 +130,7 @@ public:
     bool GetFinishedAvailable() noexcept;
     
     /**
-     *  Get the next finished UTF-8 string.
+     *  Get the next finished UTF-8 string. This function is thread safe.
      *
      *  \return The next finished UTF-8 string with its string id.
      */

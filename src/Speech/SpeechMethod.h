@@ -1,5 +1,5 @@
 /**
- *  SpeechEvent.h
+ *  SpeechMethod.h
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -19,19 +19,18 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef SpeechEvent_h
-#define SpeechEvent_h
+#ifndef SpeechMethod_h
+#define SpeechMethod_h
 
 // C / C++
-#include <mutex>
 
 // External
 
 // Project
-#include "../Exception.h"
+#include "./OutputStorage.h"
 
 
-class SpeechEvent
+class SpeechMethod
 {
 public:
     
@@ -43,7 +42,49 @@ public:
      *  Default destructor.
      */
     
-    virtual ~SpeechEvent() noexcept;
+    virtual ~SpeechMethod() noexcept;
+    
+    //*************************************************************************************
+    // Start
+    //*************************************************************************************
+    
+    /**
+     *  Start using this speech method.
+     */
+    
+    virtual void Start();
+    
+    //*************************************************************************************
+    // Stop
+    //*************************************************************************************
+    
+    /**
+     *  Stop using this speech method.
+     */
+    
+    virtual void Stop();
+    
+    //*************************************************************************************
+    // Listen
+    //*************************************************************************************
+    
+    /**
+     *  Listen to speech input.
+     */
+    
+    virtual void Listen();
+    
+    //*************************************************************************************
+    // Say
+    //*************************************************************************************
+    
+    /**
+     *  Perform speech output.
+     *
+     *  \param c_OutputStorage The output storage to use.
+     */
+    
+    virtual void PerformOutput(OutputStorage& c_OutputStorage);
     
 private:
     
@@ -88,7 +129,7 @@ protected:
      *  Default constructor.
      */
     
-    SpeechEvent() noexcept;
+    SpeechMethod() noexcept;
     
     //*************************************************************************************
     // Listen
@@ -116,4 +157,4 @@ protected:
     void OutputPerformed(MRH_Uint32 u32_StringID, MRH_Uint32 u32_GroupID);
 };
 
-#endif /* SpeechEvent_h */
+#endif /* SpeechMethod_h */

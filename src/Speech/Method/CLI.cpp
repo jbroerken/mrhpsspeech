@@ -1,5 +1,5 @@
 /**
- *  Speech.cpp
+ *  CLI.cpp
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -24,36 +24,51 @@
 // External
 
 // Project
-#include "./Speech.h"
-#include "./Method/CLI.h"
+#include "./CLI.h"
 
 
 //*************************************************************************************
 // Constructor / Destructor
 //*************************************************************************************
 
-Speech::Speech() noexcept : e_Method(MRH_EvSpeechMethod::TEXT)
-{
-    // Add methods
-    m_Method.insert(std::make_pair(CLI, new class CLI()));
-    
-    // Set initial method
-    Method = m_Method.find(CLI);
-}
+CLI::CLI() noexcept
+{}
 
-Speech::~Speech() noexcept
+CLI::~CLI() noexcept
 {}
 
 //*************************************************************************************
-// Getters
+// Start
 //*************************************************************************************
 
-OutputStorage& Speech::GetOutputStorage() noexcept
+void CLI::Start()
 {
-    return c_OutputStorage;
+    
 }
 
-MRH_EvSpeechMethod::Method Speech::GetMethod() noexcept
+//*************************************************************************************
+// Stop
+//*************************************************************************************
+
+void CLI::Stop()
 {
-    return e_Method;
+    
+}
+
+//*************************************************************************************
+// Listen
+//*************************************************************************************
+
+void CLI::Listen()
+{
+    
+}
+
+//*************************************************************************************
+// Say
+//*************************************************************************************
+
+void CLI::PerformOutput(OutputStorage& c_OutputStorage)
+{
+    
 }
