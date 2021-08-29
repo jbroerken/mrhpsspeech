@@ -99,7 +99,7 @@ set(LIB_BIN_LIST "${LIB_DIR_PATH}/libmrhev.a"
                  "${LIB_DIR_PATH}/libmrhcevs.a"
                  "${LIB_DIR_PATH}/libmrhbf.a"
                  "${LIB_DIR_PATH}/libmrhpsb.a"
-                 "${LIB_DIR_PATH}/libmrvt.a"
+                 "${LIB_DIR_PATH}/libmrhvt.a"
                  "${LIB_DIR_PATH}/libsodium.a")
 set(LIB_INCLUDE_LIST "${INCLUDE_DIR_PATH}/mrhshared"
                      "${INCLUDE_DIR_PATH}/libmrhev"
@@ -144,7 +144,7 @@ include_directories(${LIB_INCLUDE_LIST})
 ###
 target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SERVICE_THREAD_COUNT=1)
 target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_FILE_PATH="/etc/mrhpservice/Speech.conf")
-target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_CLI_ENABLED="0")
+target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_CLI_ENABLED=0)
 target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_CLI_SOCKET_PATH="/tmp/mrhpsspeech_cli.socket")
-target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SERVICE_PRINT_INPUT="0")
-target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SERVICE_PRINT_OUTPUT="0")
+target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SERVICE_PRINT_INPUT=0)
+target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SERVICE_PRINT_OUTPUT=0)

@@ -73,7 +73,7 @@ set(SRC_LIST_ALL "${SRC_DIR_PATH}/Exception.h"
 #  Add OS specific libraries in their own lists.
 ###
 set(INCLUDE_DIR_PATH "${CMAKE_SOURCE_DIR}/include/")
-set(LIB_INCLUDE_LIST "${INCLUDE_DIR_PATH}/libmrhbf")
+set(LIB_INCLUDE_LIST "${INCLUDE_DIR_PATH}/mrhshared")
 
 #########################################################################
 #

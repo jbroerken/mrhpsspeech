@@ -248,6 +248,13 @@ void CLI::Listen()
                 return;
             }
         }
+        else if (ss_Read == 0)
+        {
+            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "0 bytes read but polling succeeded!",
+                                           "CLI.cpp", __LINE__);
+            DisconnectClient();
+            return;
+        }
         else if (ss_Read > 0)
         {
             u32_Read += ss_Read;
@@ -259,7 +266,7 @@ void CLI::Listen()
     if (u32_Read > MRH_SPEECH_CLI_READ_SIZE && u32_Read == u32_Required)
     {
         MRH_Uint8* p_Start = &v_Read[MRH_SPEECH_CLI_READ_SIZE];
-        MRH_Uint8* p_End = &v_Read[u32_Required - 1];
+        MRH_Uint8* p_End = &v_Read[u32_Required];
         u32_Read = 0;
         
         try
@@ -301,7 +308,7 @@ void CLI::Say(OutputStorage& c_OutputStorage)
             v_Write.resize(c_String.s_String.size() + MRH_SPEECH_CLI_WRITE_SIZE, '\0');
         }
         
-        *((MRH_Uint32*)(&v_Write[0])) = static_cast<MRH_Uint32>(v_Write.size());
+        *((MRH_Uint32*)(&v_Write[0])) = static_cast<MRH_Uint32>(c_String.s_String.size());
         memcpy((MRH_Uint8*)&v_Write[MRH_SPEECH_CLI_WRITE_SIZE], c_String.s_String.data(), c_String.s_String.size());
         u32_Written = 0;
         

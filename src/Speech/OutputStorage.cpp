@@ -91,8 +91,7 @@ void OutputStorage::AddEvent(const MRH_S_STRING_U* p_Event, MRH_Uint32 u32_Group
                 throw Exception("Failed to add output to map!");
             }
             
-            c_UnfinishedMutex.unlock();
-            return;
+            Unfinished = m_Unfinished.find(p_Event->GetID());
         }
         catch (std::exception& e) // Catch all
         {
