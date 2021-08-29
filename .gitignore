@@ -51,3 +51,11 @@ xcode/mrhpsspeech/mrhpsspeech.xcodeproj/project.xcworkspace/xcuserdata/Jens.xcus
 xcode/mrhpsspeech/mrhpsspeech.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
 xcode/mrhpsspeech/mrhpsspeech.xcodeproj/project.xcworkspace/contents.xcworkspacedata
 xcode/mrhpsspeech/mrhpsspeech.xcodeproj/project.pbxproj
+./tools/mrhclispeech/xcode/*
+./tools/mrhclispeech/xcode
+./tools/mrhclispeech/xcode/mrhclispeech
+tools/mrhclispeech/xcode/mrhclispeech/mrhclispeech.xcodeproj/project.xcworkspace/contents.xcworkspacedata
+tools/mrhclispeech/xcode/mrhclispeech/mrhclispeech.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+tools/mrhclispeech/xcode/mrhclispeech/mrhclispeech.xcodeproj/project.xcworkspace/xcuserdata/Jens.xcuserdatad/UserInterfaceState.xcuserstate
+tools/mrhclispeech/xcode/mrhclispeech/mrhclispeech.xcodeproj/xcuserdata/Jens.xcuserdatad/xcschemes/xcschememanagement.plist
+tools/mrhclispeech/xcode/mrhclispeech/mrhclispeech.xcodeproj/project.pbxproj
