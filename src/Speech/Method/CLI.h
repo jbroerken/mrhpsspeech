@@ -25,6 +25,7 @@
 // C / C++
 #include <thread>
 #include <atomic>
+#include <vector>
 
 // External
 
@@ -104,6 +105,12 @@ private:
     bool PollSocket(int i_FD, int i_TimeoutMS) noexcept;
     
     /**
+     *  Disconnect a client.
+     */
+    
+    void DisconnectClient() noexcept;
+    
+    /**
      *  Update CLI method.
      *
      *  \param p_Instance The CLI instance to update.
@@ -120,6 +127,14 @@ private:
     
     int i_ConnectionFD;
     std::atomic<int> i_ClientFD;
+    
+    std::vector<MRH_Uint8> v_Read;
+    MRH_Uint32 u32_Read;
+    
+    std::vector<MRH_Uint8> v_Write;
+    MRH_Uint32 u32_Written;
+    MRH_Uint32 u32_SayStringID;
+    MRH_Uint32 u32_SayGroupID;
     
 protected:
 

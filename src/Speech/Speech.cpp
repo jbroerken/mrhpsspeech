@@ -28,6 +28,11 @@
 #include "./Speech.h"
 #include "./Method/CLI.h"
 
+// Pre-defined
+#ifndef MRH_SPEECH_CLI_ENABLED
+    #define MRH_SPEECH_CLI_ENABLED 0
+#endif
+
 
 //*************************************************************************************
 // Constructor / Destructor
@@ -44,7 +49,9 @@ Speech::Speech() noexcept : e_Method(MRH_EvSpeechMethod::TEXT),
             switch (i)
             {
                 case CLI:
+#if MRH_SPEECH_CLI_ENABLED > 0
                     m_Method.insert(std::make_pair(CLI, new class CLI()));
+#endif
                     break;
                 case MRH_SRV:
                     break;
@@ -109,16 +116,10 @@ void Speech::Update(Speech* p_Instance) noexcept
                     continue;
                 }
                 
-                try
-                {
-                    Active = Method.second;
-                }
-                catch (Exception& e)
-                {
-                    c_Logger.Log(MRH_PSBLogger::WARNING, e.what(),
-                                 "Speech.cpp", __LINE__);
-                    continue;
-                }
+                c_Logger.Log(MRH_PSBLogger::INFO, "Set speech method in use to " +
+                                                  std::to_string(Method.first),
+                             "Speech.cpp", __LINE__);
+                Active = Method.second;
                 
                 // Method callback - set correct method
                 switch (Method.first)

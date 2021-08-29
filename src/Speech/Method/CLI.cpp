@@ -39,6 +39,8 @@
 #ifndef MRH_SPEECH_CLI_SOCKET_PATH
     #define MRH_SPEECH_CLI_SOCKET_PATH "/tmp/mrhpsspeech_cli.socket"
 #endif
+#define MRH_SPEECH_CLI_READ_SIZE sizeof(MRH_Uint32)
+#define MRH_SPEECH_CLI_WRITE_SIZE sizeof(MRH_Uint32)
 
 
 //*************************************************************************************
@@ -47,7 +49,11 @@
 
 CLI::CLI() : b_Update(true),
              i_ConnectionFD(-1),
-             i_ClientFD(-1)
+             i_ClientFD(-1),
+             v_Read(0),
+             u32_Read(0),
+             v_Write(0),
+             u32_Written(0)
 {
     // @NOTE: No error check, might be closed correctly last time
     unlink(MRH_SPEECH_CLI_SOCKET_PATH);
@@ -89,6 +95,9 @@ CLI::CLI() : b_Update(true),
     {
         throw Exception("Failed to start CLI update thread: " + std::string(e.what()));
     }
+    
+    MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, "CLI socket now available.",
+                                   "CLI.cpp", __LINE__);
 }
 
 CLI::~CLI() noexcept
@@ -117,12 +126,28 @@ bool CLI::PollSocket(int i_FD, int i_TimeoutMS) noexcept
                                                                    std::to_string(errno) +
                                                                    ")!",
                                            "CLI.cpp", __LINE__);
+            DisconnectClient(); // Disconnect for safety
         case 0:
             return false;
             
         default:
             return true;
     }
+}
+
+void CLI::DisconnectClient() noexcept
+{
+    // Reset RW first before socket, so that no new connection
+    // happens during reset
+    u32_Read = 0;
+    u32_Written = static_cast<MRH_Uint32>(v_Write.size());
+    
+    // Close client
+    close(i_ClientFD);
+    i_ClientFD = -1;
+    
+    MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, "Disconnected CLI client.",
+                                   "CLI.cpp", __LINE__);
 }
 
 void CLI::Update(CLI* p_Instance) noexcept
@@ -156,11 +181,15 @@ void CLI::Update(CLI* p_Instance) noexcept
                                                "CLI.cpp", __LINE__);
             }
         }
+        else
+        {
+            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, "CLI client connection accepted.",
+                                           "CLI.cpp", __LINE__);
+        }
     }
     
     // Ended, close all
-    close(p_Instance->i_ClientFD);
-    p_Instance->i_ClientFD = -1;
+    p_Instance->DisconnectClient();
     
     close(p_Instance->i_ConnectionFD);
     p_Instance->i_ConnectionFD = -1;
@@ -172,10 +201,76 @@ void CLI::Update(CLI* p_Instance) noexcept
 
 void CLI::Listen()
 {
-    // No client, do nothing
+    // No client or data, do nothing
     if (i_ClientFD < 0)
     {
         return;
+    }
+    else if (PollSocket(i_ClientFD, 100) == false)
+    {
+        return;
+    }
+    
+    // Set the required size to be read
+    MRH_Uint32 u32_Required;
+    
+    if (u32_Read < MRH_SPEECH_CLI_READ_SIZE)
+    {
+        u32_Required = MRH_SPEECH_CLI_READ_SIZE;
+    }
+    else
+    {
+        u32_Required = (*((MRH_Uint32*)(v_Read.data()))) + MRH_SPEECH_CLI_READ_SIZE;
+    }
+    
+    // Resize vector if needed
+    if (v_Read.size() < u32_Required)
+    {
+        v_Read.resize(u32_Required, '\0');
+    }
+    
+    // Read to vector
+    ssize_t ss_Read;
+    
+    do
+    {
+        if ((ss_Read = read(i_ClientFD, &(v_Read[u32_Read]), u32_Required - u32_Read)) < 0)
+        {
+            if (errno != EAGAIN)
+            {
+                MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "CLI read failed: " +
+                                                                       std::string(std::strerror(errno)) +
+                                                                       " (" +
+                                                                       std::to_string(errno) +
+                                                                       ")!",
+                                               "CLI.cpp", __LINE__);
+                DisconnectClient();
+                return;
+            }
+        }
+        else if (ss_Read > 0)
+        {
+            u32_Read += ss_Read;
+        }
+    }
+    while (ss_Read > 0 && u32_Read < u32_Required);
+    
+    // Read message? Add events if so
+    if (u32_Read > MRH_SPEECH_CLI_READ_SIZE && u32_Read == u32_Required)
+    {
+        MRH_Uint8* p_Start = &v_Read[MRH_SPEECH_CLI_READ_SIZE];
+        MRH_Uint8* p_End = &v_Read[u32_Required - 1];
+        u32_Read = 0;
+        
+        try
+        {
+            SendInput(std::string(p_Start, p_End));
+        }
+        catch (Exception& e)
+        {
+            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, e.what(),
+                                           "CLI.cpp", __LINE__);
+        }
     }
 }
 
@@ -189,6 +284,69 @@ void CLI::Say(OutputStorage& c_OutputStorage)
     if (i_ClientFD < 0)
     {
         return;
+    }
+    
+    // Grab something new to write?
+    if (v_Write.size() == u32_Written)
+    {
+        if (c_OutputStorage.GetFinishedAvailable() == false)
+        {
+            return;
+        }
+        
+        OutputStorage::String c_String = c_OutputStorage.GetFinishedString();
+        
+        if (v_Write.size() < (c_String.s_String.size() + MRH_SPEECH_CLI_WRITE_SIZE))
+        {
+            v_Write.resize(c_String.s_String.size() + MRH_SPEECH_CLI_WRITE_SIZE, '\0');
+        }
+        
+        *((MRH_Uint32*)(&v_Write[0])) = static_cast<MRH_Uint32>(v_Write.size());
+        memcpy((MRH_Uint8*)&v_Write[MRH_SPEECH_CLI_WRITE_SIZE], c_String.s_String.data(), c_String.s_String.size());
+        u32_Written = 0;
+        
+        u32_SayStringID = c_String.u32_StringID;
+        u32_SayGroupID = c_String.u32_GroupID;
+    }
+    
+    // Write as much as possible
+    ssize_t ss_Write;
+    
+    do
+    {
+        if ((ss_Write = write(i_ClientFD, &(v_Write[u32_Written]), v_Write.size() - u32_Written)) < 0)
+        {
+            if (errno != EAGAIN)
+            {
+                MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "CLI write failed: " +
+                                                                       std::string(std::strerror(errno)) +
+                                                                       " (" +
+                                                                       std::to_string(errno) +
+                                                                       ")!",
+                                               "CLI.cpp", __LINE__);
+                DisconnectClient();
+                return;
+            }
+        }
+        else if (ss_Write > 0)
+        {
+            u32_Written += ss_Write;
+        }
+    }
+    while (ss_Write >= 0 && u32_Written < v_Write.size());
+    
+    // Fully written?
+    if (u32_Written == v_Write.size())
+    {
+        try
+        {
+            OutputPerformed(u32_SayStringID, u32_SayGroupID);
+        }
+        catch (Exception& e)
+        {
+            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, e.what(),
+                                           "CLI.cpp", __LINE__);
+        }
     }
 }
 
