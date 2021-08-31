@@ -81,7 +81,9 @@ set(SRC_LIST_SPEECH "${SRC_DIR_PATH}/Speech/Method/CLI.cpp"
                     "${SRC_DIR_PATH}/Speech/Speech.cpp"
                     "${SRC_DIR_PATH}/Speech/Speech.h")
                        
-set(SRC_LIST_SERVICE "${SRC_DIR_PATH}/Exception.h"
+set(SRC_LIST_SERVICE "${SRC_DIR_PATH}/Configuration.cpp"
+                     "${SRC_DIR_PATH}/Configuration.h"
+                     "${SRC_DIR_PATH}/Exception.h"
                      "${SRC_DIR_PATH}/Revision.h"
                      "${SRC_DIR_PATH}/Main.cpp")
 
@@ -143,7 +145,7 @@ include_directories(${LIB_INCLUDE_LIST})
 #  Preprocessor source definitions.
 ###
 target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SERVICE_THREAD_COUNT=1)
-target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_FILE_PATH="/etc/mrhpservice/Speech.conf")
+target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_CONFIGURATION_PATH="/etc/mrhpservice/Speech.conf")
 target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_CLI_ENABLED=0)
 target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_CLI_SOCKET_PATH="/tmp/mrhpsspeech_cli.socket")
 target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SERVICE_PRINT_INPUT=0)
