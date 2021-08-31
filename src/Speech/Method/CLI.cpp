@@ -96,7 +96,9 @@ CLI::CLI() : b_Update(true),
         throw Exception("Failed to start CLI update thread: " + std::string(e.what()));
     }
     
-    MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, "CLI socket now available.",
+    MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, "CLI socket now available at " +
+                                                        std::string(MRH_SPEECH_CLI_SOCKET_PATH) +
+                                                        ".",
                                    "CLI.cpp", __LINE__);
 }
 
@@ -223,11 +225,8 @@ void CLI::Listen()
         u32_Required = (*((MRH_Uint32*)(v_Read.data()))) + MRH_SPEECH_CLI_READ_SIZE;
     }
     
-    // Resize vector if needed
-    if (v_Read.size() < u32_Required)
-    {
-        v_Read.resize(u32_Required, '\0');
-    }
+    // Resize vector to string size
+    v_Read.resize(u32_Required, '\0');
     
     // Read to vector
     ssize_t ss_Read;
@@ -303,10 +302,7 @@ void CLI::Say(OutputStorage& c_OutputStorage)
         
         OutputStorage::String c_String = c_OutputStorage.GetFinishedString();
         
-        if (v_Write.size() < (c_String.s_String.size() + MRH_SPEECH_CLI_WRITE_SIZE))
-        {
-            v_Write.resize(c_String.s_String.size() + MRH_SPEECH_CLI_WRITE_SIZE, '\0');
-        }
+        v_Write.resize(c_String.s_String.size() + MRH_SPEECH_CLI_WRITE_SIZE, '\0');
         
         *((MRH_Uint32*)(&v_Write[0])) = static_cast<MRH_Uint32>(c_String.s_String.size());
         memcpy((MRH_Uint8*)&v_Write[MRH_SPEECH_CLI_WRITE_SIZE], c_String.s_String.data(), c_String.s_String.size());

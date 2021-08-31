@@ -109,10 +109,7 @@ static void Read() noexcept
             u32_Required = (*((MRH_Uint32*)(v_Read.data()))) + MRH_SPEECH_CLI_READ_SIZE;
         }
         
-        if (v_Read.size() < u32_Required)
-        {
-            v_Read.resize(u32_Required, '\0');
-        }
+        v_Read.resize(u32_Required, '\0');
         
         // Read to vector
         do
@@ -143,7 +140,7 @@ static void Read() noexcept
         if (u32_Read > MRH_SPEECH_CLI_READ_SIZE && u32_Read == u32_Required)
         {
             MRH_Uint8* p_Start = &v_Read[MRH_SPEECH_CLI_READ_SIZE];
-            MRH_Uint8* p_End = &v_Read[u32_Required - 1];
+            MRH_Uint8* p_End = &v_Read[u32_Required];
             u32_Read = 0;
             
             std::cout << std::string(p_Start, p_End) << std::endl;
@@ -178,10 +175,7 @@ static void Write() noexcept
         }
         
         // Prepare
-        if (v_Write.size() < (s_Input.size() + MRH_SPEECH_CLI_WRITE_SIZE))
-        {
-            v_Write.resize(s_Input.size() + MRH_SPEECH_CLI_WRITE_SIZE, '\0');
-        }
+        v_Write.resize(s_Input.size() + MRH_SPEECH_CLI_WRITE_SIZE, '\0');
         
         *((MRH_Uint32*)(&v_Write[0])) = static_cast<MRH_Uint32>(s_Input.size());
         memcpy((MRH_Uint8*)&v_Write[MRH_SPEECH_CLI_WRITE_SIZE], s_Input.data(), s_Input.size());
@@ -244,7 +238,7 @@ int main(int argc, char* argv[])
     
     if (connect(i_FD, (struct sockaddr*)&c_Address, us_AddressLength) < 0)
     {
-        std::cout << "[ ERROR ] Connection failed!" << std::endl;
+        std::cout << "[ ERROR ] Connection failed for " << MRH_SPEECH_CLI_SOCKET_PATH << "!" << std::endl;
         close(i_FD);
         return EXIT_FAILURE;
     }

@@ -124,7 +124,9 @@ void OutputStorage::AddEvent(const MRH_S_STRING_U* p_Event, MRH_Uint32 u32_Group
                     break;
                     
                 default:
-                    throw Exception("Unknown speech string state!");
+                    MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "Unknown speech string state!",
+                                                   "OutputStorage.cpp", __LINE__);
+                    break;
             }
         }
         else
