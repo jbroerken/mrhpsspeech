@@ -38,8 +38,8 @@
 // Constructor / Destructor
 //*************************************************************************************
 
-Speech::Speech() noexcept : e_Method(MRH_EvSpeechMethod::TEXT),
-                            b_Update(true)
+Speech::Speech() : e_Method(MRH_EvSpeechMethod::TEXT),
+                   b_Update(true)
 {
     // Add methods
     for (size_t i = 0; i < METHOD_COUNT; ++i)

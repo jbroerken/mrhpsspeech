@@ -27,7 +27,7 @@ set(CMAKE_CXX_STANDARD 14)
 #  ------------
 #  General simple information about our project.
 ###
-project(mrhclispeech VERSION 1.0
+project(mrhclispeech VERSION 1.0.0
                      DESCRIPTION "MRH CLI speech binary"
                      LANGUAGES CXX)
 
@@ -38,12 +38,11 @@ project(mrhclispeech VERSION 1.0
 #########################################################################
 
 ###
-#  Binary Paths
-#  ------------
+#  Install Paths
+#  -------------
 #  The paths for our created binary file(s).
 ###
-set(BIN_DIR_PATH "${CMAKE_SOURCE_DIR}/bin/")
-file(MAKE_DIRECTORY ${BIN_DIR_PATH})
+set(BIN_INSTALL_PATH "/usr/local/bin/")
 
 ###
 #  Build Paths
@@ -65,16 +64,6 @@ set(SRC_LIST_ALL "${SRC_DIR_PATH}/Exception.h"
                  "${SRC_DIR_PATH}/Main.cpp"
                  "${SRC_DIR_PATH}/Revision.h")
 
-###
-#  Library Paths
-#  -------------
-#  The paths to the external libraries to use. 
-#  Both the binary and include paths should be set here.
-#  Add OS specific libraries in their own lists.
-###
-set(INCLUDE_DIR_PATH "${CMAKE_SOURCE_DIR}/include/")
-set(LIB_INCLUDE_LIST "${INCLUDE_DIR_PATH}/mrhshared")
-
 #########################################################################
 #
 #  TARGET
@@ -87,18 +76,18 @@ set(LIB_INCLUDE_LIST "${INCLUDE_DIR_PATH}/mrhshared")
 #  The target(s) to build.
 ###
 add_executable(mrhclispeech ${SRC_LIST_ALL})
-set_target_properties(mrhclispeech
-                      PROPERTIES
-                      ARCHIVE_OUTPUT_DIRECTORY ${BIN_DIR_PATH}
-                      LIBRARY_OUTPUT_DIRECTORY ${BIN_DIR_PATH}
-                      RUNTIME_OUTPUT_DIRECTORY ${BIN_DIR_PATH})
 
 ###
 #  Required Libraries
 #  ------------------
 #  Libraries required by this application.
 ###
-include_directories(${LIB_INCLUDE_LIST})
+set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+
+find_package(Threads REQUIRED)
+
+target_link_libraries(mrhclispeech PUBLIC Threads::Threads)
 
 ###
 #  Source Definitions
@@ -106,3 +95,11 @@ include_directories(${LIB_INCLUDE_LIST})
 #  Preprocessor source definitions.
 ###
 target_compile_definitions(mrhclispeech PRIVATE MRH_SPEECH_CLI_SOCKET_PATH="/tmp/mrhpsspeech_cli.socket")
+
+###
+#  Install
+#  -------
+#  Application installation.
+###
+install(TARGETS mrhclispeech
+        DESTINATION ${BIN_INSTALL_PATH})

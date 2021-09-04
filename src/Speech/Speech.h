@@ -46,7 +46,7 @@ public:
      *  Default constructor.
      */
     
-    Speech() noexcept;
+    Speech();
     
     /**
      *  Default destructor.

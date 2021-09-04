@@ -28,6 +28,7 @@
 #include <fcntl.h>
 #include <poll.h>
 #include <errno.h>
+#include <cstring>
 
 // External
 #include <libmrhpsb/MRH_PSBLogger.h>

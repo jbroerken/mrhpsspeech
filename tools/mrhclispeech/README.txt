@@ -40,5 +40,4 @@ Their names and descriptions are as follows:
 Directory List:
 bin: Contains the built project executables.
 build: CMake build directory.
-include: Library header files used by the project.
 src: Project source code.
