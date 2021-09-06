@@ -32,7 +32,7 @@ libmrhcevs: https://github.com/jbroerken/libmrhcevs/
 libmrhev: https://github.com/jbroerken/libmrhev/
 libmrhpsb: https://github.com/jbroerken/libmrhpsb/
 mrhshared: https://github.com/jbroerken/mrhshared/
-libsodium | https://github.com/jedisct1/libsodium/
+libsodium | https://libsodium.gitbook.io/doc/
 
 For more information about the requirements, check the "Building" section found in the documentation.
 
