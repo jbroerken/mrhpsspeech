@@ -27,6 +27,7 @@
 // Project
 #include "./Speech.h"
 #include "./Method/CLI.h"
+#include "./Method/Voice.h"
 
 // Pre-defined
 #ifndef MRH_SPEECH_CLI_ENABLED
@@ -56,6 +57,7 @@ Speech::Speech() : e_Method(MRH_EvSpeechMethod::TEXT),
                 case MRH_SRV:
                     break;
                 case VOICE:
+                    m_Method.insert(std::make_pair(VOICE, new class VoiceMethod()));
                     break;
             }
         }
