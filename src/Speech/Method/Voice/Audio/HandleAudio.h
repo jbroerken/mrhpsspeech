@@ -1,5 +1,5 @@
 /**
- *  ReadAudio.h
+ *  HandleAudio.h
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -19,19 +19,18 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef ReadAudio_h
-#define ReadAudio_h
+#ifndef HandleAudio_h
+#define HandleAudio_h
 
 // C / C++
 
 // External
-#include <pocketsphinx.h>
 
 // Project
-#include "../../../Exception.h"
+#include "./ReadAudio.h"
 
 
-class ReadAudio
+class HandleAudio : protected ReadAudio
 {
 public:
     
@@ -43,16 +42,13 @@ public:
      *  Default destructor.
      */
     
-    virtual ~ReadAudio() noexcept;
+    virtual ~HandleAudio() noexcept;
     
 private:
     
     //*************************************************************************************
     // Data
     //*************************************************************************************
-    
-    ps_decoder_t* p_Decoder;
-    cmd_ln_t* p_Config;
     
     std::string s_Locale;
     
@@ -66,7 +62,7 @@ protected:
      *  Default constructor.
      */
     
-    ReadAudio();
+    HandleAudio();
     
     //*************************************************************************************
     // Getters
@@ -81,4 +77,4 @@ protected:
     std::string GetLocale() const noexcept;
 };
 
-#endif /* ReadAudio_h */
+#endif /* HandleAudio_h */

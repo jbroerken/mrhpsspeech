@@ -32,7 +32,7 @@
     #define MRH_SPEECH_SPHINX_LISTEN_PATH "/var/mrh/mrhpsspeech/sphinx/listen/"
 #endif
 #define MRH_SPEECH_SPHINX_LISTEN_LM_EXT ".lm.bin"
-#define MRH_SPEECH_SPHINX_LISTEN_DICT_EXT "-dict.dict"
+#define MRH_SPEECH_SPHINX_LISTEN_DICT_EXT ".dict"
 
 
 //*************************************************************************************

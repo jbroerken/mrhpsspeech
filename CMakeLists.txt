@@ -30,7 +30,14 @@ set(CMAKE_CXX_STANDARD 14)
 #  0: CMU PocketSphinx
 #  1: Google Cloud API
 ###
+option(VOICE_METHOD_GOOGLE "Use Google Cloud API for speech recognition" OFF)
+
 set(MRH_VOICE_METHOD 0)
+
+if(VOICE_METHOD_GOOGLE)
+    set(MRH_VOICE_METHOD 0) # TODO: Set to 1
+endif(VOICE_METHOD_GOOGLE)
+unset(VOICE_METHOD_GOOGLE CACHE)
 
 ###
 #  Project Info
@@ -81,8 +88,10 @@ set(SRC_LIST_CALLBACK "${SRC_DIR_PATH}/Callback/Service/CBAvail.cpp"
                       "${SRC_DIR_PATH}/Callback/Speech/CBSpeechMethod.cpp"
                       "${SRC_DIR_PATH}/Callback/Speech/CBSpeechMethod.h")
                  
-set(SRC_LIST_SPEECH "${SRC_DIR_PATH}/Speech/Method/Voice/ReadAudio.cpp"
-                    "${SRC_DIR_PATH}/Speech/Method/Voice/ReadAudio.h"
+set(SRC_LIST_SPEECH "${SRC_DIR_PATH}/Speech/Method/Voice/Audio/ReadAudio.cpp"
+                    "${SRC_DIR_PATH}/Speech/Method/Voice/Audio/ReadAudio.h"
+                    "${SRC_DIR_PATH}/Speech/Method/Voice/Audio/HandleAudio.cpp"
+                    "${SRC_DIR_PATH}/Speech/Method/Voice/Audio/HandleAudio.h"
                     "${SRC_DIR_PATH}/Speech/Method/CLI.cpp"
                     "${SRC_DIR_PATH}/Speech/Method/CLI.h"
                     "${SRC_DIR_PATH}/Speech/Method/Voice.h"
@@ -93,16 +102,13 @@ set(SRC_LIST_SPEECH "${SRC_DIR_PATH}/Speech/Method/Voice/ReadAudio.cpp"
                     "${SRC_DIR_PATH}/Speech/Speech.cpp"
                     "${SRC_DIR_PATH}/Speech/Speech.h")
                        
-if(MRH_VOICE_METHOD == 1)
-{
+if(MRH_VOICE_METHOD MATCHES 1)
     set(SRC_LIST_VOICE_METHOD "${SRC_DIR_PATH}/Speech/Method/Voice/GoogleCloudAPI.cpp"
                               "${SRC_DIR_PATH}/Speech/Method/Voice/GoogleCloudAPI.h")
-}
-else # Default, PocketSphinx
-{
+else() # Default, PocketSphinx
     set(SRC_LIST_VOICE_METHOD "${SRC_DIR_PATH}/Speech/Method/Voice/PocketSphinx.cpp"
                               "${SRC_DIR_PATH}/Speech/Method/Voice/PocketSphinx.h")
-}                       
+endif()                  
 
 set(SRC_LIST_SERVICE "${SRC_DIR_PATH}/Configuration.cpp"
                      "${SRC_DIR_PATH}/Configuration.h"
@@ -144,6 +150,13 @@ find_library(libsodium NAMES sodium REQUIRED)
 find_library(libsphinxad NAMES sphinxad REQUIRED)
 find_library(libsphinxbase NAMES sphinxbase REQUIRED)
 find_library(libpocketsphinx NAMES pocketsphinx REQUIRED)
+find_library(libsdl2 NAMES sdl2 REQUIRED)
+find_library(libsdl2_mixer NAMES sdl2_mixer REQUIRED)
+
+if(APPLE)
+    include_directories("/usr/local/include/sphinxbase")
+    include_directories("/usr/local/include/pocketsphinx")
+endif()
 
 target_link_libraries(mrhpsspeech PUBLIC Threads::Threads)
 target_link_libraries(mrhpsspeech PUBLIC mrhbf)
@@ -155,6 +168,8 @@ target_link_libraries(mrhpsspeech PUBLIC sodium)
 target_link_libraries(mrhpsspeech PUBLIC sphinxad)
 target_link_libraries(mrhpsspeech PUBLIC sphinxbase)
 target_link_libraries(mrhpsspeech PUBLIC pocketsphinx)
+target_link_libraries(mrhpsspeech PUBLIC sdl2)
+target_link_libraries(mrhpsspeech PUBLIC sdl2_mixer)
 
 ###
 #  Source Definitions
@@ -169,17 +184,14 @@ target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SERVICE_PRINT_INPUT=1)
 target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SERVICE_PRINT_OUTPUT=1)
 target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SPHINX_TRIGGER_PATH="/var/mrh/mrhpsspeech/sphinx/trigger/")
 
-if(MRH_SPEECH_TYPE == 1)
-{
+if(MRH_SPEECH_TYPE MATCHES 1)
     # TODO Change
     target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_USE_VOICE_METHOD=0)
     target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SPHINX_LISTEN_PATH="/var/mrh/mrhpsspeech/sphinx/listen/")
-}
-else # Default, use PocketSphinx
-{
+else() # Default, use PocketSphinx
     target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_USE_VOICE_METHOD=0)
     target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SPHINX_LISTEN_PATH="/var/mrh/mrhpsspeech/sphinx/listen/")
-}
+endif()
 
 ###
 #  Install

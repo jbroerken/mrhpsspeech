@@ -98,6 +98,46 @@ public:
     
     MRH_Uint32 GetTriggerTimeoutS() noexcept;
     
+    /**
+     *  Get the id of the device used for listening. This function is thread safe.
+     *
+     *  \return The id of the device used for listening.
+     */
+    
+    MRH_Uint32 GetDeviceInID() noexcept;
+    
+    /**
+     *  Get the listen buffer size in seconds. This function is thread safe.
+     *
+     *  \return The listen buffer size in seconds.
+     */
+    
+    MRH_Uint32 GetListenBufferS() noexcept;
+    
+    /**
+     *  Get the listen KHz. This function is thread safe.
+     *
+     *  \return The listen KHz.
+     */
+    
+    MRH_Uint32 GetListenKHz() noexcept;
+    
+    /**
+     *  Get the listen channels. This function is thread safe.
+     *
+     *  \return The listen channels.
+     */
+    
+    MRH_Uint8 GetListenChannels() noexcept;
+    
+    /**
+     *  Get the listen samples. This function is thread safe.
+     *
+     *  \return The listen samples.
+     */
+    
+    MRH_Uint32 GetListenSamples() noexcept;
+    
 private:
     
     //*************************************************************************************
@@ -126,6 +166,13 @@ private:
     std::string s_TriggerString;
     MRH_Sfloat32 f32_TriggerLSSimilarity;
     MRH_Uint32 u32_TriggerTimeoutS;
+    
+    // Voice
+    MRH_Uint32 u32_DeviceInID;
+    MRH_Uint32 u32_ListenBufferS;
+    MRH_Uint32 u32_ListenKHz;
+    MRH_Uint8 u8_ListenChannels;
+    MRH_Uint32 u32_ListenSamples;
     
 protected:
 

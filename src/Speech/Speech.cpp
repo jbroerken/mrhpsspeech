@@ -39,7 +39,7 @@
 // Constructor / Destructor
 //*************************************************************************************
 
-Speech::Speech() : e_Method(MRH_EvSpeechMethod::TEXT),
+Speech::Speech() : e_Method(MRH_EvSpeechMethod::VOICE),
                    b_Update(true)
 {
     // Add methods

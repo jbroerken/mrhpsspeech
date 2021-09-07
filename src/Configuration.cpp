@@ -40,14 +40,22 @@ namespace
     {
         // Block Name
         BLOCK_TRIGGER = 0,
+        BLOCK_VOICE = 1,
         
         // Trigger Key
-        TRIGGER_STRING = 1,
-        TRIGGER_LS_SIMILARITY = 2,
-        TRIGGER_TIMEOUT_S = 3,
-
+        TRIGGER_STRING = 2,
+        TRIGGER_LS_SIMILARITY = 3,
+        TRIGGER_TIMEOUT_S = 4,
+        
+        // Voice Key
+        VOICE_DEVICE_IN_ID = 5,
+        VOICE_LISTEN_BUFFER_S = 6,
+        VOICE_LISTEN_KHZ = 7,
+        VOICE_LISTEN_CHANNELS,
+        VOICE_LISTEN_SAMPLES,
+        
         // Bounds
-        IDENTIFIER_MAX = TRIGGER_TIMEOUT_S,
+        IDENTIFIER_MAX = VOICE_LISTEN_SAMPLES,
 
         IDENTIFIER_COUNT = IDENTIFIER_MAX + 1
     };
@@ -56,11 +64,19 @@ namespace
     {
         // Block Name
         "Trigger",
+        "Voice",
         
-        // Configuration Key
+        // Trigger Key
         "String",
         "LSSimilarity",
-        "TimeoutS"
+        "TimeoutS",
+        
+        // Voice Key
+        "DeviceInID",
+        "ListenBufferS",
+        "ListenKHz",
+        "ListenChannels",
+        "ListenSamples"
     };
 }
 
@@ -71,7 +87,12 @@ namespace
 
 Configuration::Configuration() noexcept : s_TriggerString("Susu"),
                                           f32_TriggerLSSimilarity(0.75f),
-                                          u32_TriggerTimeoutS(15000)
+                                          u32_TriggerTimeoutS(30),
+                                          u32_DeviceInID(0),
+                                          u32_ListenBufferS(10),
+                                          u32_ListenKHz(44100),
+                                          u8_ListenChannels(2),
+                                          u32_ListenSamples(4096)
 {}
 
 Configuration::~Configuration() noexcept
@@ -110,6 +131,14 @@ void Configuration::Load()
                     f32_TriggerLSSimilarity = std::stof(Block.GetValue(p_Identifier[TRIGGER_LS_SIMILARITY]));
                     u32_TriggerTimeoutS = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[TRIGGER_TIMEOUT_S])));
                 }
+                else if (Block.GetName().compare(p_Identifier[BLOCK_VOICE]) == 0)
+                {
+                    u32_DeviceInID = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[VOICE_DEVICE_IN_ID])));
+                    u32_ListenBufferS = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[VOICE_LISTEN_BUFFER_S])));
+                    u32_ListenKHz = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[VOICE_LISTEN_KHZ])));
+                    u8_ListenChannels = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[VOICE_LISTEN_CHANNELS])));
+                    u32_ListenSamples = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[VOICE_LISTEN_SAMPLES])));
+                }
             }
             catch (MRH_BFException& e)
             {
@@ -144,4 +173,34 @@ MRH_Uint32 Configuration::GetTriggerTimeoutS() noexcept
 {
     std::lock_guard<std::mutex> c_Guard(c_Mutex);
     return u32_TriggerTimeoutS;
+}
+
+MRH_Uint32 Configuration::GetDeviceInID() noexcept
+{
+    std::lock_guard<std::mutex> c_Guard(c_Mutex);
+    return u32_DeviceInID;
+}
+
+MRH_Uint32 Configuration::GetListenBufferS() noexcept
+{
+    std::lock_guard<std::mutex> c_Guard(c_Mutex);
+    return u32_ListenBufferS;
+}
+
+MRH_Uint32 Configuration::GetListenKHz() noexcept
+{
+    std::lock_guard<std::mutex> c_Guard(c_Mutex);
+    return u32_ListenKHz;
+}
+
+MRH_Uint8 Configuration::GetListenChannels() noexcept
+{
+    std::lock_guard<std::mutex> c_Guard(c_Mutex);
+    return u8_ListenChannels;
+}
+
+MRH_Uint32 Configuration::GetListenSamples() noexcept
+{
+    std::lock_guard<std::mutex> c_Guard(c_Mutex);
+    return u32_ListenSamples;
 }

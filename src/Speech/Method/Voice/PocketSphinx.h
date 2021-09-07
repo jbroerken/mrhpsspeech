@@ -30,11 +30,11 @@
 
 // Project
 #include "../../SpeechMethod.h"
-#include "./ReadAudio.h"
+#include "./Audio/HandleAudio.h"
 
 
 class PocketSphinx : public SpeechMethod,
-                     private ReadAudio
+                     private HandleAudio
 {
 public:
     
