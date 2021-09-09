@@ -59,15 +59,30 @@ PAMicrophone::PAMicrophone()
     c_Audio.u8_Channels = c_Configuration.GetPAMicChannels();
     c_Audio.u32_StreamLengthS = c_Configuration.GetPAMicStreamLengthS();
     
+    // Set input stream info
+    PaStreamParameters c_InputParameters;
+    MRH_Uint32 u32_DevID = c_Configuration.GetPAMicDeviceID();
+    
+    bzero(&c_InputParameters, sizeof(c_InputParameters));
+    c_InputParameters.channelCount = c_Audio.u8_Channels;
+    c_InputParameters.device = u32_DevID;
+    c_InputParameters.hostApiSpecificStreamInfo = NULL;
+    c_InputParameters.sampleFormat = c_Audio.u16_Format;
+    c_InputParameters.suggestedLatency = Pa_GetDeviceInfo(u32_DevID)->defaultLowInputLatency;
+    c_InputParameters.hostApiSpecificStreamInfo = NULL; //See you specific host's API docs for info on using this field
+    
+    printf("DevInfo: %s\n", Pa_GetDeviceInfo(u32_DevID)->name);
+    printf("Channels: %d\n", Pa_GetDeviceInfo(u32_DevID)->maxInputChannels);
+    
     // Open audio stream
-    i_Error = Pa_OpenDefaultStream(&p_Stream,
-                                   c_Audio.u8_Channels,
-                                   0,
-                                   paInt16,
-                                   c_Audio.u32_KHz,
-                                   c_Configuration.GetPAMicSamples(),
-                                   PACallback,
-                                   &c_Audio);
+    i_Error = Pa_OpenStream(&p_Stream,
+                            &c_InputParameters,
+                            NULL, // No output info
+                            c_Audio.u32_KHz,
+                            c_Configuration.GetPAMicSamples(),
+                            paClipOff,// paNoFlag,
+                            PACallback,
+                            &c_Audio);
     
     if (i_Error != paNoError)
     {
@@ -79,48 +94,6 @@ PAMicrophone::PAMicrophone()
     {
         throw Exception("Failed to start PortAudio stream! " + std::string(Pa_GetErrorText(i_Error)));
     }
-    
-    /*
-    // Define audio input format
-    SDL_AudioSpec c_Want;
-    SDL_AudioSpec c_Have;
-
-    SDL_zero(c_Want);
-    
-    c_Want.freq = c_Stream.u32_KHz;
-    c_Want.format = c_Stream.u16_Format;
-    c_Want.channels = c_Stream.u8_Channels;
-    c_Want.samples = c_Configuration.GetPAMicSamples();
-    c_Want.callback = &SDLCallback;
-    c_Want.userdata = &c_Stream;
-    
-    // Open device
-    if (SDL_GetNumAudioDevices(1) == 0)
-    {
-        throw Exception("No audio recording devices!");
-    }
-    
-    std::string s_DevName = SDL_GetAudioDeviceName(c_Configuration.GetSDLMicDeviceID(), 1);
-    MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, "Using audio recording device: " + s_DevName,
-                                   "SDLMicrophone.cpp", __LINE__);
-    
-    if ((u32_DevID = SDL_OpenAudioDevice(s_DevName.c_str(), 1, &c_Want, &c_Have, 0)) == 0)
-    {
-        throw Exception("Failed to open audio recording device " + std::to_string(c_Configuration.GetSDLMicDeviceID()) + "!");
-    }
-    
-    if (c_Want.format != c_Have.format ||
-        c_Want.freq != c_Have.freq ||
-        c_Want.channels != c_Have.channels)
-    {
-        SDL_CloseAudioDevice(u32_DevID);
-        u32_DevID = 0;
-        
-        throw Exception("Unusbale format for audio recording device " + std::to_string(c_Configuration.GetSDLMicDeviceID()) + "!");
-    }
-    
-    SDL_PauseAudioDevice(u32_DevID, 0);
-    */
 }
 
 PAMicrophone::~PAMicrophone() noexcept
@@ -149,7 +122,7 @@ PAMicrophone::~PAMicrophone() noexcept
 
 PAMicrophone::Audio::Audio() noexcept : u16_Format(paInt16),
                                         u32_KHz(16000),
-                                        u8_Channels(2),
+                                        u8_Channels(1),
                                         u32_StreamLengthS(5)
 {}
 
@@ -163,7 +136,7 @@ PAMicrophone::Audio::~Audio() noexcept
 
 PAMicrophone::Sample::Sample() noexcept : u16_Format(paInt16),
                                           u32_KHz(16000),
-                                          u8_Channels(2),
+                                          u8_Channels(1),
                                           f32_Amplitude(0.f),
                                           f32_Peak(0.f),
                                           u64_TimepointS(0)
@@ -296,7 +269,62 @@ int PAMicrophone::PACallback(const void* p_Input,
                              PaStreamCallbackFlags e_StatusFlags,
                              void* p_UserData) noexcept
 {
+    PAMicrophone::Audio* p_Audio = static_cast<PAMicrophone::Audio*>(p_UserData);
+    
+    printf("Frame Count: %lu\n", u32_FrameCount);
+    
+    for (size_t i = 0; i < u32_FrameCount; ++i)
+    {
+        printf("Data: %d\n", ((MRH_Sint16*)p_Output)[i]);
+    }
+    
+    return 0;
+    
+    /*
+    paTestData *data = (paTestData*)userData;
+      100     const SAMPLE *rptr = (const SAMPLE*)inputBuffer;
+      101     SAMPLE *wptr = &data->recordedSamples[data->frameIndex * NUM_CHANNELS];
+      102     long framesToCalc;
+      103     long i;
+      104     int finished;
+      105     unsigned long framesLeft = data->maxFrameIndex - data->frameIndex;
+      106
+      107     (void) outputBuffer; // Prevent unused variable warnings.
+      108     (void) timeInfo;
+      109     (void) statusFlags;
+      110     (void) userData;
+      111
+      112     if( framesLeft < framesPerBuffer )
+      113     {
+      114         framesToCalc = framesLeft;
+      115         finished = paComplete;
+      116     }
+      117     else
+      118     {
+      119         framesToCalc = framesPerBuffer;
+      120         finished = paContinue;
+      121     }
+      122
+      123     if( inputBuffer == NULL )
+      124     {
+      125         for( i=0; i<framesToCalc; i++ )
+      126         {
+      127             *wptr++ = SAMPLE_SILENCE;  // left
+      128             if( NUM_CHANNELS == 2 ) *wptr++ = SAMPLE_SILENCE;  // right
+      129         }
+      130     }
+      131     else
+      132     {
+      133         for( i=0; i<framesToCalc; i++ )
+      134         {
+      135             *wptr++ = *rptr++;  // left
+      136             if( NUM_CHANNELS == 2 ) *wptr++ = *rptr++;  // right
+      137         }
+      138     }
+      139     data->frameIndex += framesToCalc;
+      140     return finished;
     return -1;
+     */
 }
 
 //*************************************************************************************

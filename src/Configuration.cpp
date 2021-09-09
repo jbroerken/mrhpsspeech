@@ -31,7 +31,7 @@
 
 // Pre-defined
 #ifndef MRH_SPEECH_CONFIGURATION_PATH
-    #define MRH_SPEECH_CONFIGURATION_PATH "/etc/mrhpservice/Speech.conf"
+    #define MRH_SPEECH_CONFIGURATION_PATH "/usr/local/etc/mrh/mrhpservice/Speech.conf"
 #endif
 
 namespace

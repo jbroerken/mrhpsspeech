@@ -191,7 +191,9 @@ int main(int argc, const char* argv[])
     
     sleep(30);
     */
-    
+    Configuration::Singleton().Load();
+    PAMicrophone c_Mic;
+    sleep(30);
     return 0;
     
     // Setup service base
