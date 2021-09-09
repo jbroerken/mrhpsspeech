@@ -44,6 +44,8 @@ public:
     
     virtual ~HandleAudio() noexcept;
     
+    HandleAudio();
+    
 private:
     
     //*************************************************************************************
@@ -62,7 +64,7 @@ protected:
      *  Default constructor.
      */
     
-    HandleAudio();
+    //HandleAudio();
     
     //*************************************************************************************
     // Getters

@@ -24,6 +24,7 @@
 
 // C / C++
 #include <vector>
+#include <atomic>
 
 // External
 #include <pocketsphinx/pocketsphinx.h>
@@ -38,6 +39,46 @@ class ReadAudio
 public:
     
     //*************************************************************************************
+    // Types
+    //*************************************************************************************
+    
+    struct Sample
+    {
+    public:
+        
+        //*************************************************************************************
+        // Constructor / Destructor
+        //*************************************************************************************
+        
+        /**
+         *  Default constructor.
+         */
+        
+        Sample() noexcept;
+        
+        /**
+         *  Default destructor.
+         */
+        
+        ~Sample() noexcept;
+        
+        //*************************************************************************************
+        // Data
+        //*************************************************************************************
+        
+        std::vector<Uint8> v_Buffer;
+        
+        SDL_AudioFormat u16_Format;
+        Uint32 u32_KHz;
+        Uint8 u8_Channels;
+        
+        float f32_Amplitude;
+        float f32_Peak;
+        
+        Uint64 u64_TimepointS;
+    };
+    
+    //*************************************************************************************
     // Destructor
     //*************************************************************************************
     
@@ -47,22 +88,75 @@ public:
     
     virtual ~ReadAudio() noexcept;
     
+    //*************************************************************************************
+    // Update
+    //*************************************************************************************
+    
+    /**
+     *  Pause listening.
+     */
+    
+    void PauseListening() noexcept;
+    
+    /**
+     *  Resume listening.
+     */
+    
+    void ResumeListening() noexcept;
+    
+    //*************************************************************************************
+    // Samples
+    //*************************************************************************************
+    
+    /**
+     *  Convert a given sample to a target format.
+     *
+     *  \param p_Sample The sample to convert.
+     *  \param u16_Format The target format.
+     *  \param u32_KHz The target KHz.
+     *  \param u8_Channels The target channels.
+     */
+    
+    void ConvertTo(Sample* p_Sample, SDL_AudioFormat u16_Format, Uint32 u32_KHz, Uint8 u8_Channels) noexcept;
+    
 private:
     
     //*************************************************************************************
     // Types
     //*************************************************************************************
     
-    struct AudioStream
+    struct Stream
     {
     public:
+        
+        //*************************************************************************************
+        // Constructor / Destructor
+        //*************************************************************************************
+        
+        /**
+         *  Default constructor.
+         */
+        
+        Stream() noexcept;
+        
+        /**
+         *  Default destructor.
+         */
+        
+        ~Stream() noexcept;
         
         //*************************************************************************************
         // Data
         //*************************************************************************************
         
         std::mutex c_Mutex;
-        std::vector<Uint8> v_Buffer;
+        
+        std::vector<Sample*> v_Sample;
+        
+        SDL_AudioFormat u16_Format;
+        Uint32 u32_KHz;
+        Uint8 u8_Channels;
+        Uint32 u32_StreamLengthS;
     };
     
     //*************************************************************************************
@@ -73,11 +167,11 @@ private:
      *  Update callback for read audio.
      *
      *  \param p_UserData User supplied data.
-     *  \param p_Stream Audio stream bytes.
+     *  \param p_Buffer Audio stream buffer.
      *  \param i_Length The length of the audio stream bytes.
      */
     
-    static void SDLCallback(void* p_UserData, Uint8* p_Stream, int i_Length) noexcept;
+    static void SDLCallback(void* p_UserData, Uint8* p_Buffer, int i_Length) noexcept;
     
     //*************************************************************************************
     // Data
@@ -88,7 +182,7 @@ private:
     ps_decoder_t* p_Decoder;
     cmd_ln_t* p_Config;
     
-    AudioStream c_Stream;
+    Stream c_Stream;
     
 protected:
     
@@ -113,40 +207,6 @@ protected:
      */
     
     void Setup(std::string const& s_Locale);
-    
-    //*************************************************************************************
-    // Update
-    //*************************************************************************************
-    
-    /**
-     *  Pause listening.
-     */
-    
-    void PauseListening() noexcept;
-    
-    /**
-     *  Resume listening.
-     */
-    
-    void ResumeListening() noexcept;
-    
-    //*************************************************************************************
-    // Sphinx
-    //*************************************************************************************
-    
-    /**
-     *  Convert given sound data to S16PCM at 16000 KHz (Mono) for sphinx.
-     *
-     *  \param p_Buffer The buffer to convert.
-     *  \param i_Length The length of the buffer to convert.
-     *  \param u16_Format The source format.
-     *  \param u32_KHz The source KHz.
-     *  \param u8_Channels The source channels.
-     *
-     *  \return A vector containing the converted bytes.
-     */
-    
-    std::vector<Uint8> ConvertToSphinx(Uint8* p_Buffer, int i_Length, SDL_AudioFormat u16_Format, Uint32 u32_KHz, Uint8 u8_Channels) noexcept;
 };
 
 #endif /* ReadAudio_h */

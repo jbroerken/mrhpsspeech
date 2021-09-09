@@ -104,15 +104,7 @@ public:
      *  \return The id of the device used for listening.
      */
     
-    MRH_Uint32 GetDeviceInID() noexcept;
-    
-    /**
-     *  Get the listen buffer size in seconds. This function is thread safe.
-     *
-     *  \return The listen buffer size in seconds.
-     */
-    
-    MRH_Uint32 GetListenBufferS() noexcept;
+    MRH_Uint32 GetListenDeviceID() noexcept;
     
     /**
      *  Get the listen KHz. This function is thread safe.
@@ -137,6 +129,14 @@ public:
      */
     
     MRH_Uint32 GetListenSamples() noexcept;
+    
+    /**
+     *  Get the listen stream length in seconds. This function is thread safe.
+     *
+     *  \return The listen stream length in seconds.
+     */
+    
+    MRH_Uint32 GetListenStreamLengthS() noexcept;
     
 private:
     
@@ -168,11 +168,11 @@ private:
     MRH_Uint32 u32_TriggerTimeoutS;
     
     // Voice
-    MRH_Uint32 u32_DeviceInID;
-    MRH_Uint32 u32_ListenBufferS;
+    MRH_Uint32 u32_ListenDeviceID;
     MRH_Uint32 u32_ListenKHz;
     MRH_Uint8 u8_ListenChannels;
     MRH_Uint32 u32_ListenSamples;
+    MRH_Uint32 u32_ListenStreamLengthS;
     
 protected:
 

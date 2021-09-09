@@ -70,6 +70,11 @@ static int Exit(libmrhpsb* p_Context, const char* p_Exception, int i_Result)
 int main(int argc, const char* argv[])
 {
     std::setlocale(LC_ALL, "en_US.UTF-8");
+    
+    HandleAudio c_Audio;
+    
+    sleep(30);
+    
     return 0;
     
     // Setup service base
