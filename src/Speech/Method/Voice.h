@@ -23,28 +23,92 @@
 #define Voice_h
 
 // C / C++
+#include <thread>
+#include <atomic>
 
 // External
 
 // Project
-
-// Pre-defined
-#ifndef MRH_SPEECH_USE_VOICE_METHOD
-    #define MRH_SPEECH_USE_VOICE_METHOD 0
-#endif
+#include "../SpeechMethod.h"
 
 
-//*************************************************************************************
-// Voice Method
-//*************************************************************************************
+class Voice : public SpeechMethod
+{
+public:
+    
+    //*************************************************************************************
+    // Constructor / Destructor
+    //*************************************************************************************
+    
+    /**
+     *  Default constructor.
+     */
+    
+    Voice();
+    
+    /**
+     *  Default destructor.
+     */
+    
+    ~Voice() noexcept;
+    
+    //*************************************************************************************
+    // Listen
+    //*************************************************************************************
+    
+    /**
+     *  Listen to speech input.
+     */
+    
+    void Listen() override;
+    
+    //*************************************************************************************
+    // Say
+    //*************************************************************************************
+    
+    /**
+     *  Perform speech output.
+     *
+     *  \param c_OutputStorage The output storage to use.
+     */
+    
+    void Say(OutputStorage& c_OutputStorage) override;
+    
+    //*************************************************************************************
+    // Getters
+    //*************************************************************************************
+    
+    /**
+     *  Check if this speech method is usable.
+     *
+     *  \return true if usable, false if not.
+     */
+    
+    bool IsUsable() noexcept override;
+    
+private:
+    
+    //*************************************************************************************
+    // Update
+    //*************************************************************************************
+    
+    /**
+     *  Update Voice by Pocket Sphinx method.
+     *
+     *  \param p_Instance The Voice instance to update.
+     */
+    
+    static void Update(Voice* p_Instance) noexcept;
+    
+    //*************************************************************************************
+    // Data
+    //*************************************************************************************
+    
+    std::thread c_Thread;
+    std::atomic<bool> b_Update;
+    
+protected:
 
-#if MRH_SPEECH_USE_VOICE_METHOD == 1
-    #include "./Voice/GoogleCloudAPI.h"
-    #define VoiceMethod GoogleCloudAPI
-#else
-    #include "./Voice/PocketSphinx.h"
-    #define VoiceMethod PocketSphinx
-#endif
-
+};
 
 #endif /* Voice_h */

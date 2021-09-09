@@ -40,22 +40,26 @@ namespace
     {
         // Block Name
         BLOCK_TRIGGER = 0,
-        BLOCK_VOICE = 1,
+        BLOCK_PA_MICROPHONE = 1,
+        BLOCK_POCKET_SPHINX = 2,
         
         // Trigger Key
-        TRIGGER_STRING = 2,
-        TRIGGER_LS_SIMILARITY = 3,
-        TRIGGER_TIMEOUT_S = 4,
+        TRIGGER_STRING = 3,
+        TRIGGER_LS_SIMILARITY = 4,
+        TRIGGER_TIMEOUT_S = 5,
         
-        // Voice Key
-        VOICE_LISTEN_DEVICE_ID = 5,
-        VOICE_LISTEN_KHZ = 6,
-        VOICE_LISTEN_CHANNELS = 7,
-        VOICE_LISTEN_SAMPLES,
-        VOICE_LISTEN_STREAM_LENGTH_S,
+        // PA Microphone Key
+        PA_MICROPHONE_DEVICE_ID = 6,
+        PA_MICROPHONE_KHZ = 7,
+        PA_MICROPHONE_CHANNELS,
+        PA_MICROPHONE_SAMPLES,
+        PA_MICROPHONE_STREAM_LENGTH_S,
+        
+        // Pocket Sphinx Key
+        POCKET_SPHINX_MODEL_DIR_PATH,
         
         // Bounds
-        IDENTIFIER_MAX = VOICE_LISTEN_STREAM_LENGTH_S,
+        IDENTIFIER_MAX = POCKET_SPHINX_MODEL_DIR_PATH,
 
         IDENTIFIER_COUNT = IDENTIFIER_MAX + 1
     };
@@ -64,19 +68,23 @@ namespace
     {
         // Block Name
         "Trigger",
-        "Voice",
+        "PAMicrophone",
+        "PocketSphinx",
         
         // Trigger Key
         "String",
         "LSSimilarity",
         "TimeoutS",
         
-        // Voice Key
-        "ListenDeviceID",
-        "ListenKHz",
-        "ListenChannels",
-        "ListenSamples",
-        "ListenStreamLengthS",
+        // SDL Microphone Key
+        "DeviceID",
+        "KHz",
+        "Channels",
+        "Samples",
+        "StreamLengthS",
+        
+        // Sphinx Key
+        "ModelDirPath"
     };
 }
 
@@ -85,14 +93,15 @@ namespace
 // Constructor / Destructor
 //*************************************************************************************
 
-Configuration::Configuration() noexcept : s_TriggerString("Susu"),
+Configuration::Configuration() noexcept : s_TriggerString("Hey Susu"),
                                           f32_TriggerLSSimilarity(0.75f),
                                           u32_TriggerTimeoutS(30),
-                                          u32_ListenDeviceID(0),
-                                          u32_ListenKHz(44100),
-                                          u8_ListenChannels(2),
-                                          u32_ListenSamples(4096),
-                                          u32_ListenStreamLengthS(10)
+                                          u32_PAMicDeviceID(0),
+                                          u32_PAMicKHz(44100),
+                                          u8_PAMicChannels(2),
+                                          u32_PAMicSamples(4096),
+                                          u32_PAMicStreamLengthS(10),
+                                          s_SphinxModelDirPath("/var/mrh/mrhpsspeech/sphinx/")
 {}
 
 Configuration::~Configuration() noexcept
@@ -131,13 +140,17 @@ void Configuration::Load()
                     f32_TriggerLSSimilarity = std::stof(Block.GetValue(p_Identifier[TRIGGER_LS_SIMILARITY]));
                     u32_TriggerTimeoutS = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[TRIGGER_TIMEOUT_S])));
                 }
-                else if (Block.GetName().compare(p_Identifier[BLOCK_VOICE]) == 0)
+                else if (Block.GetName().compare(p_Identifier[BLOCK_PA_MICROPHONE]) == 0)
                 {
-                    u32_ListenDeviceID = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[VOICE_LISTEN_DEVICE_ID])));
-                    u32_ListenKHz = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[VOICE_LISTEN_KHZ])));
-                    u8_ListenChannels = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[VOICE_LISTEN_CHANNELS])));
-                    u32_ListenSamples = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[VOICE_LISTEN_SAMPLES])));
-                    u32_ListenStreamLengthS = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[VOICE_LISTEN_STREAM_LENGTH_S])));
+                    u32_PAMicDeviceID = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_MICROPHONE_DEVICE_ID])));
+                    u32_PAMicKHz = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_MICROPHONE_KHZ])));
+                    u8_PAMicChannels = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_MICROPHONE_CHANNELS])));
+                    u32_PAMicSamples = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_MICROPHONE_SAMPLES])));
+                    u32_PAMicStreamLengthS = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_MICROPHONE_STREAM_LENGTH_S])));
+                }
+                else if (Block.GetName().compare(p_Identifier[BLOCK_POCKET_SPHINX]) == 0)
+                {
+                    s_SphinxModelDirPath = Block.GetValue(p_Identifier[POCKET_SPHINX_MODEL_DIR_PATH]);
                 }
             }
             catch (MRH_BFException& e)
@@ -175,32 +188,38 @@ MRH_Uint32 Configuration::GetTriggerTimeoutS() noexcept
     return u32_TriggerTimeoutS;
 }
 
-MRH_Uint32 Configuration::GetListenDeviceID() noexcept
+MRH_Uint32 Configuration::GetPAMicDeviceID() noexcept
 {
     std::lock_guard<std::mutex> c_Guard(c_Mutex);
-    return u32_ListenDeviceID;
+    return u32_PAMicDeviceID;
 }
 
-MRH_Uint32 Configuration::GetListenKHz() noexcept
+MRH_Uint32 Configuration::GetPAMicKHz() noexcept
 {
     std::lock_guard<std::mutex> c_Guard(c_Mutex);
-    return u32_ListenKHz;
+    return u32_PAMicKHz;
 }
 
-MRH_Uint8 Configuration::GetListenChannels() noexcept
+MRH_Uint8 Configuration::GetPAMicChannels() noexcept
 {
     std::lock_guard<std::mutex> c_Guard(c_Mutex);
-    return u8_ListenChannels;
+    return u8_PAMicChannels;
 }
 
-MRH_Uint32 Configuration::GetListenSamples() noexcept
+MRH_Uint32 Configuration::GetPAMicSamples() noexcept
 {
     std::lock_guard<std::mutex> c_Guard(c_Mutex);
-    return u32_ListenSamples;
+    return u32_PAMicSamples;
 }
 
-MRH_Uint32 Configuration::GetListenStreamLengthS() noexcept
+MRH_Uint32 Configuration::GetPAMicStreamLengthS() noexcept
 {
     std::lock_guard<std::mutex> c_Guard(c_Mutex);
-    return u32_ListenStreamLengthS;
+    return u32_PAMicStreamLengthS;
+}
+
+std::string Configuration::GetSphinxModelDirPath() noexcept
+{
+    std::lock_guard<std::mutex> c_Guard(c_Mutex);
+    return s_SphinxModelDirPath;
 }

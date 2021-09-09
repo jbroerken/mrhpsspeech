@@ -99,44 +99,53 @@ public:
     MRH_Uint32 GetTriggerTimeoutS() noexcept;
     
     /**
-     *  Get the id of the device used for listening. This function is thread safe.
+     *  Get the id of the device used for the microhpone. This function is thread safe.
      *
-     *  \return The id of the device used for listening.
+     *  \return The id of the device used for the microhpone.
      */
     
-    MRH_Uint32 GetListenDeviceID() noexcept;
+    MRH_Uint32 GetPAMicDeviceID() noexcept;
     
     /**
-     *  Get the listen KHz. This function is thread safe.
+     *  Get the microhpone KHz. This function is thread safe.
      *
-     *  \return The listen KHz.
+     *  \return The microhpone KHz.
      */
     
-    MRH_Uint32 GetListenKHz() noexcept;
+    MRH_Uint32 GetPAMicKHz() noexcept;
     
     /**
-     *  Get the listen channels. This function is thread safe.
+     *  Get the microhpone channels. This function is thread safe.
      *
-     *  \return The listen channels.
+     *  \return The microhpone channels.
      */
     
-    MRH_Uint8 GetListenChannels() noexcept;
+    MRH_Uint8 GetPAMicChannels() noexcept;
     
     /**
-     *  Get the listen samples. This function is thread safe.
+     *  Get the microhpone samples. This function is thread safe.
      *
-     *  \return The listen samples.
+     *  \return The microhpone samples.
      */
     
-    MRH_Uint32 GetListenSamples() noexcept;
+    MRH_Uint32 GetPAMicSamples() noexcept;
     
     /**
-     *  Get the listen stream length in seconds. This function is thread safe.
+     *  Get the microhpone stream length in seconds. This function is thread safe.
      *
-     *  \return The listen stream length in seconds.
+     *  \return The microhpone stream length in seconds.
      */
     
-    MRH_Uint32 GetListenStreamLengthS() noexcept;
+    MRH_Uint32 GetPAMicStreamLengthS() noexcept;
+    
+    /**
+     *  Get the directory path to the pocket sphinx model. This function is thread
+     *  safe.
+     *
+     *  \return The sphinx model directory path.
+     */
+    
+    std::string GetSphinxModelDirPath() noexcept;
     
 private:
     
@@ -167,12 +176,15 @@ private:
     MRH_Sfloat32 f32_TriggerLSSimilarity;
     MRH_Uint32 u32_TriggerTimeoutS;
     
-    // Voice
-    MRH_Uint32 u32_ListenDeviceID;
-    MRH_Uint32 u32_ListenKHz;
-    MRH_Uint8 u8_ListenChannels;
-    MRH_Uint32 u32_ListenSamples;
-    MRH_Uint32 u32_ListenStreamLengthS;
+    // SDL Microphone
+    MRH_Uint32 u32_PAMicDeviceID;
+    MRH_Uint32 u32_PAMicKHz;
+    MRH_Uint8 u8_PAMicChannels;
+    MRH_Uint32 u32_PAMicSamples;
+    MRH_Uint32 u32_PAMicStreamLengthS;
+    
+    // Pocket Sphinx
+    std::string s_SphinxModelDirPath;
     
 protected:
 

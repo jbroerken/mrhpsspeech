@@ -57,7 +57,7 @@ Speech::Speech() : e_Method(MRH_EvSpeechMethod::VOICE),
                 case MRH_SRV:
                     break;
                 case VOICE:
-                    m_Method.insert(std::make_pair(VOICE, new class VoiceMethod()));
+                    m_Method.insert(std::make_pair(VOICE, new Voice()));
                     break;
             }
         }

@@ -1,5 +1,5 @@
 /**
- *  ReadAudio.h
+ *  PAMicrophone.h
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -19,22 +19,22 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef ReadAudio_h
-#define ReadAudio_h
+#ifndef PAMicrophone_h
+#define PAMicrophone_h
 
 // C / C++
 #include <vector>
 #include <atomic>
 
 // External
-#include <pocketsphinx/pocketsphinx.h>
-#include <SDL2/SDL.h>
+#include <MRH_Typedefs.h>
+#include <portaudio.h>
 
 // Project
-#include "../../../../Exception.h"
+#include "../../../Exception.h"
 
 
-class ReadAudio
+class PAMicrophone
 {
 public:
     
@@ -44,6 +44,8 @@ public:
     
     struct Sample
     {
+        friend class PAMicrophone;
+        
     public:
         
         //*************************************************************************************
@@ -66,43 +68,55 @@ public:
         // Data
         //*************************************************************************************
         
-        std::vector<Uint8> v_Buffer;
+        std::vector<MRH_Uint8> v_Buffer;
         
-        SDL_AudioFormat u16_Format;
-        Uint32 u32_KHz;
-        Uint8 u8_Channels;
+        PaSampleFormat u16_Format;
+        MRH_Uint32 u32_KHz;
+        MRH_Uint8 u8_Channels;
         
-        float f32_Amplitude;
-        float f32_Peak;
+        MRH_Sfloat32 f32_Amplitude;
+        MRH_Sfloat32 f32_Peak;
         
-        Uint64 u64_TimepointS;
+    private:
+        
+        //*************************************************************************************
+        // Data
+        //*************************************************************************************
+        
+        MRH_Uint64 u64_TimepointS;
     };
     
     //*************************************************************************************
-    // Destructor
+    // Constructor / Destructor
     //*************************************************************************************
+    
+    /**
+     *  Default constructor.
+     */
+    
+    PAMicrophone();
     
     /**
      *  Default destructor.
      */
     
-    virtual ~ReadAudio() noexcept;
+    virtual ~PAMicrophone() noexcept;
     
     //*************************************************************************************
     // Update
     //*************************************************************************************
     
     /**
-     *  Pause listening.
+     *  Start listening.
      */
     
-    void PauseListening() noexcept;
+    void StartListening();
     
     /**
-     *  Resume listening.
+     *  Stop listening.
      */
     
-    void ResumeListening() noexcept;
+    void StopListening();
     
     //*************************************************************************************
     // Samples
@@ -117,7 +131,33 @@ public:
      *  \param u8_Channels The target channels.
      */
     
-    void ConvertTo(Sample* p_Sample, SDL_AudioFormat u16_Format, Uint32 u32_KHz, Uint8 u8_Channels) noexcept;
+    void ConvertTo(Sample* p_Sample, PaSampleFormat u16_Format, MRH_Uint32 u32_KHz, MRH_Uint8 u8_Channels) noexcept;
+    
+    /**
+     *  Get the number of audio stream samples available.
+     *
+     *  \return The number of samples available.
+     */
+    
+    size_t GetSampleCount() noexcept;
+    
+    /**
+     *  Grab a sample, removing it from the audio stream.
+     *
+     *  \param us_Sample The sample to request.
+     *
+     *  \return The requested sample.
+     */
+    
+    Sample* GrabSample(size_t us_Sample);
+    
+    /**
+     *  Return a sample to the audio stream.
+     *
+     *  \param p_Sample The sample to return.
+     */
+    
+    void ReturnSample(Sample* p_Sample);
     
 private:
     
@@ -125,7 +165,7 @@ private:
     // Types
     //*************************************************************************************
     
-    struct Stream
+    struct Audio
     {
     public:
         
@@ -137,13 +177,13 @@ private:
          *  Default constructor.
          */
         
-        Stream() noexcept;
+        Audio() noexcept;
         
         /**
          *  Default destructor.
          */
         
-        ~Stream() noexcept;
+        ~Audio() noexcept;
         
         //*************************************************************************************
         // Data
@@ -153,10 +193,10 @@ private:
         
         std::vector<Sample*> v_Sample;
         
-        SDL_AudioFormat u16_Format;
-        Uint32 u32_KHz;
-        Uint8 u8_Channels;
-        Uint32 u32_StreamLengthS;
+        PaSampleFormat u16_Format;
+        MRH_Uint32 u32_KHz;
+        MRH_Uint8 u8_Channels;
+        MRH_Uint32 u32_StreamLengthS;
     };
     
     //*************************************************************************************
@@ -165,48 +205,27 @@ private:
     
     /**
      *  Update callback for read audio.
-     *
-     *  \param p_UserData User supplied data.
-     *  \param p_Buffer Audio stream buffer.
-     *  \param i_Length The length of the audio stream bytes.
      */
     
-    static void SDLCallback(void* p_UserData, Uint8* p_Buffer, int i_Length) noexcept;
+    static int PACallback(const void* p_Input,
+                          void* p_Output,
+                          unsigned long u32_FrameCount,
+                          const PaStreamCallbackTimeInfo* p_TimeInfo,
+                          PaStreamCallbackFlags e_StatusFlags,
+                          void* p_UserData) noexcept;
     
     //*************************************************************************************
     // Data
     //*************************************************************************************
     
-    SDL_AudioDeviceID u32_DevID;
+    static bool b_SetupPA;
     
-    ps_decoder_t* p_Decoder;
-    cmd_ln_t* p_Config;
+    PaStream* p_Stream;
     
-    Stream c_Stream;
+    Audio c_Audio;
     
 protected:
     
-    //*************************************************************************************
-    // Constructor
-    //*************************************************************************************
-    
-    /**
-     *  Default constructor.
-     */
-    
-    ReadAudio() noexcept;
-    
-    //*************************************************************************************
-    // Setup
-    //*************************************************************************************
-    
-    /**
-     *  Read audio setup.
-     *
-     *  \param s_Locale The locale to use for audio.
-     */
-    
-    void Setup(std::string const& s_Locale);
 };
 
-#endif /* ReadAudio_h */
+#endif /* PAMicrophone_h */

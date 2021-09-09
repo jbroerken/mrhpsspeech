@@ -64,16 +64,133 @@ static int Exit(libmrhpsb* p_Context, const char* p_Exception, int i_Result)
 //*************************************************************************************
 
 #include <clocale>
-#include "HandleAudio.h"
+#include "PAMicrophone.h"
+#include "PocketSphinx.h"
+#include "Configuration.h"
 #include <unistd.h>
+#include <SDL2/SDL.h>
+/*
+std::vector<Uint8> v_Buffer;
+
+static void SDLCallback(void* p_UserData, Uint8* p_Buffer, int i_Length) noexcept
+{
+    static size_t us_Pos = 0;
+    
+    if (us_Pos + i_Length >= v_Buffer.size())
+    {
+        size_t us_Avail = (v_Buffer.size() - us_Pos);
+        memset(p_Buffer, 0, i_Length);
+        
+        if (us_Avail > 0)
+        {
+            memcpy(p_Buffer, &(v_Buffer[us_Pos]), us_Avail);
+            us_Pos += us_Avail;
+        }
+    }
+    else
+    {
+        memcpy(p_Buffer, &(v_Buffer[us_Pos]), i_Length);
+        us_Pos += i_Length;
+    }
+}
+
+void PlayAudio()
+{
+    SDL_AudioSpec c_Want;
+    SDL_AudioSpec c_Have;
+
+    SDL_zero(c_Want);
+    
+    c_Want.freq = 16000;
+    c_Want.format = AUDIO_S16SYS;
+    c_Want.channels = 1;
+    c_Want.samples = 1024;
+    c_Want.callback = &SDLCallback;
+    c_Want.userdata = NULL;
+    
+    if (SDL_GetNumAudioDevices(0) == 0)
+    {
+        printf("No Audio Devices!\n");
+        return;
+    }
+    
+    SDL_AudioDeviceID u32_DevID;
+    
+    if ((u32_DevID = SDL_OpenAudioDevice(SDL_GetAudioDeviceName(3, 0), 0, &c_Want, &c_Have, 0)) == 0)
+    {
+        printf("Failed to open audio device!\n");
+        return;
+    }
+    
+    if (c_Want.format != c_Have.format ||
+        c_Want.freq != c_Have.freq ||
+        c_Want.channels != c_Have.channels)
+    {
+        SDL_CloseAudioDevice(u32_DevID);
+        u32_DevID = 0;
+        
+        printf("Format mismatch!\n");
+        return;
+    }
+    
+    SDL_PauseAudioDevice(u32_DevID, 0);
+}
+
+void RunSphinx()
+{
+    PocketSphinx c_Sphinx(Configuration::Singleton().GetSphinxTriggerModelDirPath());
+    std::vector<MRH_Uint8> v_Chunk(256, 0);
+    
+    c_Sphinx.StartRecognition();
+    
+    for (size_t i = 0; i < v_Buffer.size();)
+    {
+        MRH_Uint32 u32_Size;
+        
+        if (i < (v_Buffer.size() - 256))
+        {
+            u32_Size = 256;
+            memcpy(&(v_Chunk[0]), &(v_Buffer[i]), u32_Size);
+        }
+        else
+        {
+            u32_Size = (v_Buffer.size() - i);
+            memcpy(&(v_Chunk[0]), &(v_Buffer[i]), u32_Size);
+        }
+        
+        i += u32_Size;
+        c_Sphinx.AddSample(&(v_Chunk[0]), u32_Size);
+    }
+    
+    std::string s_Result = c_Sphinx.Recognize();
+    printf("%s\n", s_Result.c_str());
+}
+*/
 
 int main(int argc, const char* argv[])
 {
     std::setlocale(LC_ALL, "en_US.UTF-8");
+    /*
+    SDLMicrophone c_Audio;
     
-    HandleAudio c_Audio;
+    sleep(15);
+    
+    c_Audio.PauseListening();
+    
+    sleep(5);
+    
+    while (c_Audio.GetSampleCount() > 0)
+    {
+        SDLMicrophone::Sample* p_Sample = c_Audio.GrabSample(0);
+        //c_Audio.ConvertTo(p_Sample, AUDIO_S16SYS, 16000, 1);
+        v_Buffer.insert(v_Buffer.end(), p_Sample->v_Buffer.begin(), p_Sample->v_Buffer.end());
+    }
+    
+    PlayAudio();
+    //RunSphinx();
     
     sleep(30);
+    */
     
     return 0;
     

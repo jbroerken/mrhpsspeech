@@ -23,18 +23,16 @@
 #define PocketSphinx_h
 
 // C / C++
-#include <thread>
-#include <atomic>
 
 // External
+#include <MRH_Typedefs.h>
+#include <pocketsphinx/pocketsphinx.h>
 
 // Project
-#include "../../SpeechMethod.h"
-#include "./Audio/HandleAudio.h"
+#include "../../../Exception.h"
 
 
-class PocketSphinx : public SpeechMethod,
-                     private HandleAudio
+class PocketSphinx
 {
 public:
     
@@ -44,73 +42,57 @@ public:
     
     /**
      *  Default constructor.
+     *
+     *  \param s_ModelDir The full path to the model directory to use.
      */
     
-    PocketSphinx();
+    PocketSphinx(std::string const& s_ModelDir);
     
     /**
      *  Default destructor.
      */
     
-    ~PocketSphinx() noexcept;
+    virtual ~PocketSphinx() noexcept;
     
     //*************************************************************************************
-    // Listen
+    // Recognize
     //*************************************************************************************
     
     /**
-     *  Listen to speech input.
+     *  Start speech recognition.
      */
     
-    void Listen() override;
-    
-    //*************************************************************************************
-    // Say
-    //*************************************************************************************
+    void StartRecognition() noexcept;
     
     /**
-     *  Perform speech output.
+     *  Add a audio sample to the decoder. The sample bytes will be interpreted as
+     *  Signed PCM 16 with one Channel (Mono) at 16000 KHz.
      *
-     *  \param c_OutputStorage The output storage to use.
+     *  \param p_Buffer The data buffer.
+     *  \param u32_Length The length of the data buffer.
      */
     
-    void Say(OutputStorage& c_OutputStorage) override;
-    
-    //*************************************************************************************
-    // Getters
-    //*************************************************************************************
+    void AddSample(const MRH_Uint8* p_Buffer, MRH_Uint32 u32_Length);
     
     /**
-     *  Check if this speech method is usable.
+     *  Convert given audio samples to a string.
      *
-     *  \return true if usable, false if not.
+     *  \return The recognized string.
      */
     
-    bool IsUsable() noexcept override;
+    std::string Recognize() noexcept;
     
 private:
-    
-    //*************************************************************************************
-    // Update
-    //*************************************************************************************
-    
-    /**
-     *  Update Voice by Pocket Sphinx method.
-     *
-     *  \param p_Instance The Voice by Pocket Sphinx instance to update.
-     */
-    
-    static void Update(PocketSphinx* p_Instance) noexcept;
     
     //*************************************************************************************
     // Data
     //*************************************************************************************
     
-    std::thread c_Thread;
-    std::atomic<bool> b_Update;
+    ps_decoder_t* p_Decoder;
+    cmd_ln_t* p_Config;
     
 protected:
-
+    
 };
 
 #endif /* PocketSphinx_h */

@@ -32,7 +32,9 @@ libmrhcevs: https://github.com/jbroerken/libmrhcevs/
 libmrhev: https://github.com/jbroerken/libmrhev/
 libmrhpsb: https://github.com/jbroerken/libmrhpsb/
 mrhshared: https://github.com/jbroerken/mrhshared/
-libsodium | https://libsodium.gitbook.io/doc/
+Sodium: https://libsodium.gitbook.io/doc/
+PortAudio: http://files.portaudio.com/download.html
+PocketSphinx: https://cmusphinx.github.io/wiki/download/
 
 For more information about the requirements, check the "Building" section found in the documentation.
 

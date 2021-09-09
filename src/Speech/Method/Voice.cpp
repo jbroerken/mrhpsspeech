@@ -1,5 +1,5 @@
 /**
- *  GoogleCloudAPI.cpp
+ *  Voice.cpp
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -25,16 +25,16 @@
 #include <libmrhpsb/MRH_PSBLogger.h>
 
 // Project
-#include "./GoogleCloudAPI.h"
+#include "./Voice.h"
 
 
 //*************************************************************************************
 // Constructor / Destructor
 //*************************************************************************************
 
-GoogleCloudAPI::GoogleCloudAPI() : b_Update(true)
+Voice::Voice() : b_Update(true)
 {
-    // @TODO: Init google speech
+    // @TODO: Init sphinx
     
     // Run
     try
@@ -43,14 +43,14 @@ GoogleCloudAPI::GoogleCloudAPI() : b_Update(true)
     }
     catch (std::exception& e)
     {
-        throw Exception("Failed to start Google Cloud API update thread: " + std::string(e.what()));
+        throw Exception("Failed to start Pocket Sphinx update thread: " + std::string(e.what()));
     }
     
-    MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, "Google Cloud API now available.",
-                                   "GoogleCloudAPI.cpp", __LINE__);
+    MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, "Pocket sphinx now available.",
+                                   "PocketSphinx.cpp", __LINE__);
 }
 
-GoogleCloudAPI::~GoogleCloudAPI() noexcept
+Voice::~Voice() noexcept
 {
     b_Update = false;
     c_Thread.join();
@@ -60,7 +60,7 @@ GoogleCloudAPI::~GoogleCloudAPI() noexcept
 // Update
 //*************************************************************************************
 
-void GoogleCloudAPI::Update(GoogleCloudAPI* p_Instance) noexcept
+void Voice::Update(Voice* p_Instance) noexcept
 {
     while (p_Instance->b_Update == true)
     {
@@ -72,7 +72,7 @@ void GoogleCloudAPI::Update(GoogleCloudAPI* p_Instance) noexcept
 // Listen
 //*************************************************************************************
 
-void GoogleCloudAPI::Listen()
+void Voice::Listen()
 {
     
 }
@@ -81,7 +81,7 @@ void GoogleCloudAPI::Listen()
 // Say
 //*************************************************************************************
 
-void GoogleCloudAPI::Say(OutputStorage& c_OutputStorage)
+void Voice::Say(OutputStorage& c_OutputStorage)
 {
     
 }
@@ -90,7 +90,7 @@ void GoogleCloudAPI::Say(OutputStorage& c_OutputStorage)
 // Getters
 //*************************************************************************************
 
-bool GoogleCloudAPI::IsUsable() noexcept
+bool Voice::IsUsable() noexcept
 {
     return false;
 }
