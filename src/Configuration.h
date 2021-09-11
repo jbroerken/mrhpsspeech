@@ -131,12 +131,12 @@ public:
     MRH_Uint32 GetPAMicSamples() noexcept;
     
     /**
-     *  Get the microhpone stream length in seconds. This function is thread safe.
+     *  Get the microhpone sample count storage size. This function is thread safe.
      *
-     *  \return The microhpone stream length in seconds.
+     *  \return The microhpone sample count storage size.
      */
     
-    MRH_Uint32 GetPAMicStreamLengthS() noexcept;
+    MRH_Uint32 GetPAMicSampleStorageSize() noexcept;
     
     /**
      *  Get the directory path to the pocket sphinx model. This function is thread
@@ -181,7 +181,7 @@ private:
     MRH_Uint32 u32_PAMicKHz;
     MRH_Uint8 u8_PAMicChannels;
     MRH_Uint32 u32_PAMicSamples;
-    MRH_Uint32 u32_PAMicStreamLengthS;
+    MRH_Uint32 u32_PAMicSampleStorageSize;
     
     // Pocket Sphinx
     std::string s_SphinxModelDirPath;

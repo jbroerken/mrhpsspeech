@@ -68,81 +68,84 @@ static int Exit(libmrhpsb* p_Context, const char* p_Exception, int i_Result)
 #include "PocketSphinx.h"
 #include "Configuration.h"
 #include <unistd.h>
-#include <SDL2/SDL.h>
-/*
-std::vector<Uint8> v_Buffer;
 
-static void SDLCallback(void* p_UserData, Uint8* p_Buffer, int i_Length) noexcept
+AudioSample c_Sample(NULL,
+                     0,
+                     0,
+                     0);
+
+static int AudioCB(const void *input,
+                   void *output,
+                   unsigned long frameCount,
+                   const PaStreamCallbackTimeInfo* timeInfo,
+                   PaStreamCallbackFlags statusFlags,
+                   void *userData)
 {
     static size_t us_Pos = 0;
     
-    if (us_Pos + i_Length >= v_Buffer.size())
+    memset(output, 0, frameCount);
+    
+    if (us_Pos + frameCount < c_Sample.v_Buffer.size())
     {
-        size_t us_Avail = (v_Buffer.size() - us_Pos);
-        memset(p_Buffer, 0, i_Length);
+        memcpy(output, c_Sample.v_Buffer.data() + us_Pos, frameCount);
+        us_Pos += frameCount;
         
-        if (us_Avail > 0)
-        {
-            memcpy(p_Buffer, &(v_Buffer[us_Pos]), us_Avail);
-            us_Pos += us_Avail;
-        }
+        return paContinue;
     }
     else
     {
-        memcpy(p_Buffer, &(v_Buffer[us_Pos]), i_Length);
-        us_Pos += i_Length;
+        return paComplete;
     }
 }
 
 void PlayAudio()
 {
-    SDL_AudioSpec c_Want;
-    SDL_AudioSpec c_Have;
-
-    SDL_zero(c_Want);
+    PaStream* p_Stream;
+    PaError i_Error;
     
-    c_Want.freq = 16000;
-    c_Want.format = AUDIO_S16SYS;
-    c_Want.channels = 1;
-    c_Want.samples = 1024;
-    c_Want.callback = &SDLCallback;
-    c_Want.userdata = NULL;
+    // Set output stream info
+    PaStreamParameters c_OutputParameters;
+    MRH_Uint32 u32_DevID = Configuration::Singleton().GetPAMicDeviceID();
     
-    if (SDL_GetNumAudioDevices(0) == 0)
+    bzero(&c_OutputParameters, sizeof(c_OutputParameters));
+    c_OutputParameters.channelCount = Configuration::Singleton().GetPAMicChannels();
+    c_OutputParameters.device = u32_DevID;
+    c_OutputParameters.hostApiSpecificStreamInfo = NULL;
+    c_OutputParameters.sampleFormat = paInt16;
+    c_OutputParameters.suggestedLatency = Pa_GetDeviceInfo(u32_DevID)->defaultLowInputLatency;
+    c_OutputParameters.hostApiSpecificStreamInfo = NULL; //See you specific host's API docs for info on using this field
+    
+    // Open audio stream
+    i_Error = Pa_OpenStream(&p_Stream,
+                            NULL,
+                            &c_OutputParameters,
+                            Configuration::Singleton().GetPAMicKHz(),
+                            Configuration::Singleton().GetPAMicSamples(),
+                            paClipOff,// paNoFlag,
+                            AudioCB,
+                            NULL);
+    
+    if (i_Error != paNoError)
     {
-        printf("No Audio Devices!\n");
-        return;
+        throw Exception("Failed to open PortAudio stream! " + std::string(Pa_GetErrorText(i_Error)));
     }
     
-    SDL_AudioDeviceID u32_DevID;
-    
-    if ((u32_DevID = SDL_OpenAudioDevice(SDL_GetAudioDeviceName(3, 0), 0, &c_Want, &c_Have, 0)) == 0)
+    if ((i_Error = Pa_StartStream(p_Stream)) != paNoError)
     {
-        printf("Failed to open audio device!\n");
-        return;
+        throw Exception("Failed to start PortAudio stream! " + std::string(Pa_GetErrorText(i_Error)));
     }
     
-    if (c_Want.format != c_Have.format ||
-        c_Want.freq != c_Have.freq ||
-        c_Want.channels != c_Have.channels)
-    {
-        SDL_CloseAudioDevice(u32_DevID);
-        u32_DevID = 0;
-        
-        printf("Format mismatch!\n");
-        return;
-    }
-    
-    SDL_PauseAudioDevice(u32_DevID, 0);
+    sleep(10);
 }
 
 void RunSphinx()
 {
-    PocketSphinx c_Sphinx(Configuration::Singleton().GetSphinxTriggerModelDirPath());
+    PocketSphinx c_Sphinx(Configuration::Singleton().GetSphinxModelDirPath());
     std::vector<MRH_Uint8> v_Chunk(256, 0);
     
     c_Sphinx.StartRecognition();
     
+    /*
     for (size_t i = 0; i < v_Buffer.size();)
     {
         MRH_Uint32 u32_Size;
@@ -161,39 +164,29 @@ void RunSphinx()
         i += u32_Size;
         c_Sphinx.AddSample(&(v_Chunk[0]), u32_Size);
     }
+    */
     
     std::string s_Result = c_Sphinx.Recognize();
     printf("%s\n", s_Result.c_str());
 }
-*/
 
 int main(int argc, const char* argv[])
 {
     std::setlocale(LC_ALL, "en_US.UTF-8");
-    /*
-    SDLMicrophone c_Audio;
-    
-    sleep(15);
-    
-    c_Audio.PauseListening();
+    Configuration::Singleton().Load();
+    PAMicrophone c_Audio;
     
     sleep(5);
     
-    while (c_Audio.GetSampleCount() > 0)
-    {
-        SDLMicrophone::Sample* p_Sample = c_Audio.GrabSample(0);
-        //c_Audio.ConvertTo(p_Sample, AUDIO_S16SYS, 16000, 1);
-        v_Buffer.insert(v_Buffer.end(), p_Sample->v_Buffer.begin(), p_Sample->v_Buffer.end());
-    }
+    c_Audio.StopListening();
+    
+    sleep(1);
+    
+    c_Sample = c_Audio.GetAudioSample();
     
     PlayAudio();
     //RunSphinx();
     
-    sleep(30);
-    */
-    Configuration::Singleton().Load();
-    PAMicrophone c_Mic;
-    sleep(30);
     return 0;
     
     // Setup service base
@@ -202,6 +195,7 @@ int main(int argc, const char* argv[])
     
     try
     {
+        Configuration::Singleton().Load();
         p_Context = new libmrhpsb("mrhpsspeech",
                                   argc,
                                   argv,

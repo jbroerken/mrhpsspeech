@@ -35,7 +35,7 @@
 // Constructor / Destructor
 //*************************************************************************************
 
-bool PAMicrophone::b_SetupPA = true;
+std::atomic<int> PAMicrophone::i_PAUsers(0);
 
 PAMicrophone::PAMicrophone()
 {
@@ -43,21 +43,26 @@ PAMicrophone::PAMicrophone()
     PaError i_Error;
     
     // Setup PortAudio
-    if (b_SetupPA == true)
+    if (i_PAUsers == 0)
     {
         if ((i_Error = Pa_Initialize()) != paNoError)
         {
             throw Exception("Failed to initialuze PortAudio! " + std::string(Pa_GetErrorText(i_Error)));
         }
-        
-        b_SetupPA = true;
     }
     
+    i_PAUsers += 1;
+    
     // Update audio info
-    c_Audio.u16_Format = paInt16;
+    MRH_Uint32 u32_Samples = c_Configuration.GetPAMicSamples();
+    
     c_Audio.u32_KHz = c_Configuration.GetPAMicKHz();
     c_Audio.u8_Channels = c_Configuration.GetPAMicChannels();
-    c_Audio.u32_StreamLengthS = c_Configuration.GetPAMicStreamLengthS();
+    c_Audio.us_BufferSize = c_Audio.u8_Channels * u32_Samples * c_Configuration.GetPAMicSampleStorageSize();
+    c_Audio.p_BufferA = new MRH_Sint16[c_Audio.us_BufferSize];
+    c_Audio.p_BufferB = new MRH_Sint16[c_Audio.us_BufferSize];
+    c_Audio.p_Buffer = c_Audio.p_BufferA; // Start at A
+    c_Audio.us_BufferPos = 0;
     
     // Set input stream info
     PaStreamParameters c_InputParameters;
@@ -67,32 +72,38 @@ PAMicrophone::PAMicrophone()
     c_InputParameters.channelCount = c_Audio.u8_Channels;
     c_InputParameters.device = u32_DevID;
     c_InputParameters.hostApiSpecificStreamInfo = NULL;
-    c_InputParameters.sampleFormat = c_Audio.u16_Format;
+    c_InputParameters.sampleFormat = paInt16;
     c_InputParameters.suggestedLatency = Pa_GetDeviceInfo(u32_DevID)->defaultLowInputLatency;
     c_InputParameters.hostApiSpecificStreamInfo = NULL; //See you specific host's API docs for info on using this field
     
-    printf("DevInfo: %s\n", Pa_GetDeviceInfo(u32_DevID)->name);
-    printf("Channels: %d\n", Pa_GetDeviceInfo(u32_DevID)->maxInputChannels);
+    // Print info
+    MRH_PSBLogger& c_Logger = MRH_PSBLogger::Singleton();
+    c_Logger.Log(MRH_PSBLogger::INFO, "Device: " + std::string(Pa_GetDeviceInfo(u32_DevID)->name), "PAMicrohpone.cpp", __LINE__);
+    c_Logger.Log(MRH_PSBLogger::INFO, "KHz: " + std::to_string(c_Audio.u32_KHz), "PAMicrohpone.cpp", __LINE__);
+    c_Logger.Log(MRH_PSBLogger::INFO, "Channels: " + std::to_string(c_Audio.u8_Channels), "PAMicrohpone.cpp", __LINE__);
+    c_Logger.Log(MRH_PSBLogger::INFO, "Samples: " + std::to_string(u32_Samples), "PAMicrohpone.cpp", __LINE__);
+    c_Logger.Log(MRH_PSBLogger::INFO, "Storage Size: " + std::to_string(c_Configuration.GetPAMicSampleStorageSize()), "PAMicrohpone.cpp", __LINE__);
+    c_Logger.Log(MRH_PSBLogger::INFO, "Total Storage Byte Size: " + std::to_string(c_Audio.us_BufferSize * 2), "PAMicrohpone.cpp", __LINE__);
     
     // Open audio stream
     i_Error = Pa_OpenStream(&p_Stream,
                             &c_InputParameters,
                             NULL, // No output info
                             c_Audio.u32_KHz,
-                            c_Configuration.GetPAMicSamples(),
+                            u32_Samples,
                             paClipOff,// paNoFlag,
                             PACallback,
                             &c_Audio);
     
     if (i_Error != paNoError)
     {
-        throw Exception("Failed to open PortAudio stream! " + std::string(Pa_GetErrorText(i_Error)));
+        throw Exception("Failed to open PortAudio input stream! " + std::string(Pa_GetErrorText(i_Error)));
     }
     
     // Stream opened, start recording
     if ((i_Error = Pa_StartStream(p_Stream)) != paNoError)
     {
-        throw Exception("Failed to start PortAudio stream! " + std::string(Pa_GetErrorText(i_Error)));
+        throw Exception("Failed to start PortAudio input stream! " + std::string(Pa_GetErrorText(i_Error)));
     }
 }
 
@@ -106,13 +117,17 @@ PAMicrophone::~PAMicrophone() noexcept
                                                              std::string(Pa_GetErrorText(i_Error)),
                                        "PAMicrophone.cpp", __LINE__);
     }
-    else if ((i_Error = Pa_CloseStream(p_Stream)) != paNoError)
+    
+    if ((i_Error = Pa_CloseStream(p_Stream)) != paNoError)
     {
         MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Failed to close PortAudio Stream! " +
                                                              std::string(Pa_GetErrorText(i_Error)),
                                        "PAMicrophone.cpp", __LINE__);
     }
-    else if ((i_Error = Pa_Terminate()) != paNoError)
+    
+    i_PAUsers -= 1;
+    
+    if (i_PAUsers == 0 && (i_Error = Pa_Terminate()) != paNoError)
     {
         MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Failed to deinitialize PortAudio! " +
                                                              std::string(Pa_GetErrorText(i_Error)),
@@ -120,29 +135,16 @@ PAMicrophone::~PAMicrophone() noexcept
     }
 }
 
-PAMicrophone::Audio::Audio() noexcept : u16_Format(paInt16),
-                                        u32_KHz(16000),
-                                        u8_Channels(1),
-                                        u32_StreamLengthS(5)
+PAMicrophone::Audio::Audio() noexcept : p_Buffer(NULL),
+                                        p_BufferA(NULL),
+                                        p_BufferB(NULL),
+                                        us_BufferSize(0),
+                                        us_BufferPos(0),
+                                        u32_KHz(0),
+                                        u8_Channels(0)
 {}
 
 PAMicrophone::Audio::~Audio() noexcept
-{
-    for (auto& Sample : v_Sample)
-    {
-        delete Sample;
-    }
-}
-
-PAMicrophone::Sample::Sample() noexcept : u16_Format(paInt16),
-                                          u32_KHz(16000),
-                                          u8_Channels(1),
-                                          f32_Amplitude(0.f),
-                                          f32_Peak(0.f),
-                                          u64_TimepointS(0)
-{}
-
-PAMicrophone::Sample::~Sample() noexcept
 {}
 
 //*************************************************************************************
@@ -169,99 +171,6 @@ void PAMicrophone::StopListening()
     }
 }
 
-/*
-void PAMicrophone::PACallback(void* p_UserData, Uint8* p_Buffer, int i_Length) noexcept
-{
-    PAMicrophone::Stream* p_Stream = static_cast<PAMicrophone::Stream*>(p_UserData);
-    
-    // Grab the sample to use
-    Sample* p_Sample = NULL;
-    Uint64 u64_TimepointS = time(NULL);
-    
-    p_Stream->c_Mutex.lock();
-    
-    if (p_Stream->v_Sample.size() > 0 &&
-        p_Stream->v_Sample[0]->u64_TimepointS < (u64_TimepointS - p_Stream->u32_StreamLengthS))
-    {
-        // Oldest sample too old, reuse
-        p_Sample = p_Stream->v_Sample[0];
-        p_Stream->v_Sample.erase(p_Stream->v_Sample.begin());
-    }
-    
-    p_Stream->c_Mutex.unlock();
-    
-    if (p_Sample == NULL)
-    {
-        // All samples valid, append new
-        p_Sample = new Sample();
-    }
-    
-    p_Sample->u64_TimepointS = u64_TimepointS; // New timepoint
-    
-    // Sample inherits stream format
-    p_Sample->u16_Format = p_Stream->u16_Format;
-    p_Sample->u32_KHz = p_Stream->u32_KHz;
-    p_Sample->u8_Channels = p_Stream->u8_Channels;
-    
-    // Add space for all bytes
-    if (p_Sample->v_Buffer.size() != i_Length)
-    {
-        p_Sample->v_Buffer.resize(i_Length, 0);
-    }
-    
-    // Channel RMS
-    std::vector<float> v_RMS(p_Sample->u8_Channels, 0.f);
-    std::vector<float>::iterator RMS = v_RMS.begin();
-    
-    // Run variables
-    float f32_Value;
-    float f32_ABS;
-    size_t us_Step = sizeof(float);
-
-    for (size_t i = 0; i < i_Length; i += us_Step)
-    {
-        // Get float value first
-        f32_Value = *((float*)&(p_Buffer[i]));
-        
-        // Check the current peak (Global for all channels)
-        f32_ABS = fabs(f32_Value);
-        
-        if (f32_ABS > p_Sample->f32_Peak)
-        {
-            p_Sample->f32_Peak = f32_ABS;
-        }
-        
-        // Grab RMS for this channel
-        *RMS += f32_Value * f32_Value;
-        
-        if ((++RMS) == v_RMS.end())
-        {
-            RMS = v_RMS.begin();
-        }
-        
-        // Copy bytes
-        *((float*)&(p_Sample->v_Buffer[i])) = f32_Value;
-    }
-    
-    // Grab max amplitude
-    for (auto& Amplitude : v_RMS)
-    {
-        if (p_Sample->f32_Amplitude < Amplitude)
-        {
-            p_Sample->f32_Amplitude = Amplitude;
-        }
-    }
-    
-    p_Sample->f32_Amplitude = (sqrt(p_Sample->f32_Amplitude / ((i_Length / v_RMS.size()) / us_Step)));
-    
-    // Sample was built, add!
-    p_Stream->c_Mutex.lock();
-    p_Stream->v_Sample.emplace_back(p_Sample);
-    printf("Amplitude: %f | Peak: %f | Total Samples: %zu\n", p_Sample->f32_Amplitude, p_Sample->f32_Peak, p_Stream->v_Sample.size());
-    p_Stream->c_Mutex.unlock();
-}
-*/
-
 int PAMicrophone::PACallback(const void* p_Input,
                              void* p_Output,
                              unsigned long u32_FrameCount,
@@ -271,110 +180,58 @@ int PAMicrophone::PACallback(const void* p_Input,
 {
     PAMicrophone::Audio* p_Audio = static_cast<PAMicrophone::Audio*>(p_UserData);
     
-    printf("Frame Count: %lu\n", u32_FrameCount);
+    // Lock buffer for full operation
+    std::lock_guard<std::mutex> c_Guard(p_Audio->c_Mutex);
     
-    for (size_t i = 0; i < u32_FrameCount; ++i)
+    MRH_Sint16* p_Buffer = p_Audio->p_Buffer;
+    size_t us_BufferPos = p_Audio->us_BufferPos;
+    ssize_t ss_Copy = p_Audio->us_BufferSize - us_BufferPos;
+    
+    // Enough space?
+    if (ss_Copy > u32_FrameCount)
     {
-        printf("Data: %d\n", ((MRH_Sint16*)p_Output)[i]);
+        ss_Copy = u32_FrameCount;
+    }
+    else if (ss_Copy <= 0)
+    {
+        // Space constraints, keep until switch
+        return paContinue;
     }
     
-    return 0;
+    // Copy data
+    std::memcpy(p_Buffer + us_BufferPos, // Current position, continuous
+                p_Input,
+                ss_Copy * sizeof(MRH_Sint16)); // sample for frame * bytes
+    p_Audio->us_BufferPos += ss_Copy;
     
-    /*
-    paTestData *data = (paTestData*)userData;
-      100     const SAMPLE *rptr = (const SAMPLE*)inputBuffer;
-      101     SAMPLE *wptr = &data->recordedSamples[data->frameIndex * NUM_CHANNELS];
-      102     long framesToCalc;
-      103     long i;
-      104     int finished;
-      105     unsigned long framesLeft = data->maxFrameIndex - data->frameIndex;
-      106
-      107     (void) outputBuffer; // Prevent unused variable warnings.
-      108     (void) timeInfo;
-      109     (void) statusFlags;
-      110     (void) userData;
-      111
-      112     if( framesLeft < framesPerBuffer )
-      113     {
-      114         framesToCalc = framesLeft;
-      115         finished = paComplete;
-      116     }
-      117     else
-      118     {
-      119         framesToCalc = framesPerBuffer;
-      120         finished = paContinue;
-      121     }
-      122
-      123     if( inputBuffer == NULL )
-      124     {
-      125         for( i=0; i<framesToCalc; i++ )
-      126         {
-      127             *wptr++ = SAMPLE_SILENCE;  // left
-      128             if( NUM_CHANNELS == 2 ) *wptr++ = SAMPLE_SILENCE;  // right
-      129         }
-      130     }
-      131     else
-      132     {
-      133         for( i=0; i<framesToCalc; i++ )
-      134         {
-      135             *wptr++ = *rptr++;  // left
-      136             if( NUM_CHANNELS == 2 ) *wptr++ = *rptr++;  // right
-      137         }
-      138     }
-      139     data->frameIndex += framesToCalc;
-      140     return finished;
-    return -1;
-     */
+    // Done
+    return paContinue;
 }
 
 //*************************************************************************************
-// Sample
+// Getters
 //*************************************************************************************
 
-void PAMicrophone::ConvertTo(Sample* p_Sample, PaSampleFormat u16_Format, MRH_Uint32 u32_KHz, MRH_Uint8 u8_Channels) noexcept
+AudioSample PAMicrophone::GetAudioSample() noexcept
 {
-    // TODO: Convert
-}
-
-size_t PAMicrophone::GetSampleCount() noexcept
-{
-    std::lock_guard<std::mutex> c_Guard(c_Audio.c_Mutex);
-    return c_Audio.v_Sample.size();
-}
-
-PAMicrophone::Sample* PAMicrophone::GrabSample(size_t us_Sample)
-{
-    std::lock_guard<std::mutex> c_Guard(c_Audio.c_Mutex);
+    MRH_Sint16* p_Buffer;
+    size_t us_Length;
     
-    std::vector<Sample*>& v_Sample = c_Audio.v_Sample;
+    c_Audio.c_Mutex.lock();
     
-    if (v_Sample.size() <= us_Sample)
-    {
-        throw Exception("Invalid sample requested!");
-    }
+    // Grab current used buffer
+    p_Buffer = c_Audio.p_Buffer;
+    us_Length = c_Audio.us_BufferPos;
     
-    Sample* p_Sample = v_Sample[us_Sample];
-    v_Sample.erase(v_Sample.begin() + us_Sample);
+    // Set next buffer
+    c_Audio.p_Buffer = (p_Buffer == c_Audio.p_BufferA ? c_Audio.p_BufferB : c_Audio.p_BufferA);
+    c_Audio.us_BufferPos = 0;
     
-    return p_Sample;
-}
-
-void PAMicrophone::ReturnSample(Sample* p_Sample)
-{
-    std::lock_guard<std::mutex> c_Guard(c_Audio.c_Mutex);
+    c_Audio.c_Mutex.unlock();
     
-    auto It = c_Audio.v_Sample.begin();
-    auto End = c_Audio.v_Sample.end();
-    
-    for (; It != End; ++It)
-    {
-        if ((*It)->u64_TimepointS >= p_Sample->u64_TimepointS)
-        {
-            c_Audio.v_Sample.insert(It, p_Sample);
-            return;
-        }
-    }
-    
-    // Newest, add at end
-    c_Audio.v_Sample.emplace_back(p_Sample);
+    // Create audio sample
+    return AudioSample(p_Buffer,
+                       us_Length,
+                       c_Audio.u8_Channels,
+                       c_Audio.u32_KHz);
 }

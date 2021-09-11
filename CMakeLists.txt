@@ -71,7 +71,9 @@ set(SRC_LIST_CALLBACK "${SRC_DIR_PATH}/Callback/Service/CBAvail.cpp"
                       "${SRC_DIR_PATH}/Callback/Speech/CBSpeechMethod.cpp"
                       "${SRC_DIR_PATH}/Callback/Speech/CBSpeechMethod.h")
                  
-set(SRC_LIST_SPEECH "${SRC_DIR_PATH}/Speech/Method/Voice/PAMicrophone.cpp"
+set(SRC_LIST_SPEECH "${SRC_DIR_PATH}/Speech/Method/Voice/AudioSample.cpp"
+                    "${SRC_DIR_PATH}/Speech/Method/Voice/AudioSample.h"
+                    "${SRC_DIR_PATH}/Speech/Method/Voice/PAMicrophone.cpp"
                     "${SRC_DIR_PATH}/Speech/Method/Voice/PAMicrophone.h"
                     "${SRC_DIR_PATH}/Speech/Method/Voice/PocketSphinx.cpp"
                     "${SRC_DIR_PATH}/Speech/Method/Voice/PocketSphinx.h"

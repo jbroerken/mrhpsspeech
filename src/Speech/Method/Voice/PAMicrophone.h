@@ -31,60 +31,12 @@
 #include <portaudio.h>
 
 // Project
-#include "../../../Exception.h"
+#include "./AudioSample.h"
 
 
 class PAMicrophone
 {
 public:
-    
-    //*************************************************************************************
-    // Types
-    //*************************************************************************************
-    
-    struct Sample
-    {
-        friend class PAMicrophone;
-        
-    public:
-        
-        //*************************************************************************************
-        // Constructor / Destructor
-        //*************************************************************************************
-        
-        /**
-         *  Default constructor.
-         */
-        
-        Sample() noexcept;
-        
-        /**
-         *  Default destructor.
-         */
-        
-        ~Sample() noexcept;
-        
-        //*************************************************************************************
-        // Data
-        //*************************************************************************************
-        
-        std::vector<MRH_Uint8> v_Buffer;
-        
-        PaSampleFormat u16_Format;
-        MRH_Uint32 u32_KHz;
-        MRH_Uint8 u8_Channels;
-        
-        MRH_Sfloat32 f32_Amplitude;
-        MRH_Sfloat32 f32_Peak;
-        
-    private:
-        
-        //*************************************************************************************
-        // Data
-        //*************************************************************************************
-        
-        MRH_Uint64 u64_TimepointS;
-    };
     
     //*************************************************************************************
     // Constructor / Destructor
@@ -119,27 +71,8 @@ public:
     void StopListening();
     
     //*************************************************************************************
-    // Samples
+    // Getters
     //*************************************************************************************
-    
-    /**
-     *  Convert a given sample to a target format.
-     *
-     *  \param p_Sample The sample to convert.
-     *  \param u16_Format The target format.
-     *  \param u32_KHz The target KHz.
-     *  \param u8_Channels The target channels.
-     */
-    
-    void ConvertTo(Sample* p_Sample, PaSampleFormat u16_Format, MRH_Uint32 u32_KHz, MRH_Uint8 u8_Channels) noexcept;
-    
-    /**
-     *  Get the number of audio stream samples available.
-     *
-     *  \return The number of samples available.
-     */
-    
-    size_t GetSampleCount() noexcept;
     
     /**
      *  Grab a sample, removing it from the audio stream.
@@ -149,15 +82,7 @@ public:
      *  \return The requested sample.
      */
     
-    Sample* GrabSample(size_t us_Sample);
-    
-    /**
-     *  Return a sample to the audio stream.
-     *
-     *  \param p_Sample The sample to return.
-     */
-    
-    void ReturnSample(Sample* p_Sample);
+    AudioSample GetAudioSample() noexcept;
     
 private:
     
@@ -191,12 +116,14 @@ private:
         
         std::mutex c_Mutex;
         
-        std::vector<Sample*> v_Sample;
+        MRH_Sint16* p_Buffer;
+        MRH_Sint16* p_BufferA;
+        MRH_Sint16* p_BufferB;
+        size_t us_BufferPos;
+        size_t us_BufferSize;
         
-        PaSampleFormat u16_Format;
         MRH_Uint32 u32_KHz;
         MRH_Uint8 u8_Channels;
-        MRH_Uint32 u32_StreamLengthS;
     };
     
     //*************************************************************************************
@@ -218,7 +145,7 @@ private:
     // Data
     //*************************************************************************************
     
-    static bool b_SetupPA;
+    static std::atomic<int> i_PAUsers;
     
     PaStream* p_Stream;
     
