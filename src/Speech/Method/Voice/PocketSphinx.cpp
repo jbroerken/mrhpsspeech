@@ -38,7 +38,9 @@
 // Constructor / Destructor
 //*************************************************************************************
 
-PocketSphinx::PocketSphinx(std::string const& s_ModelDir)
+PocketSphinx::PocketSphinx(std::string const& s_ModelDir) : p_Decoder(NULL),
+                                                            p_Config(NULL),
+                                                            b_DecoderRunning(false)
 {
     // Grab locale first
     std::string s_Locale(MRH_SPEECH_SPHINX_DEFAULT_LOCALE);
@@ -76,6 +78,20 @@ PocketSphinx::PocketSphinx(std::string const& s_ModelDir)
             
         throw Exception("Failed to create sphinx recognizer!");
     }
+    
+    // Start initial
+    if (ps_start_utt(p_Decoder) < 0)
+    {
+        ps_free(p_Decoder);
+        p_Decoder = NULL;
+        
+        cmd_ln_free_r(p_Config);
+        p_Config = NULL;
+        
+        throw Exception("Failed to start sphinx utterance!");
+    }
+    
+    b_DecoderRunning = true;
 }
 
 PocketSphinx::~PocketSphinx() noexcept
@@ -92,27 +108,118 @@ PocketSphinx::~PocketSphinx() noexcept
 }
 
 //*************************************************************************************
+// Start
+//*************************************************************************************
+
+void PocketSphinx::StartDecoder() noexcept
+{
+    if (b_DecoderRunning == true)
+    {
+        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "Decoder already running!",
+                                           "PocketSphinx.cpp", __LINE__);
+    }
+    else if (ps_start_utt(p_Decoder) < 0)
+    {
+        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Failed to start utterance!",
+                                           "PocketSphinx.cpp", __LINE__);
+    }
+    
+    b_DecoderRunning = true;
+}
+
+//*************************************************************************************
 // Recognize
 //*************************************************************************************
 
-void PocketSphinx::StartRecognition() noexcept
+void PocketSphinx::AddAudio(const MRH_Sint16* p_Buffer, size_t us_Length) noexcept
+{
+    if (b_DecoderRunning == false)
+    {
+        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "Decoder not running!",
+                                           "PocketSphinx.cpp", __LINE__);
+    }
+    else if (ps_process_raw(p_Decoder, p_Buffer, us_Length, FALSE, FALSE) < 0)
+    {
+        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Failed to process audio sample!",
+                                           "PocketSphinx.cpp", __LINE__);
+    }
+}
+
+bool PocketSphinx::AudioContainsSpeech() noexcept
+{
+    if (b_DecoderRunning == false || ps_get_in_speech(p_Decoder) < 0)
+    {
+        return false;
+    }
+    
+    return true;
+}
+
+std::string PocketSphinx::Recognize() noexcept
+{
+    if (b_DecoderRunning == false)
+    {
+        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "Decoder not running!",
+                                           "PocketSphinx.cpp", __LINE__);
+        return "";
+    }
+    else if (ps_end_utt(p_Decoder) < 0)
+    {
+        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Failed to end utterance!",
+                                       "PocketSphinx.cpp", __LINE__);
+        return "";
+    }
+    
+    b_DecoderRunning = false;
+    
+    std::string s_Result = "";
+    const char* p_Hypothesis;
+    MRH_Sint32 s32_Score;
+    
+    if ((p_Hypothesis = ps_get_hyp(p_Decoder, &s32_Score)) == NULL)
+    {
+        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Failed to get hypothesis!",
+                                       "PocketSphinx.cpp", __LINE__);
+    }
+    else
+    {
+        s_Result = p_Hypothesis;
+    }
+    
+    // Got hypo, restart utt
+    if (ps_start_utt(p_Decoder) < 0)
+    {
+        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Failed to restart sphinx utterance!",
+                                       "PocketSphinx.cpp", __LINE__);
+    }
+    
+    b_DecoderRunning = true;
+    return s_Result;
+}
+
+/*
+std::vector<std::string> PocketSphinx::Recognize(AudioSample const& c_Sample) noexcept
 {
     if (ps_start_utt(p_Decoder) < 0)
     {
         printf("START ERROR\n");
     }
-}
-
-void PocketSphinx::AddSample(const MRH_Uint8* p_Buffer, MRH_Uint32 u32_Length)
-{
-    if (ps_process_raw(p_Decoder, (const int16*)p_Buffer, u32_Length, FALSE, FALSE) < 0)
+    
+    const MRH_Sint16* p_Buffer = c_Sample.v_Buffer.data();
+    size_t us_Total = c_Sample.v_Buffer.size();
+    size_t us_Pos = 0;
+    MRH_Uint32 u32_Samples = c_Sample.u32_Samples;
+    
+    while (us_Pos < us_Total)
     {
-        printf("PROCESS ERROR!\n");
+        if (ps_process_raw(p_Decoder, p_Buffer + us_Pos, u32_Samples, FALSE, FALSE) < 0)
+        {
+            printf("PROCESS ERROR!\n");
+        }
+        
+        us_Pos += u32_Samples;
     }
-}
-
-std::string PocketSphinx::Recognize() noexcept
-{
+    
     if (ps_end_utt(p_Decoder) < 0)
     {
         printf("End UTT Error!\n");
@@ -130,3 +237,4 @@ std::string PocketSphinx::Recognize() noexcept
     
     return p_Hypothesis;
 }
+*/

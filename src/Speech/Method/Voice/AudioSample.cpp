@@ -35,11 +35,13 @@
 
 AudioSample::AudioSample(const MRH_Sint16* p_Buffer,
                          size_t us_Length,
+                         MRH_Uint32 u32_KHz,
                          MRH_Uint8 u8_Channels,
-                         MRH_Uint32 u32_KHz) noexcept : u8_Channels(u8_Channels),
-                                                        u32_KHz(u32_KHz),
-                                                        f32_Amplitude(0.f),
-                                                        f32_Peak(0.f)
+                         MRH_Uint32 u32_Samples) noexcept : u32_KHz(u32_KHz),
+                                                            u8_Channels(u8_Channels),
+                                                            u32_Samples(u32_Samples),
+                                                            f32_Amplitude(0.f),
+                                                            f32_Peak(0.f)
 {
     // Insert data first for calculation
     if (us_Length == 0)
@@ -94,7 +96,8 @@ AudioSample::~AudioSample() noexcept
 // Convert
 //*************************************************************************************
 
-void AudioSample::Convert(MRH_Uint32 u32_KHz, MRH_Uint8 u8_Channels) noexcept
+std::vector<MRH_Sint16> AudioSample::Convert(size_t us_Pos, size_t us_Length, MRH_Uint32 u32_KHz, MRH_Uint8 u8_Channels) noexcept
 {
-    // @TODO: Channel Mixing and KHz Conversion
+    return std::vector<MRH_Sint16>(v_Buffer.data() + us_Pos,
+                                   v_Buffer.data() + (us_Pos + us_Length));
 }

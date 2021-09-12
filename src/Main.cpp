@@ -72,6 +72,7 @@ static int Exit(libmrhpsb* p_Context, const char* p_Exception, int i_Result)
 AudioSample c_Sample(NULL,
                      0,
                      0,
+                     0,
                      0);
 
 static int AudioCB(const void *input,
@@ -138,53 +139,21 @@ void PlayAudio()
     sleep(10);
 }
 
-void RunSphinx()
-{
-    PocketSphinx c_Sphinx(Configuration::Singleton().GetSphinxModelDirPath());
-    std::vector<MRH_Uint8> v_Chunk(256, 0);
-    
-    c_Sphinx.StartRecognition();
-    
-    /*
-    for (size_t i = 0; i < v_Buffer.size();)
-    {
-        MRH_Uint32 u32_Size;
-        
-        if (i < (v_Buffer.size() - 256))
-        {
-            u32_Size = 256;
-            memcpy(&(v_Chunk[0]), &(v_Buffer[i]), u32_Size);
-        }
-        else
-        {
-            u32_Size = (v_Buffer.size() - i);
-            memcpy(&(v_Chunk[0]), &(v_Buffer[i]), u32_Size);
-        }
-        
-        i += u32_Size;
-        c_Sphinx.AddSample(&(v_Chunk[0]), u32_Size);
-    }
-    */
-    
-    std::string s_Result = c_Sphinx.Recognize();
-    printf("%s\n", s_Result.c_str());
-}
-
 int main(int argc, const char* argv[])
 {
     std::setlocale(LC_ALL, "en_US.UTF-8");
     Configuration::Singleton().Load();
-    PAMicrophone c_Audio;
+    Speech c_Speech;
     
-    sleep(5);
+    sleep(30);
     
-    c_Audio.StopListening();
+    //c_Audio.StopListening();
     
-    sleep(1);
+    //sleep(1);
     
-    c_Sample = c_Audio.GetAudioSample();
+    //c_Sample = c_Audio.GetAudioSample();
     
-    PlayAudio();
+    //PlayAudio();
     //RunSphinx();
     
     return 0;

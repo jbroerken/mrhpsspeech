@@ -54,11 +54,10 @@ PAMicrophone::PAMicrophone()
     i_PAUsers += 1;
     
     // Update audio info
-    MRH_Uint32 u32_Samples = c_Configuration.GetPAMicSamples();
-    
     c_Audio.u32_KHz = c_Configuration.GetPAMicKHz();
     c_Audio.u8_Channels = c_Configuration.GetPAMicChannels();
-    c_Audio.us_BufferSize = c_Audio.u8_Channels * u32_Samples * c_Configuration.GetPAMicSampleStorageSize();
+    c_Audio.u32_Samples = c_Configuration.GetPAMicSamples();
+    c_Audio.us_BufferSize = c_Audio.u8_Channels * c_Audio.u32_Samples * c_Configuration.GetPAMicSampleStorageSize();
     c_Audio.p_BufferA = new MRH_Sint16[c_Audio.us_BufferSize];
     c_Audio.p_BufferB = new MRH_Sint16[c_Audio.us_BufferSize];
     c_Audio.p_Buffer = c_Audio.p_BufferA; // Start at A
@@ -81,7 +80,7 @@ PAMicrophone::PAMicrophone()
     c_Logger.Log(MRH_PSBLogger::INFO, "Device: " + std::string(Pa_GetDeviceInfo(u32_DevID)->name), "PAMicrohpone.cpp", __LINE__);
     c_Logger.Log(MRH_PSBLogger::INFO, "KHz: " + std::to_string(c_Audio.u32_KHz), "PAMicrohpone.cpp", __LINE__);
     c_Logger.Log(MRH_PSBLogger::INFO, "Channels: " + std::to_string(c_Audio.u8_Channels), "PAMicrohpone.cpp", __LINE__);
-    c_Logger.Log(MRH_PSBLogger::INFO, "Samples: " + std::to_string(u32_Samples), "PAMicrohpone.cpp", __LINE__);
+    c_Logger.Log(MRH_PSBLogger::INFO, "Samples: " + std::to_string(c_Audio.u32_Samples), "PAMicrohpone.cpp", __LINE__);
     c_Logger.Log(MRH_PSBLogger::INFO, "Storage Size: " + std::to_string(c_Configuration.GetPAMicSampleStorageSize()), "PAMicrohpone.cpp", __LINE__);
     c_Logger.Log(MRH_PSBLogger::INFO, "Total Storage Byte Size: " + std::to_string(c_Audio.us_BufferSize * 2), "PAMicrohpone.cpp", __LINE__);
     
@@ -90,7 +89,7 @@ PAMicrophone::PAMicrophone()
                             &c_InputParameters,
                             NULL, // No output info
                             c_Audio.u32_KHz,
-                            u32_Samples,
+                            c_Audio.u32_Samples,
                             paClipOff,// paNoFlag,
                             PACallback,
                             &c_Audio);
@@ -232,6 +231,7 @@ AudioSample PAMicrophone::GetAudioSample() noexcept
     // Create audio sample
     return AudioSample(p_Buffer,
                        us_Length,
+                       c_Audio.u32_KHz,
                        c_Audio.u8_Channels,
-                       c_Audio.u32_KHz);
+                       c_Audio.u32_Samples);
 }

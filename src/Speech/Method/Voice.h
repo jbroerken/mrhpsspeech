@@ -32,6 +32,11 @@
 #include "../SpeechMethod.h"
 
 
+class PAMicrophone;
+class PocketSphinx;
+class GoogleAPI;
+
+
 class Voice : public SpeechMethod
 {
 public:
@@ -89,23 +94,16 @@ public:
 private:
     
     //*************************************************************************************
-    // Update
-    //*************************************************************************************
-    
-    /**
-     *  Update Voice by Pocket Sphinx method.
-     *
-     *  \param p_Instance The Voice instance to update.
-     */
-    
-    static void Update(Voice* p_Instance) noexcept;
-    
-    //*************************************************************************************
     // Data
     //*************************************************************************************
     
-    std::thread c_Thread;
-    std::atomic<bool> b_Update;
+    PAMicrophone* p_Microphone;
+    PocketSphinx* p_PocketSphinx;
+    GoogleAPI* p_GoogleAPI;
+    
+    MRH_Uint64 u64_LastSampleS;
+    bool b_TriggerRecognized;
+    MRH_Uint64 u64_TriggerValidS;
     
 protected:
 

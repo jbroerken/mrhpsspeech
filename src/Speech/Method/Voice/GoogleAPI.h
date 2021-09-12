@@ -1,5 +1,5 @@
 /**
- *  PocketSphinx.h
+ *  GoogleAPI.h
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -19,21 +19,18 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef PocketSphinx_h
-#define PocketSphinx_h
+#ifndef GoogleAPI_h
+#define GoogleAPI_h
 
 // C / C++
 
 // External
-#include <MRH_Typedefs.h>
-#include <pocketsphinx/pocketsphinx.h>
 
 // Project
 #include "./AudioSample.h"
-#include "../../../Exception.h"
 
 
-class PocketSphinx
+class GoogleAPI
 {
 public:
     
@@ -43,56 +40,29 @@ public:
     
     /**
      *  Default constructor.
-     *
-     *  \param s_ModelDir The full path to the model directory to use.
      */
     
-    PocketSphinx(std::string const& s_ModelDir);
+    GoogleAPI() noexcept;
     
     /**
      *  Default destructor.
      */
     
-    virtual ~PocketSphinx() noexcept;
+    ~GoogleAPI() noexcept;
     
     //*************************************************************************************
-    // Start
-    //*************************************************************************************
-    
-    /**
-     *  Start the decoder.
-     */
-    
-    void StartDecoder() noexcept;
-    
-    //*************************************************************************************
-    // Recognize
+    // Speech to Text
     //*************************************************************************************
     
     /**
-     *  Add audio data to the decoder.
+     *  Add mono audio data for speech to text.
      *
      *  \param p_Buffer The audio buffer to add.
-     *  \param us_Length The length of the audio buffer.
+     *  \param us_Length The length of the data buffer.
+     *  \param u32_KHz The audio buffer KHz.
      */
     
-    void AddAudio(const MRH_Sint16* p_Buffer, size_t us_Length) noexcept;
-    
-    /**
-     *  Check if the last added audio buffer contains speech.
-     *
-     *  \return true if contained, false if not.
-     */
-    
-    bool AudioContainsSpeech() noexcept;
-    
-    /**
-     *  Convert a given audio sample to a string.
-     *
-     *  \return The recognized string.
-     */
-    
-    std::string Recognize() noexcept;
+    void AddAudio(const MRH_Sint16* p_Buffer, size_t us_Length, MRH_Uint32 u32_KHz) noexcept;
     
 private:
     
@@ -100,13 +70,10 @@ private:
     // Data
     //*************************************************************************************
     
-    ps_decoder_t* p_Decoder;
-    cmd_ln_t* p_Config;
-    
-    bool b_DecoderRunning;
+    AudioSample c_Sample;
     
 protected:
     
 };
 
-#endif /* PocketSphinx_h */
+#endif /* GoogleAPI_h */
