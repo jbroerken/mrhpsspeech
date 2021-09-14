@@ -24,6 +24,7 @@
 
 // External
 #include <libmrhpsb.h>
+#include <portaudio.h>
 
 // Project
 #include "./Callback/Service/CBAvail.h"
@@ -72,19 +73,14 @@ int main(int argc, const char* argv[])
 {
     std::setlocale(LC_ALL, "en_US.UTF-8");
     Configuration::Singleton().Load();
+    PaError i_Err;
+    if ((i_Err = Pa_Initialize()) != paNoError)
+    {
+        return EXIT_FAILURE;
+    }
+    
     Speech c_Speech;
-    
     sleep(30);
-    
-    //c_Audio.StopListening();
-    
-    //sleep(1);
-    
-    //c_Sample = c_Audio.GetAudioSample();
-    
-    //PlayAudio();
-    //RunSphinx();
-    
     return 0;
     
     // Setup service base
@@ -107,6 +103,15 @@ int main(int argc, const char* argv[])
     catch (std::exception& e)
     {
         return Exit(NULL, e.what(), EXIT_FAILURE);
+    }
+    
+    // Setup PortAudio
+    PaError i_Error;
+    if ((i_Error = Pa_Initialize()) != paNoError)
+    {
+        return Exit(p_Context,
+                    ("Failed to initialuze PortAudio! " + std::string(Pa_GetErrorText(i_Error))).c_str(),
+                    EXIT_FAILURE);
     }
     
     // Setup service specific data

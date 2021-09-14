@@ -35,23 +35,9 @@
 // Constructor / Destructor
 //*************************************************************************************
 
-std::atomic<int> PADevice::i_PAUsers(0);
-
 PADevice::PADevice()
 {
-    // Setup PortAudio
-    if (i_PAUsers == 0)
-    {
-        PaError i_Error;
-        if ((i_Error = Pa_Initialize()) != paNoError)
-        {
-            throw Exception("Failed to initialuze PortAudio! " + std::string(Pa_GetErrorText(i_Error)));
-        }
-    }
-    
-    i_PAUsers += 1;
-    
-    // Init
+    // Init methods
     try
     {
         SetupInput();
@@ -60,8 +46,8 @@ PADevice::PADevice()
     catch (Exception& e)
     {
         CloseInput();
-        //CloseOutput();
         
+        // Output is last, never open on failure
         throw;
     }
 }
@@ -71,18 +57,6 @@ PADevice::~PADevice() noexcept
     // Close streams first
     CloseInput();
     //CloseOutput();
-    
-    // Remove lib if needed
-    if ((i_PAUsers -= 1) == 0)
-    {
-        PaError i_Error;
-        if ((i_Error = Pa_Terminate()) != paNoError)
-        {
-            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Failed to deinitialize PortAudio! " +
-                                                                 std::string(Pa_GetErrorText(i_Error)),
-                                           "PADevice.cpp", __LINE__);
-        }
-    }
 }
 
 PADevice::Input::Input() noexcept : p_Buffer(NULL),
@@ -214,7 +188,7 @@ void PADevice::StopListening()
     }
 }
 
-void PADevice::ResetListenAudio()
+void PADevice::ResetInputAudio()
 {
     // Simply swap buffers, causing a override
     c_InputAudio.c_Mutex.lock();

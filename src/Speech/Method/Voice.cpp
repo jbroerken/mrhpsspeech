@@ -108,7 +108,8 @@ void Voice::Start()
     if (p_Device != NULL)
     {
         //p_Device->StartPlayback();
-        p_Device->ResetListenAudio();
+        
+        p_Device->ResetInputAudio();
         p_Device->StartListening();
     }
     
@@ -122,6 +123,7 @@ void Voice::Stop()
     if (p_Device != NULL)
     {
         //p_Device->StopPlayback();
+        
         p_Device->StopListening();
     }
     
