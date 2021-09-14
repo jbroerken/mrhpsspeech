@@ -28,38 +28,42 @@
 
 // Project
 #include "./Voice.h"
-#include "./Voice/PAMicrophone.h"
+#include "./Voice/PADevice.h"
 #include "./Voice/PocketSphinx.h"
 #include "./Voice/GoogleAPI.h"
 #include "../../Configuration.h"
 
 // Pre-defined
-#define LISTEN_SAMPLE_MINIMUM_TIME_S 2 // Time diff for sample size
-#define LISTEN_SAMPLE_THREAD_WAIT_MS 100 // Wait before checking again
+#define NEXT_LISTEN_WAIT_TIME_S 2 // Time diff for listen processing
+#define LISTEN_CHECK_WAIT_MS 100 // Wait before checking again
 
 
 //*************************************************************************************
 // Constructor / Destructor
 //*************************************************************************************
 
-Voice::Voice() : p_Microphone(NULL),
+Voice::Voice() : p_Device(NULL),
                  p_PocketSphinx(NULL),
                  p_GoogleAPI(NULL),
-                 u64_LastSampleS(time(NULL) + LISTEN_SAMPLE_MINIMUM_TIME_S) // 2 seconds ahead
+                 u64_NextListenS(time(NULL) + NEXT_LISTEN_WAIT_TIME_S), // 2 seconds ahead
+                 b_TriggerRecognized(false),
+                 u64_TriggerValidS(0),
+                 b_ListenAudioAvailable(false),
+                 us_ListenWaitSamples(0)
 {
     // Init components
     try
     {
-        p_Microphone = new PAMicrophone();
+        p_Device = new PADevice();
         p_PocketSphinx = new PocketSphinx(Configuration::Singleton().GetSphinxModelDirPath());
         p_GoogleAPI = new GoogleAPI();
     }
     catch (Exception& e)
     {
-        if (p_Microphone != NULL)
+        if (p_Device != NULL)
         {
-            delete p_Microphone;
-            p_Microphone = NULL;
+            delete p_Device;
+            p_Device = NULL;
         }
         
         if (p_PocketSphinx != NULL)
@@ -68,6 +72,7 @@ Voice::Voice() : p_Microphone(NULL),
             p_PocketSphinx = NULL;
         }
         
+        // Last throw is google api, never not null on throw
         throw;
     }
     
@@ -77,9 +82,9 @@ Voice::Voice() : p_Microphone(NULL),
 
 Voice::~Voice() noexcept
 {
-    if (p_Microphone != NULL)
+    if (p_Device != NULL)
     {
-        delete p_Microphone;
+        delete p_Device;
     }
     
     if (p_PocketSphinx != NULL)
@@ -91,6 +96,52 @@ Voice::~Voice() noexcept
     {
         delete p_GoogleAPI;
     }
+}
+
+//*************************************************************************************
+// Useage
+//*************************************************************************************
+
+void Voice::Start()
+{
+    // Just start listening
+    if (p_Device != NULL)
+    {
+        //p_Device->StartPlayback();
+        p_Device->ResetListenAudio();
+        p_Device->StartListening();
+    }
+    
+    // Set next listen processing
+    u64_NextListenS = time(NULL) + NEXT_LISTEN_WAIT_TIME_S;
+}
+
+void Voice::Stop()
+{
+    // Stop listening
+    if (p_Device != NULL)
+    {
+        //p_Device->StopPlayback();
+        p_Device->StopListening();
+    }
+    
+    if (p_GoogleAPI != NULL)
+    {
+        // Remove old data, we dont know how long we're stopped
+        p_GoogleAPI->ClearSTT();
+    }
+    
+    if (p_PocketSphinx != NULL)
+    {
+        // Reset decoder, new recognition
+        p_PocketSphinx->ResetDecoder();
+    }
+    
+    // Reset listen flags
+    b_TriggerRecognized = false;
+    u64_TriggerValidS = 0;
+    b_ListenAudioAvailable = false;
+    us_ListenWaitSamples = 0;
 }
 
 //*************************************************************************************
@@ -126,25 +177,26 @@ void Voice::Listen()
     // Check time passed
     MRH_Uint64 u64_CurrentTimeS = time(NULL);
     
-    if (u64_LastSampleS > u64_CurrentTimeS + LISTEN_SAMPLE_MINIMUM_TIME_S)
+    if (u64_NextListenS > u64_CurrentTimeS)
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(LISTEN_SAMPLE_THREAD_WAIT_MS));
+        std::this_thread::sleep_for(std::chrono::milliseconds(LISTEN_CHECK_WAIT_MS));
         u64_CurrentTimeS = time(NULL);
         
         // Still not enough?
-        if (u64_LastSampleS > u64_CurrentTimeS + LISTEN_SAMPLE_MINIMUM_TIME_S)
+        if (u64_NextListenS > u64_CurrentTimeS)
         {
             // Return for say
             return;
         }
     }
     
+    // Next listen time
+    u64_NextListenS = u64_CurrentTimeS + NEXT_LISTEN_WAIT_TIME_S;
+    
     // Grab samples
-    VoiceAudio c_Audio = p_Microphone->GetVoiceAudio();
+    VoiceAudio c_Audio = p_Device->GetInputAudio();
     size_t us_Pos = 0;
     size_t us_Size = c_Audio.u32_FrameSamples;
-    static size_t us_WaitSamples = 0;
-    static bool b_AudioAvailable = false;
     
     while (us_Pos < c_Audio.v_Buffer.size())
     {
@@ -180,27 +232,27 @@ void Voice::Listen()
             p_GoogleAPI->AddAudioSTT(&(c_Audio.v_Buffer[us_Pos - us_Size]), us_Size, c_Audio.u32_KHz);
             
             // Grab next
-            b_AudioAvailable = true;
+            b_ListenAudioAvailable = true;
             continue;
         }
         else
         {
-            if (b_AudioAvailable == false)
+            if (b_ListenAudioAvailable == false)
             {
                 // No usable audio stored, return directly
                 continue;
             }
-            else if (us_WaitSamples < c_Audio.u32_KHz) // 1 Sec
+            else if (us_ListenWaitSamples < c_Audio.u32_KHz) // 1 Sec
             {
                 // Stil in "pause" phase, wait
-                us_WaitSamples += us_Size;
+                us_ListenWaitSamples += us_Size;
                 continue;
             }
         }
         
         // Reset, available will now be processed
-        b_AudioAvailable = false;
-        us_WaitSamples = 0;
+        b_ListenAudioAvailable = false;
+        us_ListenWaitSamples = 0;
         
         
         // @TODO: Remove, TEsting only
@@ -237,7 +289,7 @@ void Voice::Listen()
         }
         else
         {
-            // Reset decoder
+            // Reset decoder for new check later
             p_PocketSphinx->ResetDecoder();
             
             // Reset timer, valid audio with input
@@ -268,7 +320,7 @@ void Voice::Say(OutputStorage& c_OutputStorage)
 
 bool Voice::IsUsable() noexcept
 {
-    if (p_Microphone != NULL && p_PocketSphinx != NULL && p_GoogleAPI != NULL)
+    if (p_Device != NULL && p_PocketSphinx != NULL && p_GoogleAPI != NULL)
     {
         return true;
     }

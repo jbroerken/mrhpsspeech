@@ -56,6 +56,20 @@ SpeechMethod::ListenID::ListenID() noexcept : u32_StringID(0)
 {}
 
 //*************************************************************************************
+// Useage
+//*************************************************************************************
+
+void SpeechMethod::Start()
+{
+    throw Exception("Default speech stop function called!");
+}
+
+void SpeechMethod::Stop()
+{
+    throw Exception("Default speech start function called!");
+}
+
+//*************************************************************************************
 // Listen
 //*************************************************************************************
 

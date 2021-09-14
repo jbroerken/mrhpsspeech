@@ -108,59 +108,64 @@ void Speech::Update(Speech* p_Instance) noexcept
         return;
     }
     
-    auto Active = p_Instance->m_Method.begin()->second;
+    SpeechMethod* p_Method = NULL;
     
     while (p_Instance->b_Update == true)
     {
-        // First, check usable
-        if (Active->IsUsable() == false)
+        // Grab the method to use
+        // NOTE: We check the method each time for all even if the current one is
+        //       valid to catch cli connections, etc.
+        for (auto& Method : p_Instance->m_Method)
         {
-            bool b_Selected = false;
-            
-            // Grab next usable
-            for (auto& Method : p_Instance->m_Method)
+            // Is this method usable and different?
+            if (Method.second == p_Method || Method.second->IsUsable() == false)
             {
-                // Already set, not connected, no output, etc...
-                if (Method.second->IsUsable() == false || b_Selected == true)
-                {
-                    continue;
-                }
-                
-                c_Logger.Log(MRH_PSBLogger::INFO, "Set speech method in use to " +
-                                                  std::to_string(Method.first),
-                             "Speech.cpp", __LINE__);
-                Active = Method.second;
-                
-                // Method callback - set correct method
-                switch (Method.first)
-                {
-                    case CLI:
-                    case MRH_SRV:
-                        p_Instance->e_Method = MRH_EvSpeechMethod::TEXT;
-                        break;
-                        
-                    default:
-                        p_Instance->e_Method = MRH_EvSpeechMethod::VOICE;
-                        break;
-                }
-                
-                // Setup done, avtice method set
-                b_Selected = true;
-            }
-            
-            // Nothing selected, wait and retry
-            if (b_Selected == false)
-            {
-                std::this_thread::sleep_for(std::chrono::seconds(1));
                 continue;
             }
+            
+            // Stop old and start new
+            if (p_Method != NULL)
+            {
+                p_Method->Stop();
+            }
+            
+            Method.second->Start();
+            
+            // Set the new method
+            c_Logger.Log(MRH_PSBLogger::INFO, "Set speech method in use to " +
+                                              std::to_string(Method.first),
+                         "Speech.cpp", __LINE__);
+            p_Method = Method.second;
+            
+            // Method callback - set correct method
+            switch (Method.first)
+            {
+                case CLI:
+                case MRH_SRV:
+                    p_Instance->e_Method = MRH_EvSpeechMethod::TEXT;
+                    break;
+                    
+                default:
+                    p_Instance->e_Method = MRH_EvSpeechMethod::VOICE;
+                    break;
+            }
+            
+            // Method set, end
+            break;
+        }
+        
+        // No method?
+        if (p_Method == NULL)
+        {
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            continue;
         }
         
         // Exchange data
         try
         {
-            Active->Listen();
-            Active->Say(c_OutputStorage);
+            p_Method->Listen();
+            p_Method->Say(c_OutputStorage);
         }
         catch (Exception& e)
         {

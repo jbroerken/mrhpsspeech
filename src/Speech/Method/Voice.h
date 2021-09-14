@@ -32,7 +32,7 @@
 #include "../SpeechMethod.h"
 
 
-class PAMicrophone;
+class PADevice;
 class PocketSphinx;
 class GoogleAPI;
 
@@ -56,6 +56,22 @@ public:
      */
     
     ~Voice() noexcept;
+    
+    //*************************************************************************************
+    // Useage
+    //*************************************************************************************
+    
+    /**
+     *  Start speech method.
+     */
+    
+    void Start() override;
+    
+    /**
+     *  Stop speech method.
+     */
+    
+    void Stop() override;
     
     //*************************************************************************************
     // Listen
@@ -97,13 +113,17 @@ private:
     // Data
     //*************************************************************************************
     
-    PAMicrophone* p_Microphone;
+    // Components
+    PADevice* p_Device;
     PocketSphinx* p_PocketSphinx;
     GoogleAPI* p_GoogleAPI;
     
-    MRH_Uint64 u64_LastSampleS;
+    // Listen Input
+    MRH_Uint64 u64_NextListenS;
     bool b_TriggerRecognized;
     MRH_Uint64 u64_TriggerValidS;
+    bool b_ListenAudioAvailable;
+    size_t us_ListenWaitSamples;
     
 protected:
 

@@ -54,6 +54,22 @@ public:
     ~CLI() noexcept;
     
     //*************************************************************************************
+    // Useage
+    //*************************************************************************************
+    
+    /**
+     *  Start speech method.
+     */
+    
+    void Start() override;
+    
+    /**
+     *  Stop speech method.
+     */
+    
+    void Stop() override;
+    
+    //*************************************************************************************
     // Listen
     //*************************************************************************************
     
@@ -127,6 +143,7 @@ private:
     
     int i_ConnectionFD;
     std::atomic<int> i_ClientFD;
+    std::atomic<bool> b_CanConnect;
     
     std::vector<MRH_Uint8> v_Read;
     MRH_Uint32 u32_Read;

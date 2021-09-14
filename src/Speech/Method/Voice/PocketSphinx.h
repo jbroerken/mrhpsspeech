@@ -52,7 +52,7 @@ public:
      *  Default destructor.
      */
     
-    virtual ~PocketSphinx() noexcept;
+    ~PocketSphinx() noexcept;
     
     //*************************************************************************************
     // Reset

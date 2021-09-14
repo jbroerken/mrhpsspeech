@@ -1,5 +1,5 @@
 /**
- *  PAMicrophone.h
+ *  PADevice.h
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -19,8 +19,8 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef PAMicrophone_h
-#define PAMicrophone_h
+#ifndef PADevice_h
+#define PADevice_h
 
 // C / C++
 #include <vector>
@@ -34,7 +34,7 @@
 #include "./VoiceAudio.h"
 
 
-class PAMicrophone
+class PADevice
 {
 public:
     
@@ -46,16 +46,16 @@ public:
      *  Default constructor.
      */
     
-    PAMicrophone();
+    PADevice();
     
     /**
      *  Default destructor.
      */
     
-    virtual ~PAMicrophone() noexcept;
+    ~PADevice() noexcept;
     
     //*************************************************************************************
-    // Update
+    // Input
     //*************************************************************************************
     
     /**
@@ -70,6 +70,28 @@ public:
     
     void StopListening();
     
+    /**
+     *  Reset input buffer.
+     */
+    
+    void ResetListenAudio();
+    
+    //*************************************************************************************
+    // Output
+    //*************************************************************************************
+    
+    /**
+     *  Start playback.
+     */
+    
+    //void StartPlayback();
+    
+    /**
+     *  Stop playback.
+     */
+    
+    //void StopPlayback();
+    
     //*************************************************************************************
     // Getters
     //*************************************************************************************
@@ -80,7 +102,7 @@ public:
      *  \return The vurrent voice audio.
      */
     
-    VoiceAudio GetVoiceAudio() noexcept;
+    VoiceAudio GetInputAudio() noexcept;
     
 private:
     
@@ -88,7 +110,7 @@ private:
     // Types
     //*************************************************************************************
     
-    struct Audio
+    class Input
     {
     public:
         
@@ -100,13 +122,13 @@ private:
          *  Default constructor.
          */
         
-        Audio() noexcept;
+        Input() noexcept;
         
         /**
          *  Default destructor.
          */
         
-        ~Audio() noexcept;
+        ~Input() noexcept;
         
         //*************************************************************************************
         // Data
@@ -126,19 +148,35 @@ private:
     };
     
     //*************************************************************************************
-    // Update
+    // Input
     //*************************************************************************************
     
     /**
-     *  Update callback for read audio.
+     *  Setup input device and stream.
      */
     
-    static int PACallback(const void* p_Input,
-                          void* p_Output,
-                          unsigned long u32_FrameCount,
-                          const PaStreamCallbackTimeInfo* p_TimeInfo,
-                          PaStreamCallbackFlags e_StatusFlags,
-                          void* p_UserData) noexcept;
+    void SetupInput();
+    
+    /**
+     *  Close input device and stream.
+     */
+    
+    void CloseInput() noexcept;
+    
+    /**
+     *  Update callback for input audio.
+     */
+    
+    static int PAInputCallback(const void* p_Input,
+                               void* p_Output,
+                               unsigned long u32_FrameCount,
+                               const PaStreamCallbackTimeInfo* p_TimeInfo,
+                               PaStreamCallbackFlags e_StatusFlags,
+                               void* p_UserData) noexcept;
+    
+    //*************************************************************************************
+    // Output
+    //*************************************************************************************
     
     //*************************************************************************************
     // Data
@@ -146,12 +184,12 @@ private:
     
     static std::atomic<int> i_PAUsers;
     
-    PaStream* p_Stream;
+    PaStream* p_InputStream;
     
-    Audio c_Audio;
+    Input c_InputAudio;
     
 protected:
     
 };
 
-#endif /* PAMicrophone_h */
+#endif /* PADevice_h */

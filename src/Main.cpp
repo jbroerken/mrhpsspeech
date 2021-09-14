@@ -64,8 +64,7 @@ static int Exit(libmrhpsb* p_Context, const char* p_Exception, int i_Result)
 //*************************************************************************************
 
 #include <clocale>
-#include "PAMicrophone.h"
-#include "PocketSphinx.h"
+#include "Speech.h"
 #include "Configuration.h"
 #include <unistd.h>
 
