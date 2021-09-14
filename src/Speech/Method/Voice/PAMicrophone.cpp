@@ -56,8 +56,8 @@ PAMicrophone::PAMicrophone()
     // Update audio info
     c_Audio.u32_KHz = c_Configuration.GetPAMicKHz();
     c_Audio.u8_Channels = c_Configuration.GetPAMicChannels();
-    c_Audio.u32_Samples = c_Configuration.GetPAMicSamples();
-    c_Audio.us_BufferSize = c_Audio.u8_Channels * c_Audio.u32_Samples * c_Configuration.GetPAMicSampleStorageSize();
+    c_Audio.u32_FrameSamples = c_Configuration.GetPAMicFrameSamples();
+    c_Audio.us_BufferSize = c_Audio.u8_Channels * c_Audio.u32_FrameSamples * c_Configuration.GetPAMicSampleStorageSize();
     c_Audio.p_BufferA = new MRH_Sint16[c_Audio.us_BufferSize];
     c_Audio.p_BufferB = new MRH_Sint16[c_Audio.us_BufferSize];
     c_Audio.p_Buffer = c_Audio.p_BufferA; // Start at A
@@ -80,7 +80,7 @@ PAMicrophone::PAMicrophone()
     c_Logger.Log(MRH_PSBLogger::INFO, "Device: " + std::string(Pa_GetDeviceInfo(u32_DevID)->name), "PAMicrohpone.cpp", __LINE__);
     c_Logger.Log(MRH_PSBLogger::INFO, "KHz: " + std::to_string(c_Audio.u32_KHz), "PAMicrohpone.cpp", __LINE__);
     c_Logger.Log(MRH_PSBLogger::INFO, "Channels: " + std::to_string(c_Audio.u8_Channels), "PAMicrohpone.cpp", __LINE__);
-    c_Logger.Log(MRH_PSBLogger::INFO, "Samples: " + std::to_string(c_Audio.u32_Samples), "PAMicrohpone.cpp", __LINE__);
+    c_Logger.Log(MRH_PSBLogger::INFO, "Frame Samples: " + std::to_string(c_Audio.u32_FrameSamples), "PAMicrohpone.cpp", __LINE__);
     c_Logger.Log(MRH_PSBLogger::INFO, "Storage Size: " + std::to_string(c_Configuration.GetPAMicSampleStorageSize()), "PAMicrohpone.cpp", __LINE__);
     c_Logger.Log(MRH_PSBLogger::INFO, "Total Storage Byte Size: " + std::to_string(c_Audio.us_BufferSize * 2), "PAMicrohpone.cpp", __LINE__);
     
@@ -89,7 +89,7 @@ PAMicrophone::PAMicrophone()
                             &c_InputParameters,
                             NULL, // No output info
                             c_Audio.u32_KHz,
-                            c_Audio.u32_Samples,
+                            c_Audio.u32_FrameSamples,
                             paClipOff,// paNoFlag,
                             PACallback,
                             &c_Audio);
@@ -211,7 +211,7 @@ int PAMicrophone::PACallback(const void* p_Input,
 // Getters
 //*************************************************************************************
 
-AudioSample PAMicrophone::GetAudioSample() noexcept
+VoiceAudio PAMicrophone::GetVoiceAudio() noexcept
 {
     MRH_Sint16* p_Buffer;
     size_t us_Length;
@@ -229,9 +229,9 @@ AudioSample PAMicrophone::GetAudioSample() noexcept
     c_Audio.c_Mutex.unlock();
     
     // Create audio sample
-    return AudioSample(p_Buffer,
-                       us_Length,
-                       c_Audio.u32_KHz,
-                       c_Audio.u8_Channels,
-                       c_Audio.u32_Samples);
+    return VoiceAudio(p_Buffer,
+                      us_Length,
+                      c_Audio.u32_KHz,
+                      c_Audio.u8_Channels,
+                      c_Audio.u32_FrameSamples);
 }

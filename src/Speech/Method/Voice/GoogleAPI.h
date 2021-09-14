@@ -23,11 +23,13 @@
 #define GoogleAPI_h
 
 // C / C++
+#include <string>
+#include <list>
 
 // External
 
 // Project
-#include "./AudioSample.h"
+#include "./VoiceAudio.h"
 
 
 class GoogleAPI
@@ -55,6 +57,12 @@ public:
     //*************************************************************************************
     
     /**
+     *  Clear speech to text buffer.
+     */
+    
+    void ClearSTT() noexcept;
+    
+    /**
      *  Add mono audio data for speech to text.
      *
      *  \param p_Buffer The audio buffer to add.
@@ -62,7 +70,21 @@ public:
      *  \param u32_KHz The audio buffer KHz.
      */
     
-    void AddAudio(const MRH_Sint16* p_Buffer, size_t us_Length, MRH_Uint32 u32_KHz) noexcept;
+    void AddAudioSTT(const MRH_Sint16* p_Buffer, size_t us_Length, MRH_Uint32 u32_KHz) noexcept;
+    
+    /**
+     *  Convert stored audio data for speech to text.
+     */
+    
+    void ProcessAudioSTT() noexcept;
+    
+    /**
+     *  Recieve all strings which finished processing.
+     *
+     *  \return All finished strings.
+     */
+    
+    std::list<std::string> RecieveStringsSTT() noexcept;
     
 private:
     
@@ -70,7 +92,7 @@ private:
     // Data
     //*************************************************************************************
     
-    AudioSample c_Sample;
+    VoiceAudio c_Audio;
     
 protected:
     

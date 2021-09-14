@@ -29,7 +29,6 @@
 #include <pocketsphinx/pocketsphinx.h>
 
 // Project
-#include "./AudioSample.h"
 #include "../../../Exception.h"
 
 
@@ -56,14 +55,14 @@ public:
     virtual ~PocketSphinx() noexcept;
     
     //*************************************************************************************
-    // Start
+    // Reset
     //*************************************************************************************
     
     /**
-     *  Start the decoder.
+     *  Reset the decoder.
      */
     
-    void StartDecoder() noexcept;
+    void ResetDecoder() noexcept;
     
     //*************************************************************************************
     // Recognize

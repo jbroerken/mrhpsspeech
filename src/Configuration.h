@@ -123,12 +123,12 @@ public:
     MRH_Uint8 GetPAMicChannels() noexcept;
     
     /**
-     *  Get the microhpone samples. This function is thread safe.
+     *  Get the microhpone frame sample count. This function is thread safe.
      *
-     *  \return The microhpone samples.
+     *  \return The microhpone frame sample count.
      */
     
-    MRH_Uint32 GetPAMicSamples() noexcept;
+    MRH_Uint32 GetPAMicFrameSamples() noexcept;
     
     /**
      *  Get the microhpone sample count storage size. This function is thread safe.
@@ -180,7 +180,7 @@ private:
     MRH_Uint32 u32_PAMicDeviceID;
     MRH_Uint32 u32_PAMicKHz;
     MRH_Uint8 u8_PAMicChannels;
-    MRH_Uint32 u32_PAMicSamples;
+    MRH_Uint32 u32_PAMicFrameSamples;
     MRH_Uint32 u32_PAMicSampleStorageSize;
     
     // Pocket Sphinx

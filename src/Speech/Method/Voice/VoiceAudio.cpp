@@ -1,5 +1,5 @@
 /**
- *  AudioSample.cpp
+ *  VoiceAudio.cpp
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -26,22 +26,22 @@
 #include <portaudio.h>
 
 // Project
-#include "./AudioSample.h"
+#include "./VoiceAudio.h"
 
 
 //*************************************************************************************
 // Constructor / Destructor
 //*************************************************************************************
 
-AudioSample::AudioSample(const MRH_Sint16* p_Buffer,
-                         size_t us_Length,
-                         MRH_Uint32 u32_KHz,
-                         MRH_Uint8 u8_Channels,
-                         MRH_Uint32 u32_Samples) noexcept : u32_KHz(u32_KHz),
-                                                            u8_Channels(u8_Channels),
-                                                            u32_Samples(u32_Samples),
-                                                            f32_Amplitude(0.f),
-                                                            f32_Peak(0.f)
+VoiceAudio::VoiceAudio(const MRH_Sint16* p_Buffer,
+                       size_t us_Length,
+                       MRH_Uint32 u32_KHz,
+                       MRH_Uint8 u8_Channels,
+                       MRH_Uint32 u32_FrameSamples) noexcept : u32_KHz(u32_KHz),
+                                                               u8_Channels(u8_Channels),
+                                                               u32_FrameSamples(u32_FrameSamples),
+                                                               f32_Amplitude(0.f),
+                                                               f32_Peak(0.f)
 {
     // Insert data first for calculation
     if (us_Length == 0)
@@ -89,14 +89,14 @@ AudioSample::AudioSample(const MRH_Sint16* p_Buffer,
     }
 }
 
-AudioSample::~AudioSample() noexcept
+VoiceAudio::~VoiceAudio() noexcept
 {}
 
 //*************************************************************************************
 // Convert
 //*************************************************************************************
 
-std::vector<MRH_Sint16> AudioSample::Convert(size_t us_Pos, size_t us_Length, MRH_Uint32 u32_KHz, MRH_Uint8 u8_Channels) noexcept
+std::vector<MRH_Sint16> VoiceAudio::Convert(size_t us_Pos, size_t us_Length, MRH_Uint32 u32_KHz, MRH_Uint8 u8_Channels) noexcept
 {
     return std::vector<MRH_Sint16>(v_Buffer.data() + us_Pos,
                                    v_Buffer.data() + (us_Pos + us_Length));

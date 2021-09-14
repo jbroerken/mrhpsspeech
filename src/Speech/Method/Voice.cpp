@@ -99,6 +99,30 @@ Voice::~Voice() noexcept
 
 void Voice::Listen()
 {
+    /**
+     *  Events
+     */
+    
+    // Grab google api speech results
+    std::list<std::string> l_Processed = p_GoogleAPI->RecieveStringsSTT();
+    
+    for (auto& String : l_Processed)
+    {
+        try
+        {
+            SendInput(String);
+        }
+        catch (Exception& e)
+        {
+            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, e.what(),
+                                           "Voice.cpp", __LINE__);
+        }
+    }
+    
+    /**
+     *  Wait
+     */
+    
     // Check time passed
     MRH_Uint64 u64_CurrentTimeS = time(NULL);
     
@@ -116,62 +140,85 @@ void Voice::Listen()
     }
     
     // Grab samples
-    AudioSample c_Sample = p_Microphone->GetAudioSample();
+    VoiceAudio c_Audio = p_Microphone->GetVoiceAudio();
     size_t us_Pos = 0;
-    size_t us_Size = c_Sample.u32_Samples;
+    size_t us_Size = c_Audio.u32_FrameSamples;
+    static size_t us_WaitSamples = 0;
     static bool b_AudioAvailable = false;
     
-    while (us_Pos < c_Sample.v_Buffer.size())
+    while (us_Pos < c_Audio.v_Buffer.size())
     {
-        std::vector<MRH_Sint16> v_Buffer;
+        /**
+         *  Convert Audio
+         */
         
         // Is the sample data valid for sphinx?
-        if (c_Sample.u32_KHz == 16000 && c_Sample.u8_Channels == 1)
+        if (c_Audio.u32_KHz == 16000 && c_Audio.u8_Channels == 1)
         {
             // Same, simply add
-            printf("Add Audio!\n");
-            p_PocketSphinx->AddAudio(&(c_Sample.v_Buffer[us_Pos]), us_Size);
+            p_PocketSphinx->AddAudio(&(c_Audio.v_Buffer[us_Pos]), us_Size);
         }
         else
         {
-            // Not the same, convert
-            std::vector<MRH_Sint16> v_Buffer = c_Sample.Convert(us_Pos, us_Size, 16000, 1);
+            // Not the same, convert then add
+            std::vector<MRH_Sint16> v_Buffer = c_Audio.Convert(us_Pos, us_Size, 16000, 1);
             p_PocketSphinx->AddAudio(v_Buffer.data(), us_Size);
         }
+        
+        // Buffer pos has to be incremented!
+        us_Pos += us_Size;
+        
+        /**
+         *  Check Speech
+         */
         
         // Added, was this speech?
         if (p_PocketSphinx->AudioContainsSpeech() == true)
         {
-            printf("Still in speech!\n");
+            // Audio valid, add to speech to text api
+            // @NOTE: Add ->LAST<- buffer data (- size, 1 step back)
+            p_GoogleAPI->AddAudioSTT(&(c_Audio.v_Buffer[us_Pos - us_Size]), us_Size, c_Audio.u32_KHz);
             
-            // Was speech, keep and grab next
-            us_Pos += us_Size;
+            // Grab next
             b_AudioAvailable = true;
-            
             continue;
         }
-        else if (us_Pos == 0) // Special case: Start of buffer is 0
+        else
         {
-            c_Sample.v_Buffer.erase(c_Sample.v_Buffer.begin(),
-                                    c_Sample.v_Buffer.begin() + us_Size);
-            
-            // Removed, but do we have audio stil from the last loop?
             if (b_AudioAvailable == false)
             {
+                // No usable audio stored, return directly
+                continue;
+            }
+            else if (us_WaitSamples < c_Audio.u32_KHz) // 1 Sec
+            {
+                // Stil in "pause" phase, wait
+                us_WaitSamples += us_Size;
                 continue;
             }
         }
-
-        std::string s_SphinxResult = p_PocketSphinx->Recognize();
+        
+        // Reset, available will now be processed
+        b_AudioAvailable = false;
+        us_WaitSamples = 0;
+        
         
         // @TODO: Remove, TEsting only
-        printf("TESTING: Recognized: %s\n", s_SphinxResult.c_str());
+        std::string s_Teyt = p_PocketSphinx->Recognize();
+        printf("TESTING: Recognized: %s\n", s_Teyt.c_str());
         continue;
+        // @TODO: Remove, TEsting only
+        
+        
+        /**
+         *  Trigger
+         */
         
         // Do we need to check for the trigger?
         if (u64_TriggerValidS < u64_CurrentTimeS)
         {
             Configuration& c_Config = Configuration::Singleton();
+            std::string s_SphinxResult = p_PocketSphinx->Recognize();
             
             // Set trigger recognized
             if (MRH_StringCompareLS::ContainedIn(c_Config.GetTriggerString(),
@@ -183,22 +230,26 @@ void Voice::Listen()
             }
             else
             {
-                // Not recognized, reset available do nothing
-                b_AudioAvailable = false;
+                // Not recognized, reset api buffer
+                p_GoogleAPI->ClearSTT();
                 continue;
             }
         }
         else
         {
+            // Reset decoder
+            p_PocketSphinx->ResetDecoder();
+            
             // Reset timer, valid audio with input
             u64_TriggerValidS = u64_CurrentTimeS;
         }
         
-        // Audio valid, add to speech to text api
-        p_GoogleAPI->AddAudio(c_Sample.v_Buffer.data(), us_Pos, c_Sample.u32_KHz);
+        /**
+         *  Convert
+         */
         
-        // Audio processed
-        b_AudioAvailable = false;
+        // Run speech recognition with google api
+        p_GoogleAPI->ProcessAudioSTT();
     }
 }
 

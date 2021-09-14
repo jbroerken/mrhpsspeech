@@ -52,7 +52,7 @@ namespace
         PA_MICROPHONE_DEVICE_ID = 6,
         PA_MICROPHONE_KHZ = 7,
         PA_MICROPHONE_CHANNELS,
-        PA_MICROPHONE_SAMPLES,
+        PA_MICROPHONE_FRAME_SAMPLES,
         PA_MICROPHONE_SAMPLE_STORAGE_SIZE,
         
         // Pocket Sphinx Key
@@ -80,7 +80,7 @@ namespace
         "DeviceID",
         "KHz",
         "Channels",
-        "Samples",
+        "FrameSamples",
         "SampleStorageSize",
         
         // Sphinx Key
@@ -99,7 +99,7 @@ Configuration::Configuration() noexcept : s_TriggerString("Hey Susu"),
                                           u32_PAMicDeviceID(0),
                                           u32_PAMicKHz(44100),
                                           u8_PAMicChannels(2),
-                                          u32_PAMicSamples(2048),
+                                          u32_PAMicFrameSamples(2048),
                                           u32_PAMicSampleStorageSize(100),
                                           s_SphinxModelDirPath("/var/mrh/mrhpsspeech/sphinx/")
 {}
@@ -145,7 +145,7 @@ void Configuration::Load()
                     u32_PAMicDeviceID = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_MICROPHONE_DEVICE_ID])));
                     u32_PAMicKHz = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_MICROPHONE_KHZ])));
                     u8_PAMicChannels = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_MICROPHONE_CHANNELS])));
-                    u32_PAMicSamples = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_MICROPHONE_SAMPLES])));
+                    u32_PAMicFrameSamples = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_MICROPHONE_FRAME_SAMPLES])));
                     u32_PAMicSampleStorageSize = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_MICROPHONE_SAMPLE_STORAGE_SIZE])));
                 }
                 else if (Block.GetName().compare(p_Identifier[BLOCK_POCKET_SPHINX]) == 0)
@@ -206,10 +206,10 @@ MRH_Uint8 Configuration::GetPAMicChannels() noexcept
     return u8_PAMicChannels;
 }
 
-MRH_Uint32 Configuration::GetPAMicSamples() noexcept
+MRH_Uint32 Configuration::GetPAMicFrameSamples() noexcept
 {
     std::lock_guard<std::mutex> c_Guard(c_Mutex);
-    return u32_PAMicSamples;
+    return u32_PAMicFrameSamples;
 }
 
 MRH_Uint32 Configuration::GetPAMicSampleStorageSize() noexcept

@@ -31,7 +31,7 @@
 #include <portaudio.h>
 
 // Project
-#include "./AudioSample.h"
+#include "./VoiceAudio.h"
 
 
 class PAMicrophone
@@ -75,14 +75,12 @@ public:
     //*************************************************************************************
     
     /**
-     *  Grab a sample, removing it from the audio stream.
+     *  Grab the currently stored recorded voice audio.
      *
-     *  \param us_Sample The sample to request.
-     *
-     *  \return The requested sample.
+     *  \return The vurrent voice audio.
      */
     
-    AudioSample GetAudioSample() noexcept;
+    VoiceAudio GetVoiceAudio() noexcept;
     
 private:
     
@@ -124,7 +122,7 @@ private:
         
         MRH_Uint32 u32_KHz;
         MRH_Uint8 u8_Channels;
-        MRH_Uint32 u32_Samples;
+        MRH_Uint32 u32_FrameSamples;
     };
     
     //*************************************************************************************

@@ -1,5 +1,5 @@
 /**
- *  AudioSample.h
+ *  VoiceAudio.h
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -19,8 +19,8 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef AudioSample_h
-#define AudioSample_h
+#ifndef VoiceAudio_h
+#define VoiceAudio_h
 
 // C / C++
 #include <vector>
@@ -32,7 +32,7 @@
 #include "../../../Exception.h"
 
 
-class AudioSample
+class VoiceAudio
 {
 public:
     
@@ -47,20 +47,20 @@ public:
      *  \param us_Length The length of the sample data to use, starting at 0.
      *  \param u32_KHz The sample KHz.
      *  \param u8_Channels The channels used in this sample.
-     *  \param u32_Samples The samples per frame.
+     *  \param u32_FrameSamples The samples per frame.
      */
     
-    AudioSample(const MRH_Sint16* p_Buffer,
-                size_t us_Length,
-                MRH_Uint32 u32_KHz,
-                MRH_Uint8 u8_Channels,
-                MRH_Uint32 u32_Samples) noexcept;
+    VoiceAudio(const MRH_Sint16* p_Buffer,
+               size_t us_Length,
+               MRH_Uint32 u32_KHz,
+               MRH_Uint8 u8_Channels,
+               MRH_Uint32 u32_FrameSamples) noexcept;
     
     /**
      *  Default destructor.
      */
     
-    ~AudioSample() noexcept;
+    ~VoiceAudio() noexcept;
     
     //*************************************************************************************
     // Convert
@@ -87,7 +87,7 @@ public:
     
     MRH_Uint32 u32_KHz;
     MRH_Uint8 u8_Channels;
-    MRH_Uint32 u32_Samples;
+    MRH_Uint32 u32_FrameSamples;
     
     MRH_Sfloat32 f32_Amplitude;
     MRH_Sfloat32 f32_Peak;
@@ -102,4 +102,4 @@ protected:
     
 };
 
-#endif /* AudioSample_h */
+#endif /* VoiceAudio_h */
