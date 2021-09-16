@@ -32,6 +32,7 @@
 #include "./Callback/Service/CBCustomCommand.h"
 #include "./Callback/Speech/CBSayString.h"
 #include "./Callback/Speech/CBSpeechMethod.h"
+#include "./Configuration.h"
 #include "./Revision.h"
 
 // Pre-defined
@@ -65,12 +66,11 @@ static int Exit(libmrhpsb* p_Context, const char* p_Exception, int i_Result)
 //*************************************************************************************
 
 #include <clocale>
-#include "Speech.h"
-#include "Configuration.h"
 #include <unistd.h>
 
 int main(int argc, const char* argv[])
 {
+    /*
     std::setlocale(LC_ALL, "en_US.UTF-8");
     Configuration::Singleton().Load();
     PaError i_Err;
@@ -82,6 +82,7 @@ int main(int argc, const char* argv[])
     Speech c_Speech;
     sleep(30);
     return 0;
+    */
     
     // Setup service base
     MRH_PSBLogger& c_Logger = MRH_PSBLogger::Singleton();

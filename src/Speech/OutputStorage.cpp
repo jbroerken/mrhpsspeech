@@ -27,6 +27,11 @@
 // Project
 #include "./OutputStorage.h"
 
+// Pre-defined
+#ifndef MRH_SPEECH_SERVICE_PRINT_OUTPUT
+    #define MRH_SPEECH_SERVICE_PRINT_OUTPUT 0
+#endif
+
 
 //*************************************************************************************
 // Constructor / Destructor
@@ -158,6 +163,16 @@ void OutputStorage::AddEvent(const MRH_S_STRING_U* p_Event, MRH_Uint32 u32_Group
     l_Finished.emplace_back(Unfinished->second.first.GetString(),
                             Unfinished->first,
                             Unfinished->second.second);
+    
+#if MRH_SPEECH_SERVICE_PRINT_OUTPUT > 0
+    MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, "Recieved say output: [ " +
+                                                        l_Finished.back().s_String +
+                                                        " (ID: " +
+                                                        std::to_string(l_Finished.back().u32_StringID) +
+                                                        ")]",
+                                   "SpeechMethod.cpp", __LINE__);
+    
+#endif
     
     c_FinishedMutex.unlock();
     c_UnfinishedMutex.unlock();

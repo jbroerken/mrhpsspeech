@@ -112,6 +112,14 @@ public:
     
     bool GetOutputPlayback() noexcept;
     
+    /**
+     *  Check if audio input is currently being recorded.
+     *
+     *  \return true if audio is being recorded, false if not.
+     */
+    
+    bool GetInputRecording() noexcept;
+    
     //*************************************************************************************
     // Setters
     //*************************************************************************************

@@ -86,13 +86,46 @@ public:
     
     std::list<std::string> RecieveStringsSTT() noexcept;
     
+    //*************************************************************************************
+    // Text to Speech
+    //*************************************************************************************
+    
+    /**
+     *  Add string data for text to speech.
+     *
+     *  \param s_String The UTF-8 string to add.
+     */
+    
+    void AddStringTTS(std::string const& s_String) noexcept;
+    
+    /**
+     *  Check if a audio buffer for speech if available.
+     *
+     *  \return true if a buffer is available, false if not.
+     */
+    
+    bool TTSAudioAvailable() noexcept;
+    
+    /**
+     *  Get the audio buffer containing speech.
+     *
+     *  \return The speech audio buffer.
+     */
+    
+    VoiceAudio GrabTTSAudio() noexcept;
+    
 private:
     
     //*************************************************************************************
     // Data
     //*************************************************************************************
     
-    VoiceAudio c_Audio;
+    // Speech to Text
+    std::vector<MRH_Sint16> v_Buffer;
+    MRH_Uint32 u32_KHz;
+    std::list<std::string> l_Transcribed;
+    
+    // Text to Speech
     
 protected:
     

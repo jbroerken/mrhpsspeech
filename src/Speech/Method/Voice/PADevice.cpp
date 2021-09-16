@@ -458,6 +458,11 @@ bool PADevice::GetOutputPlayback() noexcept
     return c_OutputAudio.b_Playback;
 }
 
+bool PADevice::GetInputRecording() noexcept
+{
+    return Pa_IsStreamActive(p_InputStream) == 1 ? true : false;
+}
+
 //*************************************************************************************
 // Setters
 //*************************************************************************************

@@ -31,11 +31,7 @@
 // Constructor / Destructor
 //*************************************************************************************
 
-GoogleAPI::GoogleAPI() noexcept : c_Audio(NULL,
-                                          0,
-                                          0,
-                                          0,
-                                          0)
+GoogleAPI::GoogleAPI() noexcept : u32_KHz(0)
 {
     
 }
@@ -65,4 +61,23 @@ void GoogleAPI::ProcessAudioSTT() noexcept
 std::list<std::string> GoogleAPI::RecieveStringsSTT() noexcept
 {
     return {};
+}
+
+//*************************************************************************************
+// Text to Speech
+//*************************************************************************************
+
+void GoogleAPI::AddStringTTS(std::string const& s_String) noexcept
+{
+    
+}
+
+bool GoogleAPI::TTSAudioAvailable() noexcept
+{
+    return false;
+}
+
+VoiceAudio GoogleAPI::GrabTTSAudio() noexcept
+{
+    return { NULL, 0, 0, 0, 0 };
 }

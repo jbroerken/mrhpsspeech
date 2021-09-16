@@ -118,7 +118,7 @@ void Voice::Start()
 
 void Voice::Stop()
 {
-    // Stop listening
+    // Stop device
     if (p_Device != NULL)
     {
         p_Device->StopPlayback();
@@ -142,6 +142,9 @@ void Voice::Stop()
     u64_TriggerValidS = 0;
     b_ListenAudioAvailable = false;
     us_ListenWaitSamples = 0;
+    
+    // Reset say flags
+    b_StringSet = false;
 }
 
 //*************************************************************************************
@@ -254,14 +257,6 @@ void Voice::Listen()
         b_ListenAudioAvailable = false;
         us_ListenWaitSamples = 0;
         
-        
-        // @TODO: Remove, TEsting only
-        std::string s_Teyt = p_PocketSphinx->Recognize();
-        printf("TESTING: Recognized: %s\n", s_Teyt.c_str());
-        continue;
-        // @TODO: Remove, TEsting only
-        
-        
         /**
          *  Trigger
          */
@@ -315,18 +310,13 @@ void Voice::Say(OutputStorage& c_OutputStorage)
      *  Set String
      */
     
-    if (b_StringSet == false)
+    if (b_StringSet == false && c_OutputStorage.GetFinishedAvailable() == true)
     {
-        if (c_OutputStorage.GetFinishedAvailable() == false)
-        {
-            return;
-        }
-        
         OutputStorage::String c_String = c_OutputStorage.GetFinishedString();
+        
+        p_GoogleAPI->AddStringTTS(c_String.s_String);
         u32_SayStringID = c_String.u32_StringID;
         u32_SayGroupID = c_String.u32_GroupID;
-        
-        // @TODO: Add to Google API
         
         b_StringSet = true;
     }
@@ -335,19 +325,45 @@ void Voice::Say(OutputStorage& c_OutputStorage)
      *  Playback
      */
     
-    // @TODO: Check Google API
-    if (0 && p_Device->GetOutputPlayback() == false)
+    // Do nothing during output playback
+    if (p_Device->GetOutputPlayback() == true)
+    {
+        return;
+    }
+    
+    // Should we start speaking or resume listening?
+    if (p_GoogleAPI->TTSAudioAvailable() == true)
     {
         try
         {
-            VoiceAudio c_Audio(NULL, 0, 0, 0, 0);  // TMP
+            // Add speech as output data
+            p_Device->SetOutputAudio(p_GoogleAPI->GrabTTSAudio());
             
-            p_Device->SetOutputAudio(c_Audio);
+            // Pause listening and perform output
+            p_Device->StopListening();
             p_Device->StartPlayback();
         }
         catch (Exception& e)
         {
             MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Failed to add audio: " + std::string(e.what()),
+                                           "Voice.cpp", __LINE__);
+        }
+    }
+    else if (p_Device->GetInputRecording() == false)
+    {
+        // Nothing to play, start listening again
+        p_Device->StartListening();
+        
+        // Send info about performed output
+        b_StringSet = false;
+        
+        try
+        {
+            OutputPerformed(u32_SayStringID, u32_SayGroupID);
+        }
+        catch (Exception& e)
+        {
+            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Failed to set performed: " + std::string(e.what()),
                                            "Voice.cpp", __LINE__);
         }
     }
