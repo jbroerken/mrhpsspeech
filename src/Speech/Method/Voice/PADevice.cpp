@@ -35,13 +35,14 @@
 // Constructor / Destructor
 //*************************************************************************************
 
-PADevice::PADevice()
+PADevice::PADevice() : p_InputStream(NULL),
+                       p_OutputStream(NULL)
 {
     // Init methods
     try
     {
         SetupInput();
-        //SetupOutput();
+        SetupOutput();
     }
     catch (Exception& e)
     {
@@ -54,9 +55,8 @@ PADevice::PADevice()
 
 PADevice::~PADevice() noexcept
 {
-    // Close streams first
-    CloseInput();
-    //CloseOutput();
+    CloseStream(p_InputStream);
+    CloseStream(p_OutputStream);
 }
 
 PADevice::Input::Input() noexcept : p_Buffer(NULL),
@@ -65,11 +65,93 @@ PADevice::Input::Input() noexcept : p_Buffer(NULL),
                                     us_BufferSize(0),
                                     us_BufferPos(0),
                                     u32_KHz(0),
-                                    u8_Channels(0)
+                                    u8_Channels(0),
+                                    u32_FrameSamples(0)
 {}
 
 PADevice::Input::~Input() noexcept
+{
+    if (p_BufferA != NULL)
+    {
+        delete[] p_BufferA;
+    }
+    
+    if (p_BufferB != NULL)
+    {
+        delete[] p_BufferB;
+    }
+}
+
+PADevice::Output::Output() noexcept : b_Playback(false),
+                                      us_BufferPos(0),
+                                      u32_KHz(0),
+                                      u8_Channels(0),
+                                      u32_FrameSamples(0)
 {}
+
+PADevice::Output::~Output() noexcept
+{}
+
+//*************************************************************************************
+// Stream
+//*************************************************************************************
+
+void PADevice::StartStream(PaStream* p_Stream)
+{
+    PaError i_Error = Pa_IsStreamActive(p_Stream);
+    
+    if (i_Error == 1) // Already active
+    {
+        return;
+    }
+    else if (i_Error < 0)
+    {
+        throw Exception("Failed to get PortAudio stream state! " + std::string(Pa_GetErrorText(i_Error)));
+    }
+    else if ((i_Error = Pa_StartStream(p_Stream)) != paNoError)
+    {
+        throw Exception("Failed to start PortAudio stream! " + std::string(Pa_GetErrorText(i_Error)));
+    }
+}
+
+void PADevice::StopStream(PaStream* p_Stream)
+{
+    PaError i_Error = Pa_IsStreamActive(p_Stream);
+    
+    if (i_Error == 0) // Already stopped
+    {
+        return;
+    }
+    else if (i_Error < 0)
+    {
+        throw Exception("Failed to get PortAudio stream state! " + std::string(Pa_GetErrorText(i_Error)));
+    }
+    else if ((i_Error = Pa_StopStream(p_Stream)) != paNoError)
+    {
+        throw Exception("Failed to stop PortAudio stream! " + std::string(Pa_GetErrorText(i_Error)));
+    }
+}
+
+void PADevice::CloseStream(PaStream* p_Stream) noexcept
+{
+    try
+    {
+        StopStream(p_Stream);
+    }
+    catch (Exception& e)
+    {
+        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, e.what(),
+                                       "PADevice.cpp", __LINE__);
+    }
+    
+    PaError i_Error;
+    if ((i_Error = Pa_CloseStream(p_Stream)) != paNoError)
+    {
+        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Failed to close PortAudio tream! " +
+                                                             std::string(Pa_GetErrorText(i_Error)),
+                                       "PADevice.cpp", __LINE__);
+    }
+}
 
 //*************************************************************************************
 // Input
@@ -100,16 +182,16 @@ void PADevice::SetupInput()
     c_InputParameters.hostApiSpecificStreamInfo = NULL;
     c_InputParameters.sampleFormat = paInt16;
     c_InputParameters.suggestedLatency = Pa_GetDeviceInfo(u32_DevID)->defaultLowInputLatency;
-    c_InputParameters.hostApiSpecificStreamInfo = NULL; //See you specific host's API docs for info on using this field
+    c_InputParameters.hostApiSpecificStreamInfo = NULL; // See you specific host's API docs for info on using this field
     
     // Print info
     MRH_PSBLogger& c_Logger = MRH_PSBLogger::Singleton();
-    c_Logger.Log(MRH_PSBLogger::INFO, "Device: " + std::string(Pa_GetDeviceInfo(u32_DevID)->name), "PADevice.cpp", __LINE__);
-    c_Logger.Log(MRH_PSBLogger::INFO, "KHz: " + std::to_string(c_InputAudio.u32_KHz), "PADevice.cpp", __LINE__);
-    c_Logger.Log(MRH_PSBLogger::INFO, "Channels: " + std::to_string(c_InputAudio.u8_Channels), "PADevice.cpp", __LINE__);
-    c_Logger.Log(MRH_PSBLogger::INFO, "Frame Samples: " + std::to_string(c_InputAudio.u32_FrameSamples), "PADevice.cpp", __LINE__);
-    c_Logger.Log(MRH_PSBLogger::INFO, "Storage Size: " + std::to_string(c_Config.GetPAMicSampleStorageSize()), "PADevice.cpp", __LINE__);
-    c_Logger.Log(MRH_PSBLogger::INFO, "Total Storage Byte Size: " + std::to_string(c_InputAudio.us_BufferSize * 2), "PADevice.cpp", __LINE__);
+    c_Logger.Log(MRH_PSBLogger::INFO, "Input Device: " + std::string(Pa_GetDeviceInfo(u32_DevID)->name), "PADevice.cpp", __LINE__);
+    c_Logger.Log(MRH_PSBLogger::INFO, "Input KHz: " + std::to_string(c_InputAudio.u32_KHz), "PADevice.cpp", __LINE__);
+    c_Logger.Log(MRH_PSBLogger::INFO, "Input Channels: " + std::to_string(c_InputAudio.u8_Channels), "PADevice.cpp", __LINE__);
+    c_Logger.Log(MRH_PSBLogger::INFO, "Input Frame Samples: " + std::to_string(c_InputAudio.u32_FrameSamples), "PADevice.cpp", __LINE__);
+    c_Logger.Log(MRH_PSBLogger::INFO, "Input Storage Size: " + std::to_string(c_Config.GetPAMicSampleStorageSize()), "PADevice.cpp", __LINE__);
+    c_Logger.Log(MRH_PSBLogger::INFO, "Input Total Storage Byte Size: " + std::to_string(c_InputAudio.us_BufferSize * 2), "PADevice.cpp", __LINE__);
     
     // Open audio stream
     i_Error = Pa_OpenStream(&p_InputStream,
@@ -135,56 +217,30 @@ void PADevice::SetupInput()
 
 void PADevice::CloseInput() noexcept
 {
-    PaError i_Error;
-    
-    if ((i_Error = Pa_StopStream(p_InputStream)) != paNoError)
-    {
-        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Failed to stop PortAudio input tream! " +
-                                                             std::string(Pa_GetErrorText(i_Error)),
-                                       "PADevice.cpp", __LINE__);
-    }
-    
-    if ((i_Error = Pa_CloseStream(p_InputStream)) != paNoError)
-    {
-        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Failed to close PortAudio input tream! " +
-                                                             std::string(Pa_GetErrorText(i_Error)),
-                                       "PADevice.cpp", __LINE__);
-    }
+    CloseStream(p_InputStream);
 }
 
 void PADevice::StartListening()
 {
-    PaError i_Error = Pa_IsStreamActive(p_InputStream);
-    
-    if (i_Error == 1) // Already active
+    try
     {
-        return;
+        StartStream(p_InputStream);
     }
-    else if (i_Error < 0)
+    catch (...)
     {
-        throw Exception("Failed to get PortAudio input stream state! " + std::string(Pa_GetErrorText(i_Error)));
-    }
-    else if ((i_Error = Pa_StartStream(p_InputStream)) != paNoError)
-    {
-        throw Exception("Failed to start PortAudio input stream! " + std::string(Pa_GetErrorText(i_Error)));
+        throw;
     }
 }
 
 void PADevice::StopListening()
 {
-    PaError i_Error = Pa_IsStreamActive(p_InputStream);
-    
-    if (i_Error == 0) // Already stopped
+    try
     {
-        return;
+        StopStream(p_InputStream);
     }
-    else if (i_Error < 0)
+    catch (...)
     {
-        throw Exception("Failed to get PortAudio input stream state! " + std::string(Pa_GetErrorText(i_Error)));
-    }
-    else if ((i_Error = Pa_StopStream(p_InputStream)) != paNoError)
-    {
-        throw Exception("Failed to stop PortAudio input stream! " + std::string(Pa_GetErrorText(i_Error)));
+        throw;
     }
 }
 
@@ -242,7 +298,131 @@ int PADevice::PAInputCallback(const void* p_Input,
 // Output
 //*************************************************************************************
 
-// @TODO: Output
+void PADevice::SetupOutput()
+{
+    Configuration& c_Config = Configuration::Singleton();
+    PaError i_Error;
+    
+    // Update audio info
+    c_OutputAudio.u32_KHz = c_Config.GetPASpeakerKHz();
+    c_OutputAudio.u8_Channels = c_Config.GetPASpeakerChannels();
+    c_OutputAudio.u32_FrameSamples = c_Config.GetPASpeakerFrameSamples();
+    c_OutputAudio.us_BufferPos = 0;
+    
+    // Set input stream info
+    PaStreamParameters c_OutputParameters;
+    MRH_Uint32 u32_DevID = c_Config.GetPASpeakerDeviceID();
+    
+    bzero(&c_OutputParameters, sizeof(c_OutputParameters));
+    c_OutputParameters.channelCount = c_OutputAudio.u8_Channels;
+    c_OutputParameters.device = u32_DevID;
+    c_OutputParameters.hostApiSpecificStreamInfo = NULL;
+    c_OutputParameters.sampleFormat = paInt16;
+    c_OutputParameters.suggestedLatency = Pa_GetDeviceInfo(u32_DevID)->defaultLowInputLatency;
+    c_OutputParameters.hostApiSpecificStreamInfo = NULL; //See you specific host's API docs for info on using this field
+    
+    // Print info
+    MRH_PSBLogger& c_Logger = MRH_PSBLogger::Singleton();
+    c_Logger.Log(MRH_PSBLogger::INFO, "Output Device: " + std::string(Pa_GetDeviceInfo(u32_DevID)->name), "PADevice.cpp", __LINE__);
+    c_Logger.Log(MRH_PSBLogger::INFO, "Output KHz: " + std::to_string(c_OutputAudio.u32_KHz), "PADevice.cpp", __LINE__);
+    c_Logger.Log(MRH_PSBLogger::INFO, "Output Channels: " + std::to_string(c_OutputAudio.u8_Channels), "PADevice.cpp", __LINE__);
+    c_Logger.Log(MRH_PSBLogger::INFO, "Output Frame Samples: " + std::to_string(c_OutputAudio.u32_FrameSamples), "PADevice.cpp", __LINE__);
+    
+    // Open audio stream
+    i_Error = Pa_OpenStream(&p_OutputStream,
+                            NULL, // No input, output only
+                            &c_OutputParameters,
+                            c_OutputAudio.u32_KHz,
+                            c_OutputAudio.u32_FrameSamples,
+                            paClipOff,// paNoFlag,
+                            PAOutputCallback,
+                            &c_OutputAudio);
+    
+    if (i_Error != paNoError)
+    {
+        throw Exception("Failed to open PortAudio output stream! " + std::string(Pa_GetErrorText(i_Error)));
+    }
+    
+    // @NOTE: Only start on available audio!
+}
+
+void PADevice::CloseOutput() noexcept
+{
+    CloseStream(p_OutputStream);
+    c_OutputAudio.b_Playback = false;
+}
+
+void PADevice::StartPlayback()
+{
+    if (c_OutputAudio.v_Buffer.size() == c_OutputAudio.us_BufferPos)
+    {
+        throw Exception("No audio for playback!");
+    }
+    
+    try
+    {
+        c_OutputAudio.b_Playback = true; // Do before first cb chance
+        StartStream(p_OutputStream);
+    }
+    catch (...)
+    {
+        throw;
+    }
+}
+
+void PADevice::StopPlayback()
+{
+    try
+    {
+        StopStream(p_OutputStream);
+        c_OutputAudio.b_Playback = false;
+    }
+    catch (...)
+    {
+        throw;
+    }
+}
+
+int PADevice::PAOutputCallback(const void* p_Input,
+                               void* p_Output,
+                               unsigned long u32_FrameCount,
+                               const PaStreamCallbackTimeInfo* p_TimeInfo,
+                               PaStreamCallbackFlags e_StatusFlags,
+                               void* p_UserData) noexcept
+{
+    PADevice::Output* p_Audio = static_cast<PADevice::Output*>(p_UserData);
+    
+    // Stopped?
+    if (p_Audio->b_Playback == false)
+    {
+        return paComplete;
+    }
+    
+    // Zero buffer for silence
+    std::memset(p_Output, 0, u32_FrameCount * sizeof(MRH_Sint16));
+    
+    // Audio buffer copy size
+    ssize_t ss_Copy = p_Audio->v_Buffer.size() - p_Audio->us_BufferPos;
+    
+    if (ss_Copy > u32_FrameCount)
+    {
+        ss_Copy = u32_FrameCount;
+    }
+    else if (ss_Copy <= 0)
+    {
+        p_Audio->b_Playback = false; // Nothing left, stop
+        return paComplete;
+    }
+    
+    // Copy data
+    std::memcpy(p_Output,
+                &(p_Audio->v_Buffer[p_Audio->us_BufferPos]),
+                ss_Copy * sizeof(MRH_Sint16)); // sample for frame * bytes
+    p_Audio->us_BufferPos += ss_Copy;
+    
+    // Done
+    return paContinue;
+}
 
 //*************************************************************************************
 // Getters
@@ -271,4 +451,40 @@ VoiceAudio PADevice::GetInputAudio() noexcept
                       c_InputAudio.u32_KHz,
                       c_InputAudio.u8_Channels,
                       c_InputAudio.u32_FrameSamples);
+}
+
+bool PADevice::GetOutputPlayback() noexcept
+{
+    return c_OutputAudio.b_Playback;
+}
+
+//*************************************************************************************
+// Setters
+//*************************************************************************************
+
+void PADevice::SetOutputAudio(VoiceAudio const& c_Audio)
+{
+    if (c_OutputAudio.b_Playback == true)
+    {
+        throw Exception("Currently playing audio!");
+    }
+    
+    // Audio in valid format?
+    if (c_Audio.u32_KHz != c_OutputAudio.u32_KHz ||
+        c_Audio.u8_Channels != c_OutputAudio.u8_Channels ||
+        c_Audio.u32_FrameSamples != c_OutputAudio.u32_FrameSamples)
+    {
+        throw Exception("Invalid output audio format!");
+    }
+    
+    // Copy to buffer
+    if (c_OutputAudio.v_Buffer.size() < c_Audio.v_Buffer.size())
+    {
+        c_OutputAudio.v_Buffer.resize(c_Audio.v_Buffer.size());
+    }
+    
+    std::memcpy(c_OutputAudio.v_Buffer.data(),
+                c_Audio.v_Buffer.data(),
+                c_Audio.v_Buffer.size());
+    c_OutputAudio.us_BufferPos = 0;
 }

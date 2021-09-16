@@ -49,7 +49,8 @@ Voice::Voice() : p_Device(NULL),
                  b_TriggerRecognized(false),
                  u64_TriggerValidS(0),
                  b_ListenAudioAvailable(false),
-                 us_ListenWaitSamples(0)
+                 us_ListenWaitSamples(0),
+                 b_StringSet(false)
 {
     // Init components
     try
@@ -107,8 +108,6 @@ void Voice::Start()
     // Just start listening
     if (p_Device != NULL)
     {
-        //p_Device->StartPlayback();
-        
         p_Device->ResetInputAudio();
         p_Device->StartListening();
     }
@@ -122,8 +121,7 @@ void Voice::Stop()
     // Stop listening
     if (p_Device != NULL)
     {
-        //p_Device->StopPlayback();
-        
+        p_Device->StopPlayback();
         p_Device->StopListening();
     }
     
@@ -313,7 +311,46 @@ void Voice::Listen()
 
 void Voice::Say(OutputStorage& c_OutputStorage)
 {
-    // @TODO: Say
+    /**
+     *  Set String
+     */
+    
+    if (b_StringSet == false)
+    {
+        if (c_OutputStorage.GetFinishedAvailable() == false)
+        {
+            return;
+        }
+        
+        OutputStorage::String c_String = c_OutputStorage.GetFinishedString();
+        u32_SayStringID = c_String.u32_StringID;
+        u32_SayGroupID = c_String.u32_GroupID;
+        
+        // @TODO: Add to Google API
+        
+        b_StringSet = true;
+    }
+    
+    /**
+     *  Playback
+     */
+    
+    // @TODO: Check Google API
+    if (0 && p_Device->GetOutputPlayback() == false)
+    {
+        try
+        {
+            VoiceAudio c_Audio(NULL, 0, 0, 0, 0);  // TMP
+            
+            p_Device->SetOutputAudio(c_Audio);
+            p_Device->StartPlayback();
+        }
+        catch (Exception& e)
+        {
+            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Failed to add audio: " + std::string(e.what()),
+                                           "Voice.cpp", __LINE__);
+        }
+    }
 }
 
 //*************************************************************************************

@@ -41,19 +41,26 @@ namespace
         // Block Name
         BLOCK_TRIGGER = 0,
         BLOCK_PA_MICROPHONE = 1,
-        BLOCK_POCKET_SPHINX = 2,
+        BLOCK_PA_SPEAKER = 2,
+        BLOCK_POCKET_SPHINX = 3,
         
         // Trigger Key
-        TRIGGER_STRING = 3,
-        TRIGGER_LS_SIMILARITY = 4,
-        TRIGGER_TIMEOUT_S = 5,
+        TRIGGER_STRING = 4,
+        TRIGGER_LS_SIMILARITY = 5,
+        TRIGGER_TIMEOUT_S = 6,
         
         // PA Microphone Key
-        PA_MICROPHONE_DEVICE_ID = 6,
-        PA_MICROPHONE_KHZ = 7,
+        PA_MICROPHONE_DEVICE_ID = 7,
+        PA_MICROPHONE_KHZ,
         PA_MICROPHONE_CHANNELS,
         PA_MICROPHONE_FRAME_SAMPLES,
         PA_MICROPHONE_SAMPLE_STORAGE_SIZE,
+        
+        // PA Speaker Key
+        PA_SPEAKER_DEVICE_ID,
+        PA_SPEAKER_KHZ,
+        PA_SPEAKER_CHANNELS,
+        PA_SPEAKER_FRAME_SAMPLES,
         
         // Pocket Sphinx Key
         POCKET_SPHINX_MODEL_DIR_PATH,
@@ -69,6 +76,7 @@ namespace
         // Block Name
         "Trigger",
         "PAMicrophone",
+        "PASpeaker",
         "PocketSphinx",
         
         // Trigger Key
@@ -76,12 +84,18 @@ namespace
         "LSSimilarity",
         "TimeoutS",
         
-        // SDL Microphone Key
+        // PA Microphone Key
         "DeviceID",
         "KHz",
         "Channels",
         "FrameSamples",
         "SampleStorageSize",
+        
+        // PA Speaker Key
+        "DeviceID",
+        "KHz",
+        "Channels",
+        "FrameSamples",
         
         // Sphinx Key
         "ModelDirPath"
@@ -93,14 +107,18 @@ namespace
 // Constructor / Destructor
 //*************************************************************************************
 
-Configuration::Configuration() noexcept : s_TriggerString("Hey Susu"),
+Configuration::Configuration() noexcept : s_TriggerString("Hey Kogoro"),
                                           f32_TriggerLSSimilarity(0.75f),
                                           u32_TriggerTimeoutS(30),
                                           u32_PAMicDeviceID(0),
-                                          u32_PAMicKHz(44100),
-                                          u8_PAMicChannels(2),
+                                          u32_PAMicKHz(16000),
+                                          u8_PAMicChannels(1),
                                           u32_PAMicFrameSamples(2048),
                                           u32_PAMicSampleStorageSize(100),
+                                          u32_PASpeakerDeviceID(0),
+                                          u32_PASpeakerKHz(16000),
+                                          u8_PASpeakerChannels(1),
+                                          u32_PASpeakerFrameSamples(2048),
                                           s_SphinxModelDirPath("/var/mrh/mrhpsspeech/sphinx/")
 {}
 
@@ -216,6 +234,30 @@ MRH_Uint32 Configuration::GetPAMicSampleStorageSize() noexcept
 {
     std::lock_guard<std::mutex> c_Guard(c_Mutex);
     return u32_PAMicSampleStorageSize;
+}
+
+MRH_Uint32 Configuration::GetPASpeakerDeviceID() noexcept
+{
+    std::lock_guard<std::mutex> c_Guard(c_Mutex);
+    return u32_PASpeakerDeviceID;
+}
+
+MRH_Uint32 Configuration::GetPASpeakerKHz() noexcept
+{
+    std::lock_guard<std::mutex> c_Guard(c_Mutex);
+    return u32_PASpeakerKHz;
+}
+
+MRH_Uint8 Configuration::GetPASpeakerChannels() noexcept
+{
+    std::lock_guard<std::mutex> c_Guard(c_Mutex);
+    return u8_PASpeakerChannels;
+}
+
+MRH_Uint32 Configuration::GetPASpeakerFrameSamples() noexcept
+{
+    std::lock_guard<std::mutex> c_Guard(c_Mutex);
+    return u32_PASpeakerFrameSamples;
 }
 
 std::string Configuration::GetSphinxModelDirPath() noexcept

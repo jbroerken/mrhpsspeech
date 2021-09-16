@@ -125,6 +125,11 @@ private:
     bool b_ListenAudioAvailable;
     size_t us_ListenWaitSamples;
     
+    // Speech output
+    bool b_StringSet;
+    MRH_Uint32 u32_SayStringID;
+    MRH_Uint32 u32_SayGroupID;
+    
 protected:
 
 };

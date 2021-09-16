@@ -84,13 +84,13 @@ public:
      *  Start playback.
      */
     
-    //void StartPlayback();
+    void StartPlayback();
     
     /**
      *  Stop playback.
      */
     
-    //void StopPlayback();
+    void StopPlayback();
     
     //*************************************************************************************
     // Getters
@@ -99,10 +99,30 @@ public:
     /**
      *  Grab the currently stored recorded voice audio.
      *
-     *  \return The vurrent voice audio.
+     *  \return The current voice audio.
      */
     
     VoiceAudio GetInputAudio() noexcept;
+    
+    /**
+     *  Check if audio is currently being played.
+     *
+     *  \return true if audio is playing, false if not.
+     */
+    
+    bool GetOutputPlayback() noexcept;
+    
+    //*************************************************************************************
+    // Setters
+    //*************************************************************************************
+    
+    /**
+     *  Set the audio for playback.
+     *
+     *  \param c_Audio The audio for playback.
+     */
+    
+    void SetOutputAudio(VoiceAudio const& c_Audio);
     
 private:
     
@@ -147,6 +167,68 @@ private:
         MRH_Uint32 u32_FrameSamples;
     };
     
+    class Output
+    {
+    public:
+        
+        //*************************************************************************************
+        // Constructor / Destructor
+        //*************************************************************************************
+        
+        /**
+         *  Default constructor.
+         */
+        
+        Output() noexcept;
+        
+        /**
+         *  Default destructor.
+         */
+        
+        ~Output() noexcept;
+        
+        //*************************************************************************************
+        // Data
+        //*************************************************************************************
+        
+        std::atomic<bool> b_Playback;
+        
+        std::vector<MRH_Sint16> v_Buffer;
+        size_t us_BufferPos;
+        
+        MRH_Uint32 u32_KHz;
+        MRH_Uint8 u8_Channels;
+        MRH_Uint32 u32_FrameSamples;
+    };
+    
+    //*************************************************************************************
+    // Stream
+    //*************************************************************************************
+    
+    /**
+     *  Start a PortAudio stream.
+     *
+     *  \param p_Stream The stream to start.
+     */
+    
+    void StartStream(PaStream* p_Stream);
+    
+    /**
+     *  Stop a PortAudio stream.
+     *
+     *  \param p_Stream The stream to stop.
+     */
+    
+    void StopStream(PaStream* p_Stream);
+    
+    /**
+     *  Close a PortAudio stream.
+     *
+     *  \param p_Stream The stream to close.
+     */
+    
+    void CloseStream(PaStream* p_Stream) noexcept;
+    
     //*************************************************************************************
     // Input
     //*************************************************************************************
@@ -178,13 +260,38 @@ private:
     // Output
     //*************************************************************************************
     
+    /**
+     *  Setup output device and stream.
+     */
+    
+    void SetupOutput();
+    
+    /**
+     *  Close output device and stream.
+     */
+    
+    void CloseOutput() noexcept;
+    
+    /**
+     *  Update callback for output audio.
+     */
+    
+    static int PAOutputCallback(const void* p_Input,
+                                void* p_Output,
+                                unsigned long u32_FrameCount,
+                                const PaStreamCallbackTimeInfo* p_TimeInfo,
+                                PaStreamCallbackFlags e_StatusFlags,
+                                void* p_UserData) noexcept;
+    
     //*************************************************************************************
     // Data
     //*************************************************************************************
     
     PaStream* p_InputStream;
+    PaStream* p_OutputStream;
     
     Input c_InputAudio;
+    Output c_OutputAudio;
     
 protected:
     

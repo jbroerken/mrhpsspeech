@@ -139,6 +139,38 @@ public:
     MRH_Uint32 GetPAMicSampleStorageSize() noexcept;
     
     /**
+     *  Get the id of the device used for the speaker. This function is thread safe.
+     *
+     *  \return The id of the device used for the speaker.
+     */
+    
+    MRH_Uint32 GetPASpeakerDeviceID() noexcept;
+    
+    /**
+     *  Get the speaker KHz. This function is thread safe.
+     *
+     *  \return The speaker KHz.
+     */
+    
+    MRH_Uint32 GetPASpeakerKHz() noexcept;
+    
+    /**
+     *  Get the speaker channels. This function is thread safe.
+     *
+     *  \return The speaker channels.
+     */
+    
+    MRH_Uint8 GetPASpeakerChannels() noexcept;
+    
+    /**
+     *  Get the speaker frame sample count. This function is thread safe.
+     *
+     *  \return The speaker frame sample count.
+     */
+    
+    MRH_Uint32 GetPASpeakerFrameSamples() noexcept;
+    
+    /**
      *  Get the directory path to the pocket sphinx model. This function is thread
      *  safe.
      *
@@ -176,12 +208,18 @@ private:
     MRH_Sfloat32 f32_TriggerLSSimilarity;
     MRH_Uint32 u32_TriggerTimeoutS;
     
-    // SDL Microphone
+    // PA Microphone
     MRH_Uint32 u32_PAMicDeviceID;
     MRH_Uint32 u32_PAMicKHz;
     MRH_Uint8 u8_PAMicChannels;
     MRH_Uint32 u32_PAMicFrameSamples;
     MRH_Uint32 u32_PAMicSampleStorageSize;
+    
+    // PA Speaker
+    MRH_Uint32 u32_PASpeakerDeviceID;
+    MRH_Uint32 u32_PASpeakerKHz;
+    MRH_Uint8 u8_PASpeakerChannels;
+    MRH_Uint32 u32_PASpeakerFrameSamples;
     
     // Pocket Sphinx
     std::string s_SphinxModelDirPath;
