@@ -101,7 +101,7 @@ VoiceAudio::~VoiceAudio() noexcept
 // Convert
 //*************************************************************************************
 
-std::vector<MRH_Sint16> VoiceAudio::Convert(size_t us_Pos, size_t us_Elements, MRH_Uint32 u32_KHz) noexcept
+std::vector<MRH_Sint16> VoiceAudio::Convert(size_t us_Pos, size_t us_Elements, MRH_Uint32 u32_KHz) const noexcept
 {
     // Check end pos for conversion
     size_t us_End = us_Pos + us_Elements;

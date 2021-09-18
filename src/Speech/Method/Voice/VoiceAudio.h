@@ -76,7 +76,7 @@ public:
      *  \return The converted sample data.
      */
     
-    std::vector<MRH_Sint16> Convert(size_t us_Pos, size_t us_Elements, MRH_Uint32 u32_KHz) noexcept;
+    std::vector<MRH_Sint16> Convert(size_t us_Pos, size_t us_Elements, MRH_Uint32 u32_KHz) const noexcept;
     
     //*************************************************************************************
     // Data

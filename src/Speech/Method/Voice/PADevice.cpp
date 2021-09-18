@@ -481,6 +481,39 @@ bool PADevice::GetInputRecording() noexcept
 // Setters
 //*************************************************************************************
 
+void PADevice::SetOutputAudioBuffer(std::vector<MRH_Sint16> const& v_Buffer) noexcept
+{
+    // Pad buffer
+    size_t us_Elements = v_Buffer.size();
+    
+    if (c_OutputAudio.v_Buffer.size() != us_Elements * c_OutputAudio.u8_Channels)
+    {
+        c_OutputAudio.v_Buffer.resize(us_Elements * c_OutputAudio.u8_Channels, 0);
+    }
+    
+    // Now copy same audio to all channels
+    if (c_OutputAudio.u8_Channels > 1)
+    {
+        size_t us_DstPos = 0;
+        
+        for (auto& Data : v_Buffer)
+        {
+            for (MRH_Uint8 j = 0; j < c_OutputAudio.u8_Channels; ++j)
+            {
+                c_OutputAudio.v_Buffer[us_DstPos + j] = Data;
+            }
+            
+            us_DstPos += c_OutputAudio.u8_Channels;
+        }
+    }
+    else
+    {
+        std::memcpy(c_OutputAudio.v_Buffer.data(),
+                    &(v_Buffer[0]),
+                    v_Buffer.size() * sizeof(MRH_Sint16));
+    }
+}
+
 void PADevice::SetOutputAudio(VoiceAudio const& c_Audio)
 {
     if (c_OutputAudio.b_Playback == true)
@@ -496,13 +529,20 @@ void PADevice::SetOutputAudio(VoiceAudio const& c_Audio)
     }
     
     // Copy to buffer
-    if (c_OutputAudio.v_Buffer.size() < c_Audio.v_Buffer.size())
+    if (c_OutputAudio.u32_KHz != c_Audio.u32_KHz)
     {
-        c_OutputAudio.v_Buffer.resize(c_Audio.v_Buffer.size());
+        // Difference, we need to convert
+        std::vector<MRH_Sint16> v_Buffer = c_Audio.Convert(0,
+                                                           c_Audio.v_Buffer.size(),
+                                                           c_OutputAudio.u32_KHz);
+        SetOutputAudioBuffer(v_Buffer);
+    }
+    else
+    {
+        // Same KHz, simply copy
+        SetOutputAudioBuffer(c_Audio.v_Buffer);
     }
     
-    std::memcpy(c_OutputAudio.v_Buffer.data(),
-                c_Audio.v_Buffer.data(),
-                c_Audio.v_Buffer.size());
+    // Reset output pos
     c_OutputAudio.us_BufferPos = 0;
 }
