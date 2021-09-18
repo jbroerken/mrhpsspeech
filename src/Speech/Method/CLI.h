@@ -58,16 +58,16 @@ public:
     //*************************************************************************************
     
     /**
-     *  Start speech method.
+     *  Resume speech method.
      */
     
-    void Start() override;
+    void Resume() override;
     
     /**
-     *  Stop speech method.
+     *  Pause speech method.
      */
     
-    void Stop() override;
+    void Pause() override;
     
     //*************************************************************************************
     // Listen

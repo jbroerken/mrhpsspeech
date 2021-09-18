@@ -103,7 +103,7 @@ Voice::~Voice() noexcept
 // Useage
 //*************************************************************************************
 
-void Voice::Start()
+void Voice::Resume()
 {
     // Just start listening
     if (p_Device != NULL)
@@ -116,7 +116,7 @@ void Voice::Start()
     u64_NextListenS = time(NULL) + NEXT_LISTEN_WAIT_TIME_S;
 }
 
-void Voice::Stop()
+void Voice::Pause()
 {
     // Stop device
     if (p_Device != NULL)

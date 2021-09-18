@@ -89,9 +89,16 @@ void GoogleAPI::UpdateSTT(GoogleAPI* p_Instance) noexcept
             v_Buffer = p_Instance->v_Buffer;
             u32_KHz = p_Instance->u32_KHz;
             p_Instance->b_CanProcess = false; // Reset, now grabbed
+            
+            p_Instance->c_STTMutex.unlock();
         }
-        
-        p_Instance->c_STTMutex.unlock();
+        else
+        {
+            p_Instance->c_STTMutex.unlock();
+            
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            continue;
+        }
         
         /**
          *  Data Process
@@ -99,7 +106,6 @@ void GoogleAPI::UpdateSTT(GoogleAPI* p_Instance) noexcept
         
         // Run processing
         // @TODO: Run, add if finished
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 }
 
@@ -155,9 +161,16 @@ void GoogleAPI::UpdateTTS(GoogleAPI* p_Instance) noexcept
             s_String = p_Instance->s_ToAudio;
             p_Instance->s_ToAudio = "";
             p_Instance->b_TTSAudioAvailable = false;
+            
+            p_Instance->c_TTSMutex.unlock();
         }
-        
-        p_Instance->c_TTSMutex.unlock();
+        else
+        {
+            p_Instance->c_TTSMutex.unlock();
+            
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            continue;
+        }
         
         /**
          *  Data Process

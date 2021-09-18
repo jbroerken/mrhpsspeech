@@ -51,7 +51,7 @@
 CLI::CLI() : b_Update(true),
              i_ConnectionFD(-1),
              i_ClientFD(-1),
-             b_CanConnect(false),
+             b_CanConnect(false), // Only allow connections on Resume() call
              v_Read(0),
              u32_Read(0),
              v_Write(0),
@@ -114,12 +114,12 @@ CLI::~CLI() noexcept
 // Useage
 //*************************************************************************************
 
-void CLI::Start()
+void CLI::Resume()
 {
     b_CanConnect = true;
 }
 
-void CLI::Stop()
+void CLI::Pause()
 {
     DisconnectClient();
     b_CanConnect = false;

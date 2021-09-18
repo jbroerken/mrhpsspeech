@@ -49,16 +49,16 @@ public:
     //*************************************************************************************
     
     /**
-     *  Start speech method.
+     *  Resume speech method.
      */
     
-    virtual void Start();
+    virtual void Resume();
     
     /**
-     *  Stop speech method.
+     *  Pause speech method.
      */
     
-    virtual void Stop();
+    virtual void Pause();
     
     //*************************************************************************************
     // Listen

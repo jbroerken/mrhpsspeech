@@ -215,11 +215,7 @@ void PADevice::SetupInput()
         throw Exception("Failed to open PortAudio input stream! " + std::string(Pa_GetErrorText(i_Error)));
     }
     
-    // Stream opened, start recording
-    if ((i_Error = Pa_StartStream(p_InputStream)) != paNoError)
-    {
-        throw Exception("Failed to start PortAudio input stream! " + std::string(Pa_GetErrorText(i_Error)));
-    }
+    // @NOTE: Do not start recording yet, wait for StartListening() to be called
 }
 
 void PADevice::CloseInput() noexcept
