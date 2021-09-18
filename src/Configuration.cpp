@@ -52,14 +52,12 @@ namespace
         // PA Microphone Key
         PA_MICROPHONE_DEVICE_ID = 7,
         PA_MICROPHONE_KHZ,
-        PA_MICROPHONE_CHANNELS,
         PA_MICROPHONE_FRAME_SAMPLES,
         PA_MICROPHONE_SAMPLE_STORAGE_SIZE,
         
         // PA Speaker Key
         PA_SPEAKER_DEVICE_ID,
         PA_SPEAKER_KHZ,
-        PA_SPEAKER_CHANNELS,
         PA_SPEAKER_FRAME_SAMPLES,
         
         // Pocket Sphinx Key
@@ -87,14 +85,12 @@ namespace
         // PA Microphone Key
         "DeviceID",
         "KHz",
-        "Channels",
         "FrameSamples",
         "SampleStorageSize",
         
         // PA Speaker Key
         "DeviceID",
         "KHz",
-        "Channels",
         "FrameSamples",
         
         // Sphinx Key
@@ -112,12 +108,10 @@ Configuration::Configuration() noexcept : s_TriggerString("Hey Kogoro"),
                                           u32_TriggerTimeoutS(30),
                                           u32_PAMicDeviceID(0),
                                           u32_PAMicKHz(16000),
-                                          u8_PAMicChannels(1),
                                           u32_PAMicFrameSamples(2048),
                                           u32_PAMicSampleStorageSize(100),
                                           u32_PASpeakerDeviceID(0),
                                           u32_PASpeakerKHz(16000),
-                                          u8_PASpeakerChannels(1),
                                           u32_PASpeakerFrameSamples(2048),
                                           s_SphinxModelDirPath("/var/mrh/mrhpsspeech/sphinx/")
 {}
@@ -162,9 +156,14 @@ void Configuration::Load()
                 {
                     u32_PAMicDeviceID = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_MICROPHONE_DEVICE_ID])));
                     u32_PAMicKHz = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_MICROPHONE_KHZ])));
-                    u8_PAMicChannels = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_MICROPHONE_CHANNELS])));
                     u32_PAMicFrameSamples = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_MICROPHONE_FRAME_SAMPLES])));
                     u32_PAMicSampleStorageSize = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_MICROPHONE_SAMPLE_STORAGE_SIZE])));
+                }
+                else if (Block.GetName().compare(p_Identifier[BLOCK_PA_SPEAKER]) == 0)
+                {
+                    u32_PASpeakerDeviceID = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_SPEAKER_DEVICE_ID])));
+                    u32_PASpeakerKHz = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_SPEAKER_KHZ])));
+                    u32_PASpeakerFrameSamples = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_SPEAKER_FRAME_SAMPLES])));
                 }
                 else if (Block.GetName().compare(p_Identifier[BLOCK_POCKET_SPHINX]) == 0)
                 {
@@ -218,12 +217,6 @@ MRH_Uint32 Configuration::GetPAMicKHz() noexcept
     return u32_PAMicKHz;
 }
 
-MRH_Uint8 Configuration::GetPAMicChannels() noexcept
-{
-    std::lock_guard<std::mutex> c_Guard(c_Mutex);
-    return u8_PAMicChannels;
-}
-
 MRH_Uint32 Configuration::GetPAMicFrameSamples() noexcept
 {
     std::lock_guard<std::mutex> c_Guard(c_Mutex);
@@ -246,12 +239,6 @@ MRH_Uint32 Configuration::GetPASpeakerKHz() noexcept
 {
     std::lock_guard<std::mutex> c_Guard(c_Mutex);
     return u32_PASpeakerKHz;
-}
-
-MRH_Uint8 Configuration::GetPASpeakerChannels() noexcept
-{
-    std::lock_guard<std::mutex> c_Guard(c_Mutex);
-    return u8_PASpeakerChannels;
 }
 
 MRH_Uint32 Configuration::GetPASpeakerFrameSamples() noexcept

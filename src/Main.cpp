@@ -82,7 +82,7 @@ int main(int argc, const char* argv[])
     Speech c_Speech;
     sleep(30);
     return 0;
-    */
+     */
     // Setup service base
     MRH_PSBLogger& c_Logger = MRH_PSBLogger::Singleton();
     libmrhpsb* p_Context;
@@ -105,7 +105,6 @@ int main(int argc, const char* argv[])
         return Exit(NULL, e.what(), EXIT_FAILURE);
     }
     
-    /*
     // Setup PortAudio
     PaError i_Error;
     if ((i_Error = Pa_Initialize()) != paNoError)
@@ -114,7 +113,6 @@ int main(int argc, const char* argv[])
                     ("Failed to initialuze PortAudio! " + std::string(Pa_GetErrorText(i_Error))).c_str(),
                     EXIT_FAILURE);
     }
-    */
     
     // Setup service specific data
     c_Logger.Log(MRH_PSBLogger::INFO, "Initializing mrhpsspeech (" + std::string(VERSION_NUMBER) + ")...",

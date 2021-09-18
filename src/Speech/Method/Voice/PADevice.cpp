@@ -162,9 +162,18 @@ void PADevice::SetupInput()
     Configuration& c_Config = Configuration::Singleton();
     PaError i_Error;
     
+    // Grab device info
+    MRH_Uint32 u32_DevID = c_Config.GetPAMicDeviceID();
+    const PaDeviceInfo* p_DevInfo;
+    
+    if ((p_DevInfo = Pa_GetDeviceInfo(u32_DevID)) == NULL)
+    {
+        throw Exception("Failed to get device info for input device " + std::to_string(u32_DevID));
+    }
+    
     // Update audio info
     c_InputAudio.u32_KHz = c_Config.GetPAMicKHz();
-    c_InputAudio.u8_Channels = c_Config.GetPAMicChannels();
+    c_InputAudio.u8_Channels = p_DevInfo->maxInputChannels;
     c_InputAudio.u32_FrameSamples = c_Config.GetPAMicFrameSamples();
     c_InputAudio.us_BufferSize = c_InputAudio.u8_Channels * c_InputAudio.u32_FrameSamples * c_Config.GetPAMicSampleStorageSize();
     c_InputAudio.p_BufferA = new MRH_Sint16[c_InputAudio.us_BufferSize];
@@ -174,24 +183,22 @@ void PADevice::SetupInput()
     
     // Set input stream info
     PaStreamParameters c_InputParameters;
-    MRH_Uint32 u32_DevID = c_Config.GetPAMicDeviceID();
     
     bzero(&c_InputParameters, sizeof(c_InputParameters));
     c_InputParameters.channelCount = c_InputAudio.u8_Channels;
     c_InputParameters.device = u32_DevID;
     c_InputParameters.hostApiSpecificStreamInfo = NULL;
     c_InputParameters.sampleFormat = paInt16;
-    c_InputParameters.suggestedLatency = Pa_GetDeviceInfo(u32_DevID)->defaultLowInputLatency;
-    c_InputParameters.hostApiSpecificStreamInfo = NULL; // See you specific host's API docs for info on using this field
+    c_InputParameters.suggestedLatency = p_DevInfo->defaultLowInputLatency;
     
     // Print info
     MRH_PSBLogger& c_Logger = MRH_PSBLogger::Singleton();
-    c_Logger.Log(MRH_PSBLogger::INFO, "Input Device: " + std::string(Pa_GetDeviceInfo(u32_DevID)->name), "PADevice.cpp", __LINE__);
+    c_Logger.Log(MRH_PSBLogger::INFO, "Input Device: " + std::string(p_DevInfo->name), "PADevice.cpp", __LINE__);
     c_Logger.Log(MRH_PSBLogger::INFO, "Input KHz: " + std::to_string(c_InputAudio.u32_KHz), "PADevice.cpp", __LINE__);
     c_Logger.Log(MRH_PSBLogger::INFO, "Input Channels: " + std::to_string(c_InputAudio.u8_Channels), "PADevice.cpp", __LINE__);
     c_Logger.Log(MRH_PSBLogger::INFO, "Input Frame Samples: " + std::to_string(c_InputAudio.u32_FrameSamples), "PADevice.cpp", __LINE__);
     c_Logger.Log(MRH_PSBLogger::INFO, "Input Storage Size: " + std::to_string(c_Config.GetPAMicSampleStorageSize()), "PADevice.cpp", __LINE__);
-    c_Logger.Log(MRH_PSBLogger::INFO, "Input Total Storage Byte Size: " + std::to_string(c_InputAudio.us_BufferSize * 2), "PADevice.cpp", __LINE__);
+    c_Logger.Log(MRH_PSBLogger::INFO, "Input Total Storage Byte Size: " + std::to_string(c_InputAudio.us_BufferSize * sizeof(MRH_Sint16) * 2), "PADevice.cpp", __LINE__);
     
     // Open audio stream
     i_Error = Pa_OpenStream(&p_InputStream,
@@ -285,7 +292,7 @@ int PADevice::PAInputCallback(const void* p_Input,
     }
     
     // Copy data
-    std::memcpy(p_Buffer + us_BufferPos, // Current position, continuous
+    std::memcpy(&(p_Buffer[us_BufferPos]), // Current position, continuous
                 p_Input,
                 ss_Copy * sizeof(MRH_Sint16)); // sample for frame * bytes
     p_Audio->us_BufferPos += ss_Copy;
@@ -303,27 +310,34 @@ void PADevice::SetupOutput()
     Configuration& c_Config = Configuration::Singleton();
     PaError i_Error;
     
+    // Grab device info
+    MRH_Uint32 u32_DevID = c_Config.GetPASpeakerDeviceID();
+    const PaDeviceInfo* p_DevInfo;
+    
+    if ((p_DevInfo = Pa_GetDeviceInfo(u32_DevID)) == NULL)
+    {
+        throw Exception("Failed to get device info for output device " + std::to_string(u32_DevID));
+    }
+    
     // Update audio info
     c_OutputAudio.u32_KHz = c_Config.GetPASpeakerKHz();
-    c_OutputAudio.u8_Channels = c_Config.GetPASpeakerChannels();
+    c_OutputAudio.u8_Channels = p_DevInfo->maxOutputChannels;
     c_OutputAudio.u32_FrameSamples = c_Config.GetPASpeakerFrameSamples();
     c_OutputAudio.us_BufferPos = 0;
     
     // Set input stream info
     PaStreamParameters c_OutputParameters;
-    MRH_Uint32 u32_DevID = c_Config.GetPASpeakerDeviceID();
     
     bzero(&c_OutputParameters, sizeof(c_OutputParameters));
     c_OutputParameters.channelCount = c_OutputAudio.u8_Channels;
     c_OutputParameters.device = u32_DevID;
     c_OutputParameters.hostApiSpecificStreamInfo = NULL;
     c_OutputParameters.sampleFormat = paInt16;
-    c_OutputParameters.suggestedLatency = Pa_GetDeviceInfo(u32_DevID)->defaultLowInputLatency;
-    c_OutputParameters.hostApiSpecificStreamInfo = NULL; //See you specific host's API docs for info on using this field
+    c_OutputParameters.suggestedLatency = p_DevInfo->defaultLowInputLatency;
     
     // Print info
     MRH_PSBLogger& c_Logger = MRH_PSBLogger::Singleton();
-    c_Logger.Log(MRH_PSBLogger::INFO, "Output Device: " + std::string(Pa_GetDeviceInfo(u32_DevID)->name), "PADevice.cpp", __LINE__);
+    c_Logger.Log(MRH_PSBLogger::INFO, "Output Device: " + std::string(p_DevInfo->name), "PADevice.cpp", __LINE__);
     c_Logger.Log(MRH_PSBLogger::INFO, "Output KHz: " + std::to_string(c_OutputAudio.u32_KHz), "PADevice.cpp", __LINE__);
     c_Logger.Log(MRH_PSBLogger::INFO, "Output Channels: " + std::to_string(c_OutputAudio.u8_Channels), "PADevice.cpp", __LINE__);
     c_Logger.Log(MRH_PSBLogger::INFO, "Output Frame Samples: " + std::to_string(c_OutputAudio.u32_FrameSamples), "PADevice.cpp", __LINE__);
@@ -476,7 +490,6 @@ void PADevice::SetOutputAudio(VoiceAudio const& c_Audio)
     
     // Audio in valid format?
     if (c_Audio.u32_KHz != c_OutputAudio.u32_KHz ||
-        c_Audio.u8_Channels != c_OutputAudio.u8_Channels ||
         c_Audio.u32_FrameSamples != c_OutputAudio.u32_FrameSamples)
     {
         throw Exception("Invalid output audio format!");

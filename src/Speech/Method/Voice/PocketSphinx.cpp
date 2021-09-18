@@ -120,7 +120,7 @@ void PocketSphinx::ResetDecoder() noexcept
         if (ps_end_utt(p_Decoder) < 0)
         {
             MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Failed to end utterance!",
-                                               "PocketSphinx.cpp", __LINE__);
+                                           "PocketSphinx.cpp", __LINE__);
         }
         
         b_DecoderRunning = false;
@@ -130,7 +130,7 @@ void PocketSphinx::ResetDecoder() noexcept
     if (ps_start_utt(p_Decoder) < 0)
     {
         MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Failed to start utterance!",
-                                           "PocketSphinx.cpp", __LINE__);
+                                       "PocketSphinx.cpp", __LINE__);
     }
     
     b_DecoderRunning = true;
@@ -140,17 +140,20 @@ void PocketSphinx::ResetDecoder() noexcept
 // Recognize
 //*************************************************************************************
 
-void PocketSphinx::AddAudio(const MRH_Sint16* p_Buffer, size_t us_Length) noexcept
+void PocketSphinx::AddAudio(const MRH_Sint16* p_Buffer, size_t us_Elements) noexcept
 {
+    // We get elements, turn to byte size for process
+    us_Elements *= sizeof(MRH_Sint16);
+    
     if (b_DecoderRunning == false)
     {
         MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "Decoder not running!",
-                                           "PocketSphinx.cpp", __LINE__);
+                                       "PocketSphinx.cpp", __LINE__);
     }
-    else if (ps_process_raw(p_Decoder, p_Buffer, us_Length, FALSE, FALSE) < 0)
+    else if (ps_process_raw(p_Decoder, p_Buffer, us_Elements, FALSE, FALSE) < 0)
     {
         MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Failed to process audio sample!",
-                                           "PocketSphinx.cpp", __LINE__);
+                                       "PocketSphinx.cpp", __LINE__);
     }
 }
 
@@ -169,7 +172,7 @@ std::string PocketSphinx::Recognize() noexcept
     if (b_DecoderRunning == false)
     {
         MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "Decoder not running!",
-                                           "PocketSphinx.cpp", __LINE__);
+                                       "PocketSphinx.cpp", __LINE__);
         return "";
     }
     else if (ps_end_utt(p_Decoder) < 0)

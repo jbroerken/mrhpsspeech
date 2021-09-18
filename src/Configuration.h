@@ -115,14 +115,6 @@ public:
     MRH_Uint32 GetPAMicKHz() noexcept;
     
     /**
-     *  Get the microhpone channels. This function is thread safe.
-     *
-     *  \return The microhpone channels.
-     */
-    
-    MRH_Uint8 GetPAMicChannels() noexcept;
-    
-    /**
      *  Get the microhpone frame sample count. This function is thread safe.
      *
      *  \return The microhpone frame sample count.
@@ -153,14 +145,6 @@ public:
      */
     
     MRH_Uint32 GetPASpeakerKHz() noexcept;
-    
-    /**
-     *  Get the speaker channels. This function is thread safe.
-     *
-     *  \return The speaker channels.
-     */
-    
-    MRH_Uint8 GetPASpeakerChannels() noexcept;
     
     /**
      *  Get the speaker frame sample count. This function is thread safe.
@@ -211,14 +195,12 @@ private:
     // PA Microphone
     MRH_Uint32 u32_PAMicDeviceID;
     MRH_Uint32 u32_PAMicKHz;
-    MRH_Uint8 u8_PAMicChannels;
     MRH_Uint32 u32_PAMicFrameSamples;
     MRH_Uint32 u32_PAMicSampleStorageSize;
     
     // PA Speaker
     MRH_Uint32 u32_PASpeakerDeviceID;
     MRH_Uint32 u32_PASpeakerKHz;
-    MRH_Uint8 u8_PASpeakerChannels;
     MRH_Uint32 u32_PASpeakerFrameSamples;
     
     // Pocket Sphinx

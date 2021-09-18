@@ -31,6 +31,9 @@
 // Project
 #include "../../../Exception.h"
 
+// Pre-defined
+#define POCKET_SPHINX_REQUIRED_KHZ 16000
+
 
 class PocketSphinx
 {
@@ -72,10 +75,10 @@ public:
      *  Add audio data to the decoder.
      *
      *  \param p_Buffer The audio buffer to add.
-     *  \param us_Length The length of the audio buffer.
+     *  \param us_Elements The length of the audio buffer in elements.
      */
     
-    void AddAudio(const MRH_Sint16* p_Buffer, size_t us_Length) noexcept;
+    void AddAudio(const MRH_Sint16* p_Buffer, size_t us_Elements) noexcept;
     
     /**
      *  Check if the last added audio buffer contains speech.

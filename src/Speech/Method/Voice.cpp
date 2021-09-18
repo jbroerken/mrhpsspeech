@@ -128,12 +128,13 @@ void Voice::Stop()
     if (p_GoogleAPI != NULL)
     {
         // Remove old data, we dont know how long we're stopped
-        p_GoogleAPI->ClearSTT();
+        p_GoogleAPI->ClearSTTAudio();
+        p_GoogleAPI->RecieveStringsSTT(); // Grab list to empty
     }
     
     if (p_PocketSphinx != NULL)
     {
-        // Reset decoder, new recognition
+        // Reset decoder, new recognition next time
         p_PocketSphinx->ResetDecoder();
     }
     
@@ -199,7 +200,7 @@ void Voice::Listen()
     // Grab samples
     VoiceAudio c_Audio = p_Device->GetInputAudio();
     size_t us_Pos = 0;
-    size_t us_Size = c_Audio.u32_FrameSamples;
+    size_t us_Elements = c_Audio.u32_FrameSamples;
     
     while (us_Pos < c_Audio.v_Buffer.size())
     {
@@ -208,20 +209,22 @@ void Voice::Listen()
          */
         
         // Is the sample data valid for sphinx?
-        if (c_Audio.u32_KHz == 16000 && c_Audio.u8_Channels == 1)
+        if (c_Audio.u32_KHz == POCKET_SPHINX_REQUIRED_KHZ)
         {
             // Same, simply add
-            p_PocketSphinx->AddAudio(&(c_Audio.v_Buffer[us_Pos]), us_Size);
+            p_PocketSphinx->AddAudio(&(c_Audio.v_Buffer[us_Pos]), us_Elements);
         }
         else
         {
             // Not the same, convert then add
-            std::vector<MRH_Sint16> v_Buffer = c_Audio.Convert(us_Pos, us_Size, 16000, 1);
-            p_PocketSphinx->AddAudio(v_Buffer.data(), us_Size);
+            std::vector<MRH_Sint16> v_Buffer = c_Audio.Convert(us_Pos,
+                                                               us_Elements,
+                                                               POCKET_SPHINX_REQUIRED_KHZ);
+            p_PocketSphinx->AddAudio(v_Buffer.data(), v_Buffer.size()); // Use buffer size, convert might change size
         }
         
         // Buffer pos has to be incremented!
-        us_Pos += us_Size;
+        us_Pos += us_Elements;
         
         /**
          *  Check Speech
@@ -232,7 +235,9 @@ void Voice::Listen()
         {
             // Audio valid, add to speech to text api
             // @NOTE: Add ->LAST<- buffer data (- size, 1 step back)
-            p_GoogleAPI->AddAudioSTT(&(c_Audio.v_Buffer[us_Pos - us_Size]), us_Size, c_Audio.u32_KHz);
+            p_GoogleAPI->AddAudioSTT(&(c_Audio.v_Buffer[us_Pos - us_Elements]),
+                                     us_Elements,
+                                     c_Audio.u32_KHz);
             
             // Grab next
             b_ListenAudioAvailable = true;
@@ -248,7 +253,7 @@ void Voice::Listen()
             else if (us_ListenWaitSamples < c_Audio.u32_KHz) // 1 Sec
             {
                 // Stil in "pause" phase, wait
-                us_ListenWaitSamples += us_Size;
+                us_ListenWaitSamples += us_Elements;
                 continue;
             }
         }
@@ -278,7 +283,7 @@ void Voice::Listen()
             else
             {
                 // Not recognized, reset api buffer
-                p_GoogleAPI->ClearSTT();
+                p_GoogleAPI->ClearSTTAudio();
                 continue;
             }
         }
@@ -314,11 +319,22 @@ void Voice::Say(OutputStorage& c_OutputStorage)
     {
         OutputStorage::String c_String = c_OutputStorage.GetFinishedString();
         
-        p_GoogleAPI->AddStringTTS(c_String.s_String);
-        u32_SayStringID = c_String.u32_StringID;
-        u32_SayGroupID = c_String.u32_GroupID;
+        // NOTE: This should never throw - Playback happens after full conversion, which
+        //       causes the currently given TTS string to be reset. New strings can't be
+        //       grabbed during playback or conversion because of b_StringSet.
+        try
+        {
+            p_GoogleAPI->AddStringTTS(c_String.s_String);
+            u32_SayStringID = c_String.u32_StringID;
+            u32_SayGroupID = c_String.u32_GroupID;
         
-        b_StringSet = true;
+            b_StringSet = true;
+        }
+        catch (Exception& e)
+        {
+            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Dropped say string: " + std::string(e.what()),
+                                           "Voice.cpp", __LINE__);
+        }
     }
     
     /**

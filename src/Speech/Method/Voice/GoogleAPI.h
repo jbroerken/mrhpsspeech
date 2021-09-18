@@ -23,6 +23,9 @@
 #define GoogleAPI_h
 
 // C / C++
+#include <thread>
+#include <mutex>
+#include <atomic>
 #include <string>
 #include <list>
 
@@ -44,7 +47,7 @@ public:
      *  Default constructor.
      */
     
-    GoogleAPI() noexcept;
+    GoogleAPI();
     
     /**
      *  Default destructor.
@@ -57,20 +60,20 @@ public:
     //*************************************************************************************
     
     /**
-     *  Clear speech to text buffer.
+     *  Clear speech to text audio buffer.
      */
     
-    void ClearSTT() noexcept;
+    void ClearSTTAudio() noexcept;
     
     /**
      *  Add mono audio data for speech to text.
      *
      *  \param p_Buffer The audio buffer to add.
-     *  \param us_Length The length of the data buffer.
+     *  \param us_Elements The length of the data buffer in elements.
      *  \param u32_KHz The audio buffer KHz.
      */
     
-    void AddAudioSTT(const MRH_Sint16* p_Buffer, size_t us_Length, MRH_Uint32 u32_KHz) noexcept;
+    void AddAudioSTT(const MRH_Sint16* p_Buffer, size_t us_Elements, MRH_Uint32 u32_KHz) noexcept;
     
     /**
      *  Convert stored audio data for speech to text.
@@ -79,9 +82,9 @@ public:
     void ProcessAudioSTT() noexcept;
     
     /**
-     *  Recieve all strings which finished processing.
+     *  Recieve all recognized strings.
      *
-     *  \return All finished strings.
+     *  \return All recognized string.
      */
     
     std::list<std::string> RecieveStringsSTT() noexcept;
@@ -96,7 +99,7 @@ public:
      *  \param s_String The UTF-8 string to add.
      */
     
-    void AddStringTTS(std::string const& s_String) noexcept;
+    void AddStringTTS(std::string const& s_String);
     
     /**
      *  Check if a audio buffer for speech if available.
@@ -112,20 +115,55 @@ public:
      *  \return The speech audio buffer.
      */
     
-    VoiceAudio GrabTTSAudio() noexcept;
+    VoiceAudio GrabTTSAudio();
     
 private:
+    
+    //*************************************************************************************
+    // Speech to Text
+    //*************************************************************************************
+    
+    /**
+     *  Update speech to text connection.
+     *
+     *  \param p_Instance The class instance to use.
+     */
+    
+    static void UpdateSTT(GoogleAPI* p_Instance) noexcept;
+    
+    //*************************************************************************************
+    // Text to Speech
+    //*************************************************************************************
+    
+    /**
+     *  Update text to speech connection.
+     *
+     *  \param p_Instance The class instance to use.
+     */
+    
+    static void UpdateTTS(GoogleAPI* p_Instance) noexcept;
     
     //*************************************************************************************
     // Data
     //*************************************************************************************
     
     // Speech to Text
+    std::thread c_STTThread;
+    std::mutex c_STTMutex;
+    std::atomic<bool> b_STTUpdate;
+    
     std::vector<MRH_Sint16> v_Buffer;
     MRH_Uint32 u32_KHz;
+    bool b_CanProcess;
     std::list<std::string> l_Transcribed;
     
     // Text to Speech
+    std::thread c_TTSThread;
+    std::mutex c_TTSMutex;
+    std::atomic<bool> b_TTSUpdate;
+    
+    std::string s_ToAudio;
+    VoiceAudio c_TTSAudio;
     
 protected:
     

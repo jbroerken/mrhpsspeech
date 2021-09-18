@@ -69,6 +69,12 @@ Speech::Speech() : e_Method(MRH_EvSpeechMethod::VOICE),
         }
     }
     
+    // Can we do anything?
+    if (m_Method.size() == 0)
+    {
+        throw Exception("No usable speech methods!");
+    }
+    
     // Run
     try
     {
@@ -100,14 +106,6 @@ void Speech::Update(Speech* p_Instance) noexcept
     // Set starting method
     MRH_PSBLogger& c_Logger = MRH_PSBLogger::Singleton();
     OutputStorage& c_OutputStorage = p_Instance->c_OutputStorage;
-    
-    if (p_Instance->m_Method.begin() == p_Instance->m_Method.end())
-    {
-        c_Logger.Log(MRH_PSBLogger::INFO, "No usable speech methods!",
-                     "Speech.cpp", __LINE__);
-        return;
-    }
-    
     SpeechMethod* p_Method = NULL;
     
     while (p_Instance->b_Update == true)
