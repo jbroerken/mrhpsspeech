@@ -485,30 +485,34 @@ void PADevice::SetOutputAudioBuffer(std::vector<MRH_Sint16> const& v_Buffer) noe
 {
     // Pad buffer
     size_t us_Elements = v_Buffer.size();
+    MRH_Uint8 u8_Channels = c_OutputAudio.u8_Channels;
+    std::vector<MRH_Sint16>& v_Destination = c_OutputAudio.v_Buffer;
     
-    if (c_OutputAudio.v_Buffer.size() != us_Elements * c_OutputAudio.u8_Channels)
+    if (v_Destination.size() != us_Elements * u8_Channels)
     {
-        c_OutputAudio.v_Buffer.resize(us_Elements * c_OutputAudio.u8_Channels, 0);
+        v_Destination.resize(us_Elements * u8_Channels, 0);
     }
     
     // Now copy same audio to all channels
-    if (c_OutputAudio.u8_Channels > 1)
+    if (u8_Channels > 1)
     {
+        // Multiple output channels, add to all
         size_t us_DstPos = 0;
         
         for (auto& Data : v_Buffer)
         {
-            for (MRH_Uint8 j = 0; j < c_OutputAudio.u8_Channels; ++j)
+            for (MRH_Uint8 j = 0; j < u8_Channels; ++j)
             {
-                c_OutputAudio.v_Buffer[us_DstPos + j] = Data;
+                v_Destination[us_DstPos + j] = Data;
             }
             
-            us_DstPos += c_OutputAudio.u8_Channels;
+            us_DstPos += u8_Channels;
         }
     }
     else
     {
-        std::memcpy(c_OutputAudio.v_Buffer.data(),
+        // 1 to 1, copy all
+        std::memcpy(&(v_Destination[0]),
                     &(v_Buffer[0]),
                     v_Buffer.size() * sizeof(MRH_Sint16));
     }
@@ -543,6 +547,6 @@ void PADevice::SetOutputAudio(VoiceAudio const& c_Audio)
         SetOutputAudioBuffer(c_Audio.v_Buffer);
     }
     
-    // Reset output pos
+    // Reset output pos for next playback
     c_OutputAudio.us_BufferPos = 0;
 }

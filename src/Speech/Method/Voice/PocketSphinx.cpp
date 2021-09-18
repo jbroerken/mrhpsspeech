@@ -142,9 +142,6 @@ void PocketSphinx::ResetDecoder() noexcept
 
 void PocketSphinx::AddAudio(const MRH_Sint16* p_Buffer, size_t us_Elements) noexcept
 {
-    // We get elements, turn to byte size for process
-    us_Elements *= sizeof(MRH_Sint16);
-    
     if (b_DecoderRunning == false)
     {
         MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "Decoder not running!",

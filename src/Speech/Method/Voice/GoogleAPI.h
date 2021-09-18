@@ -164,6 +164,7 @@ private:
     
     std::string s_ToAudio;
     VoiceAudio c_TTSAudio;
+    bool b_TTSAudioAvailable;
     
 protected:
     

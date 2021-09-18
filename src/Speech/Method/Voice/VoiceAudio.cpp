@@ -137,9 +137,10 @@ std::vector<MRH_Sint16> VoiceAudio::Convert(size_t us_Pos, size_t us_Elements, M
     
     // Create result
     std::vector<MRH_Sint16> v_Result(0, c_CVTInfo.output_frames_gen);
+    size_t us_ResultElements = c_CVTInfo.output_frames_gen;
     us_Pos = 0;
     
-    for (; us_Pos < c_CVTInfo.output_frames_gen; ++us_Pos)
+    for (; us_Pos < us_ResultElements; ++us_Pos)
     {
         v_Result[us_Pos] = static_cast<MRH_Sint16>(p_Out[us_Pos] * 32768);
     }

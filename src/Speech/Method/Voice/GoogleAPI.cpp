@@ -35,7 +35,8 @@ GoogleAPI::GoogleAPI() : b_STTUpdate(true),
                          u32_KHz(0),
                          b_TTSUpdate(true),
                          s_ToAudio(""),
-                         c_TTSAudio(NULL, 0, 0, 0, 0)
+                         c_TTSAudio(NULL, 0, 0, 0, 0),
+                         b_TTSAudioAvailable(false)
 {
     try
     {
@@ -152,16 +153,18 @@ void GoogleAPI::UpdateTTS(GoogleAPI* p_Instance) noexcept
         if (p_Instance->s_ToAudio.size() > 0)
         {
             s_String = p_Instance->s_ToAudio;
+            p_Instance->s_ToAudio = "";
+            p_Instance->b_TTSAudioAvailable = false;
         }
         
-        p_Instance->c_STTMutex.unlock();
+        p_Instance->c_TTSMutex.unlock();
         
         /**
          *  Data Process
          */
         
         // Run processing
-        // @TODO: Run, add each chunk, set audio info, reset string if finished
+        // @TODO: Run, add each chunk, set audio info, Set tts audio set
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 }
@@ -181,7 +184,7 @@ void GoogleAPI::AddStringTTS(std::string const& s_String)
 bool GoogleAPI::TTSAudioAvailable() noexcept
 {
     std::lock_guard<std::mutex> c_Guard(c_TTSMutex);
-    return s_ToAudio.size() == 0 ? true : false;
+    return b_TTSAudioAvailable;
 }
 
 VoiceAudio GoogleAPI::GrabTTSAudio()
