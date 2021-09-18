@@ -61,3 +61,12 @@ tools/mrhclispeech/xcode/mrhclispeech/mrhclispeech.xcodeproj/xcuserdata/Jens.xcu
 tools/mrhclispeech/xcode/mrhclispeech/mrhclispeech.xcodeproj/project.pbxproj
 tools/mrhclispeech/xcode/mrhclispeech/mrhclispeech.xcodeproj/xcshareddata/xcschemes/mrhclispeech.xcscheme
 tools/mrhclispeech/xcode/mrhclispeech/mrhclispeech.xcodeproj/xcuserdata/Jens.xcuserdatad/xcdebugger/Breakpoints_v2.xcbkptlist
+./tools/mrhlaudiodev/xcode/*
+./tools/mrhlaudiodev/xcode
+./tools/mrhlaudiodev/xcode/mrhlaudiodev
+tools/mrhlaudiodev/xcode/mrhlaudiodev/mrhlaudiodev.entitlements
+tools/mrhlaudiodev/xcode/mrhlaudiodev/mrhlaudiodev.xcodeproj/project.pbxproj
+tools/mrhlaudiodev/xcode/mrhlaudiodev/mrhlaudiodev.xcodeproj/project.xcworkspace/contents.xcworkspacedata
+tools/mrhlaudiodev/xcode/mrhlaudiodev/mrhlaudiodev.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+tools/mrhlaudiodev/xcode/mrhlaudiodev/mrhlaudiodev.xcodeproj/project.xcworkspace/xcuserdata/Jens.xcuserdatad/UserInterfaceState.xcuserstate
+tools/mrhlaudiodev/xcode/mrhlaudiodev/mrhlaudiodev.xcodeproj/xcuserdata/Jens.xcuserdatad/xcschemes/xcschememanagement.plist
