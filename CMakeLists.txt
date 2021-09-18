@@ -109,7 +109,6 @@ set(SRC_LIST_SERVICE "${SRC_DIR_PATH}/Configuration.cpp"
 ###
 add_executable(mrhpsspeech ${SRC_LIST_CALLBACK}
                            ${SRC_LIST_SPEECH}
-                           ${SRC_LIST_VOICE_METHOD}
                            ${SRC_LIST_SERVICE})
 
 ###
@@ -128,6 +127,7 @@ find_library(libmrhpsb NAMES mrhpsb REQUIRED)
 find_library(libmrhvt NAMES mrhvt REQUIRED)
 find_library(libsodium NAMES sodium REQUIRED)
 find_library(libportaudio NAMES portaudio REQUIRED)
+find_library(libsamplerate NAMES samplerate REQUIRED)
 find_library(libsphinxad NAMES sphinxad REQUIRED)
 find_library(libsphinxbase NAMES sphinxbase REQUIRED)
 find_library(libpocketsphinx NAMES pocketsphinx REQUIRED)
@@ -145,6 +145,7 @@ target_link_libraries(mrhpsspeech PUBLIC mrhpsb)
 target_link_libraries(mrhpsspeech PUBLIC mrhvt)
 target_link_libraries(mrhpsspeech PUBLIC sodium)
 target_link_libraries(mrhpsspeech PUBLIC portaudio)
+target_link_libraries(mrhpsspeech PUBLIC samplerate)
 target_link_libraries(mrhpsspeech PUBLIC sphinxad)
 target_link_libraries(mrhpsspeech PUBLIC sphinxbase)
 target_link_libraries(mrhpsspeech PUBLIC pocketsphinx)
