@@ -68,12 +68,11 @@ public:
     /**
      *  Add mono audio data for speech to text.
      *
-     *  \param p_Buffer The audio buffer to add.
-     *  \param us_Elements The length of the data buffer in elements.
+     *  \param v_Buffer The audio buffer to add.
      *  \param u32_KHz The audio buffer KHz.
      */
     
-    void AddAudioSTT(const MRH_Sint16* p_Buffer, size_t us_Elements, MRH_Uint32 u32_KHz) noexcept;
+    void AddAudioSTT(std::vector<MRH_Sint16> const& v_Buffer, MRH_Uint32 u32_KHz) noexcept;
     
     /**
      *  Convert stored audio data for speech to text.
@@ -120,6 +119,39 @@ public:
 private:
     
     //*************************************************************************************
+    // Types
+    //*************************************************************************************
+    
+    class Audio
+    {
+    public:
+        
+        //*************************************************************************************
+        // Constructor
+        //*************************************************************************************
+        
+        /**
+         *  Default constructor.
+         *
+         *  \param v_Buffer The audio buffer.
+         *  \param u32_KHz The audio KHz.
+         *  \param b_Finished If the audio is complete or not.
+         */
+        
+        Audio(std::vector<MRH_Sint16> const& v_Buffer,
+              MRH_Uint32 u32_KHz,
+              bool b_Finished);
+        
+        //*************************************************************************************
+        // Data
+        //*************************************************************************************
+        
+        std::vector<MRH_Sint16> v_Buffer;
+        MRH_Uint32 u32_KHz;
+        std::atomic<bool> b_Finished;
+    };
+    
+    //*************************************************************************************
     // Speech to Text
     //*************************************************************************************
     
@@ -151,20 +183,15 @@ private:
     std::thread c_STTThread;
     std::mutex c_STTMutex;
     std::atomic<bool> b_STTUpdate;
-    
-    std::vector<MRH_Sint16> v_Buffer;
-    MRH_Uint32 u32_KHz;
-    bool b_CanProcess;
-    std::list<std::string> l_Transcribed;
+    std::list<std::string> l_STTTranscribed;
+    Audio c_STTAudio;
     
     // Text to Speech
     std::thread c_TTSThread;
     std::mutex c_TTSMutex;
     std::atomic<bool> b_TTSUpdate;
-    
     std::string s_ToAudio;
-    VoiceAudio c_TTSAudio;
-    bool b_TTSAudioAvailable;
+    Audio c_TTSAudio;
     
 protected:
     

@@ -23,6 +23,7 @@
 #define PocketSphinx_h
 
 // C / C++
+#include <vector>
 
 // External
 #include <MRH_Typedefs.h>
@@ -74,11 +75,10 @@ public:
     /**
      *  Add audio data to the decoder.
      *
-     *  \param p_Buffer The audio buffer to add.
-     *  \param us_Elements The length of the audio buffer in elements.
+     *  \param v_Buffer The audio buffer to add.
      */
     
-    void AddAudio(const MRH_Sint16* p_Buffer, size_t us_Elements) noexcept;
+    void AddAudio(std::vector<MRH_Sint16> const& v_Buffer) noexcept;
     
     /**
      *  Check if the last added audio buffer contains speech.

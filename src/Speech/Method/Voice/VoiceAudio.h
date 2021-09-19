@@ -47,14 +47,12 @@ public:
      *  \param us_Elements The length of the sample data to use in Sint16 elements.
      *  \param u32_KHz The sample KHz.
      *  \param u8_Channels The channels used in this sample.
-     *  \param u32_FrameSamples The samples per frame.
      */
     
     VoiceAudio(const MRH_Sint16* p_Buffer,
                size_t us_Elements,
                MRH_Uint32 u32_KHz,
-               MRH_Uint8 u8_Channels,
-               MRH_Uint32 u32_FrameSamples) noexcept;
+               MRH_Uint8 u8_Channels) noexcept;
     
     /**
      *  Default destructor.
@@ -76,7 +74,7 @@ public:
      *  \return The converted sample data.
      */
     
-    std::vector<MRH_Sint16> Convert(size_t us_Pos, size_t us_Elements, MRH_Uint32 u32_KHz) const noexcept;
+    std::vector<MRH_Sint16> Convert(size_t us_Pos, size_t us_Elements, MRH_Uint32 u32_KHz) const;
     
     //*************************************************************************************
     // Data
@@ -85,8 +83,6 @@ public:
     std::vector<MRH_Sint16> v_Buffer;
     
     MRH_Uint32 u32_KHz;
-    MRH_Uint32 u32_FrameSamples;
-    
     MRH_Sfloat32 f32_Peak;
     
 private:

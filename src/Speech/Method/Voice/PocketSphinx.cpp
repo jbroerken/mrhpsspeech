@@ -140,14 +140,14 @@ void PocketSphinx::ResetDecoder() noexcept
 // Recognize
 //*************************************************************************************
 
-void PocketSphinx::AddAudio(const MRH_Sint16* p_Buffer, size_t us_Elements) noexcept
+void PocketSphinx::AddAudio(std::vector<MRH_Sint16> const& v_Buffer) noexcept
 {
     if (b_DecoderRunning == false)
     {
         MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "Decoder not running!",
                                        "PocketSphinx.cpp", __LINE__);
     }
-    else if (ps_process_raw(p_Decoder, p_Buffer, us_Elements, FALSE, FALSE) < 0)
+    else if (ps_process_raw(p_Decoder, v_Buffer.data(), v_Buffer.size(), FALSE, FALSE) < 0)
     {
         MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Failed to process audio sample!",
                                        "PocketSphinx.cpp", __LINE__);

@@ -24,6 +24,7 @@
 
 // External
 #include <samplerate.h>
+#include <libmrhpsb/MRH_PSBLogger.h>
 
 // Project
 #include "./VoiceAudio.h"
@@ -36,14 +37,14 @@
 VoiceAudio::VoiceAudio(const MRH_Sint16* p_Buffer,
                        size_t us_Elements,
                        MRH_Uint32 u32_KHz,
-                       MRH_Uint8 u8_Channels,
-                       MRH_Uint32 u32_FrameSamples) noexcept : u32_KHz(u32_KHz),
-                                                               u32_FrameSamples(u32_FrameSamples),
-                                                               f32_Peak(0.f)
+                       MRH_Uint8 u8_Channels) noexcept : u32_KHz(u32_KHz),
+                                                         f32_Peak(0.f)
 {
     // Insert data first for calculation
-    if (us_Elements == 0 || (us_Elements / u32_FrameSamples) % u8_Channels != 0)
+    if (us_Elements == 0 || us_Elements % u8_Channels != 0)
     {
+        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "Creating empty sample!",
+                                       "VoiceAudio.cpp", __LINE__);
         return;
     }
     
@@ -65,9 +66,6 @@ VoiceAudio::VoiceAudio(const MRH_Sint16* p_Buffer,
             
             v_Buffer.emplace_back((s64_Combine / u8_Channels));
         }
-        
-        // Update frame samples
-        this->u32_FrameSamples /= u8_Channels;
     }
     else
     {
@@ -101,7 +99,7 @@ VoiceAudio::~VoiceAudio() noexcept
 // Convert
 //*************************************************************************************
 
-std::vector<MRH_Sint16> VoiceAudio::Convert(size_t us_Pos, size_t us_Elements, MRH_Uint32 u32_KHz) const noexcept
+std::vector<MRH_Sint16> VoiceAudio::Convert(size_t us_Pos, size_t us_Elements, MRH_Uint32 u32_KHz) const
 {
     // Check end pos for conversion
     size_t us_End = us_Pos + us_Elements;
@@ -110,6 +108,13 @@ std::vector<MRH_Sint16> VoiceAudio::Convert(size_t us_Pos, size_t us_Elements, M
     {
         us_Elements = v_Buffer.size() - us_Pos;
         us_End = v_Buffer.size();
+    }
+    
+    if (us_Elements == 0)
+    {
+        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "Returning empty sample!",
+                                       "VoiceAudio.cpp", __LINE__);
+        return {};
     }
     
     // Convert to float
@@ -132,7 +137,7 @@ std::vector<MRH_Sint16> VoiceAudio::Convert(size_t us_Pos, size_t us_Elements, M
     
     if (src_simple(&c_CVTInfo, SRC_SINC_MEDIUM_QUALITY, 1) != 0)
     {
-        return {};
+        throw Exception("Failed to convert audio sample!");
     }
     
     // Create result

@@ -368,6 +368,10 @@ void PADevice::StartPlayback()
     {
         throw Exception("No audio for playback!");
     }
+    else if (c_OutputAudio.b_Playback == true)
+    {
+        return;
+    }
     
     try
     {
@@ -459,8 +463,7 @@ VoiceAudio PADevice::GetInputAudio() noexcept
     return VoiceAudio(p_Buffer,
                       us_Length,
                       c_InputAudio.u32_KHz,
-                      c_InputAudio.u8_Channels,
-                      c_InputAudio.u32_FrameSamples);
+                      c_InputAudio.u8_Channels);
 }
 
 bool PADevice::GetOutputPlayback() noexcept
@@ -521,21 +524,23 @@ void PADevice::SetOutputAudio(VoiceAudio const& c_Audio)
         throw Exception("Currently playing audio!");
     }
     
-    // Audio in valid format?
-    if (c_Audio.u32_KHz != c_OutputAudio.u32_KHz ||
-        c_Audio.u32_FrameSamples != c_OutputAudio.u32_FrameSamples)
-    {
-        throw Exception("Invalid output audio format!");
-    }
-    
     // Copy to buffer
     if (c_OutputAudio.u32_KHz != c_Audio.u32_KHz)
     {
         // Difference, we need to convert
-        std::vector<MRH_Sint16> v_Buffer = c_Audio.Convert(0,
-                                                           c_Audio.v_Buffer.size(),
-                                                           c_OutputAudio.u32_KHz);
-        SetOutputAudioBuffer(v_Buffer);
+        try
+        {
+            std::vector<MRH_Sint16> v_Buffer = c_Audio.Convert(0,
+                                                               c_Audio.v_Buffer.size(),
+                                                               c_OutputAudio.u32_KHz);
+            SetOutputAudioBuffer(v_Buffer);
+        }
+        catch (Exception& e)
+        {
+            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, e.what(),
+                                           "PADevice.cpp", __LINE__);
+            return;
+        }
     }
     else
     {

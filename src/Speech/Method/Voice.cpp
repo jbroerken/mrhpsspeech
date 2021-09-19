@@ -198,9 +198,11 @@ void Voice::Listen()
     u64_NextListenS = u64_CurrentTimeS + NEXT_LISTEN_WAIT_TIME_S;
     
     // Grab samples
+    Configuration& c_Config = Configuration::Singleton();
     VoiceAudio c_Audio = p_Device->GetInputAudio();
     size_t us_Pos = 0;
-    size_t us_Elements = c_Audio.u32_FrameSamples;
+    size_t us_Elements = c_Config.GetPAMicFrameSamples();
+    std::vector<MRH_Sint16> v_Buffer;
     
     while (us_Pos < c_Audio.v_Buffer.size())
     {
@@ -212,18 +214,29 @@ void Voice::Listen()
         if (c_Audio.u32_KHz == POCKET_SPHINX_REQUIRED_KHZ)
         {
             // Same, simply add
-            p_PocketSphinx->AddAudio(&(c_Audio.v_Buffer[us_Pos]), us_Elements);
+            v_Buffer = { &(c_Audio.v_Buffer[us_Pos]),
+                         &(c_Audio.v_Buffer[us_Pos + us_Elements]) };
         }
         else
         {
-            // Not the same, convert then add
-            std::vector<MRH_Sint16> v_Buffer = c_Audio.Convert(us_Pos,
-                                                               us_Elements,
-                                                               POCKET_SPHINX_REQUIRED_KHZ);
-            p_PocketSphinx->AddAudio(v_Buffer.data(), v_Buffer.size()); // Use buffer size, convert might change size
+            try
+            {
+                // Not the same, convert then add
+                v_Buffer = c_Audio.Convert(us_Pos,
+                                           us_Elements,
+                                           POCKET_SPHINX_REQUIRED_KHZ);
+            }
+            catch (Exception& e)
+            {
+                MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, e.what(),
+                                               "Voice.cpp", __LINE__);
+                us_Pos += us_Elements; // Increment, we don't retry this buffer chunk
+                continue;
+            }
         }
         
-        // Buffer pos has to be incremented!
+        // Add audio to sphinx
+        p_PocketSphinx->AddAudio(v_Buffer);
         us_Pos += us_Elements;
         
         /**
@@ -234,9 +247,7 @@ void Voice::Listen()
         if (p_PocketSphinx->AudioContainsSpeech() == true)
         {
             // Audio valid, add to speech to text api
-            // @NOTE: Add ->LAST<- buffer data (- size, 1 step back)
-            p_GoogleAPI->AddAudioSTT(&(c_Audio.v_Buffer[us_Pos - us_Elements]),
-                                     us_Elements,
+            p_GoogleAPI->AddAudioSTT(v_Buffer,
                                      c_Audio.u32_KHz);
             
             // Grab next
@@ -252,6 +263,10 @@ void Voice::Listen()
             }
             else if (us_ListenWaitSamples < c_Audio.u32_KHz) // 1 Sec
             {
+                // Add the pause
+                p_GoogleAPI->AddAudioSTT(v_Buffer,
+                                         c_Audio.u32_KHz);
+                
                 // Stil in "pause" phase, wait
                 us_ListenWaitSamples += us_Elements;
                 continue;
@@ -269,7 +284,6 @@ void Voice::Listen()
         // Do we need to check for the trigger?
         if (u64_TriggerValidS < u64_CurrentTimeS)
         {
-            Configuration& c_Config = Configuration::Singleton();
             std::string s_SphinxResult = p_PocketSphinx->Recognize();
             
             // Set trigger recognized
@@ -357,6 +371,8 @@ void Voice::Say(OutputStorage& c_OutputStorage)
             
             // Pause listening and perform output
             p_Device->StopListening();
+            p_Device->ResetInputAudio();
+            
             p_Device->StartPlayback();
         }
         catch (Exception& e)

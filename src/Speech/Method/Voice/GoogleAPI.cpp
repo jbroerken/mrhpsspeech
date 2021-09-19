@@ -32,11 +32,10 @@
 //*************************************************************************************
 
 GoogleAPI::GoogleAPI() : b_STTUpdate(true),
-                         u32_KHz(0),
                          b_TTSUpdate(true),
                          s_ToAudio(""),
-                         c_TTSAudio(NULL, 0, 0, 0, 0),
-                         b_TTSAudioAvailable(false)
+                         c_STTAudio({}, 0, false),
+                         c_TTSAudio({}, 0, false)
 {
     try
     {
@@ -59,6 +58,13 @@ GoogleAPI::~GoogleAPI() noexcept
     c_TTSThread.join();
 }
 
+GoogleAPI::Audio::Audio(std::vector<MRH_Sint16> const& v_Buffer,
+                        MRH_Uint32 u32_KHz,
+                        bool b_Finished) : v_Buffer(v_Buffer),
+                                           u32_KHz(u32_KHz),
+                                           b_Finished(b_Finished)
+{}
+
 //*************************************************************************************
 // Speech to Text
 //*************************************************************************************
@@ -66,12 +72,16 @@ GoogleAPI::~GoogleAPI() noexcept
 void GoogleAPI::ClearSTTAudio() noexcept
 {
     std::lock_guard<std::mutex> c_Guard(c_STTMutex);
-    v_Buffer.clear();
-    u32_KHz = 0;
+    
+    c_STTAudio.v_Buffer.clear();
+    c_STTAudio.b_Finished = false;
 }
 
 void GoogleAPI::UpdateSTT(GoogleAPI* p_Instance) noexcept
 {
+    std::mutex& c_Mutex = p_Instance->c_STTMutex;
+    GoogleAPI::Audio& c_Audio = p_Instance->c_STTAudio;
+    
     std::vector<MRH_Sint16> v_Buffer;
     MRH_Uint32 u32_KHz;
     
@@ -82,20 +92,19 @@ void GoogleAPI::UpdateSTT(GoogleAPI* p_Instance) noexcept
          */
         
         // Grab allowed audio buffer
-        p_Instance->c_STTMutex.lock();
+        c_Mutex.lock();
         
-        if (p_Instance->b_CanProcess == true)
+        if (c_Audio.b_Finished == true)
         {
-            v_Buffer = p_Instance->v_Buffer;
-            u32_KHz = p_Instance->u32_KHz;
-            p_Instance->b_CanProcess = false; // Reset, now grabbed
+            v_Buffer = c_Audio.v_Buffer;
+            u32_KHz = c_Audio.u32_KHz;
+            c_Audio.b_Finished = false; // Reset, now grabbed
             
-            p_Instance->c_STTMutex.unlock();
+            c_Mutex.unlock();
         }
         else
         {
-            p_Instance->c_STTMutex.unlock();
-            
+            c_Mutex.unlock();
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
             continue;
         }
@@ -109,33 +118,43 @@ void GoogleAPI::UpdateSTT(GoogleAPI* p_Instance) noexcept
     }
 }
 
-void GoogleAPI::AddAudioSTT(const MRH_Sint16* p_Buffer, size_t us_Elements, MRH_Uint32 u32_KHz) noexcept
+void GoogleAPI::AddAudioSTT(std::vector<MRH_Sint16> const& v_Buffer, MRH_Uint32 u32_KHz) noexcept
 {
     std::lock_guard<std::mutex> c_Guard(c_STTMutex);
     
     // Reset for changes
-    if (this->u32_KHz != 0 && this->u32_KHz != u32_KHz)
+    if (c_STTAudio.u32_KHz != u32_KHz)
     {
-        v_Buffer.clear();
-        this->u32_KHz = u32_KHz;
+        c_STTAudio.v_Buffer = v_Buffer;
+        c_STTAudio.u32_KHz = u32_KHz;
+        c_STTAudio.b_Finished = false;
     }
-    
-    v_Buffer.insert(v_Buffer.end(),
-                    p_Buffer,
-                    p_Buffer + (sizeof(MRH_Sint16) * us_Elements));
+    else
+    {
+        c_STTAudio.v_Buffer.insert(c_STTAudio.v_Buffer.end(),
+                                   v_Buffer.begin(),
+                                   v_Buffer.end());
+    }
 }
 
 void GoogleAPI::ProcessAudioSTT() noexcept
 {
     std::lock_guard<std::mutex> c_Guard(c_STTMutex);
-    b_CanProcess = true;
+    c_STTAudio.b_Finished = true;
+    
+    // TEST: Add to out
+    c_TTSAudio.v_Buffer = c_STTAudio.v_Buffer;
+    c_TTSAudio.u32_KHz = c_STTAudio.u32_KHz;
+    c_TTSAudio.b_Finished = true;
 }
 
 std::list<std::string> GoogleAPI::RecieveStringsSTT() noexcept
 {
     std::lock_guard<std::mutex> c_Guard(c_STTMutex);
-    std::list<std::string> l_Result = l_Transcribed;
-    l_Transcribed.clear();
+    
+    std::list<std::string> l_Result = l_STTTranscribed;
+    l_STTTranscribed.clear();
+    
     return l_Result;
 }
 
@@ -145,6 +164,10 @@ std::list<std::string> GoogleAPI::RecieveStringsSTT() noexcept
 
 void GoogleAPI::UpdateTTS(GoogleAPI* p_Instance) noexcept
 {
+    std::mutex& c_Mutex = p_Instance->c_TTSMutex;
+    GoogleAPI::Audio& c_Audio = p_Instance->c_TTSAudio;
+    std::string& s_ToAudio = p_Instance->s_ToAudio;
+    
     std::string s_String;
     
     while (p_Instance->b_TTSUpdate == true)
@@ -154,20 +177,21 @@ void GoogleAPI::UpdateTTS(GoogleAPI* p_Instance) noexcept
          */
         
         // Grab string to process
-        p_Instance->c_TTSMutex.lock();
+        c_Mutex.lock();
         
-        if (p_Instance->s_ToAudio.size() > 0)
+        if (s_ToAudio.size() > 0)
         {
-            s_String = p_Instance->s_ToAudio;
-            p_Instance->s_ToAudio = "";
-            p_Instance->b_TTSAudioAvailable = false;
+            c_Audio.v_Buffer.clear();
+            c_Audio.b_Finished = false;
             
-            p_Instance->c_TTSMutex.unlock();
+            s_String = s_ToAudio;
+            s_ToAudio = "";
+            
+            c_Mutex.unlock();
         }
         else
         {
-            p_Instance->c_TTSMutex.unlock();
-            
+            c_Mutex.unlock();
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
             continue;
         }
@@ -196,11 +220,15 @@ void GoogleAPI::AddStringTTS(std::string const& s_String)
 
 bool GoogleAPI::TTSAudioAvailable() noexcept
 {
-    std::lock_guard<std::mutex> c_Guard(c_TTSMutex);
-    return b_TTSAudioAvailable;
+    return c_TTSAudio.b_Finished;
 }
 
 VoiceAudio GoogleAPI::GrabTTSAudio()
 {
-    return c_TTSAudio;
+    std::lock_guard<std::mutex> c_Guard(c_TTSMutex);
+    
+    return VoiceAudio(c_TTSAudio.v_Buffer.data(),
+                      c_TTSAudio.v_Buffer.size(),
+                      c_TTSAudio.u32_KHz,
+                      1);
 }
