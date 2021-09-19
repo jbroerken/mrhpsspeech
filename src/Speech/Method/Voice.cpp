@@ -178,6 +178,13 @@ void Voice::Listen()
      *  Wait
      */
     
+    // Can we event record?
+    if (p_Device->GetInputRecording() == false)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(LISTEN_CHECK_WAIT_MS));
+        return;
+    }
+    
     // Check time passed
     MRH_Uint64 u64_CurrentTimeS = time(NULL);
     
@@ -276,6 +283,12 @@ void Voice::Listen()
         // Reset, available will now be processed
         b_ListenAudioAvailable = false;
         us_ListenWaitSamples = 0;
+        
+        // TEST
+        printf("%s\n", p_PocketSphinx->Recognize().c_str());
+        p_GoogleAPI->ProcessAudioSTT();
+        continue;
+        
         
         /**
          *  Trigger

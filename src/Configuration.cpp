@@ -58,7 +58,6 @@ namespace
         // PA Speaker Key
         PA_SPEAKER_DEVICE_ID,
         PA_SPEAKER_KHZ,
-        PA_SPEAKER_FRAME_SAMPLES,
         
         // Pocket Sphinx Key
         POCKET_SPHINX_MODEL_DIR_PATH,
@@ -91,7 +90,6 @@ namespace
         // PA Speaker Key
         "DeviceID",
         "KHz",
-        "FrameSamples",
         
         // Sphinx Key
         "ModelDirPath"
@@ -112,7 +110,6 @@ Configuration::Configuration() noexcept : s_TriggerString("Hey Kogoro"),
                                           u32_PAMicSampleStorageSize(100),
                                           u32_PASpeakerDeviceID(0),
                                           u32_PASpeakerKHz(16000),
-                                          u32_PASpeakerFrameSamples(2048),
                                           s_SphinxModelDirPath("/var/mrh/mrhpsspeech/sphinx/")
 {}
 
@@ -163,7 +160,6 @@ void Configuration::Load()
                 {
                     u32_PASpeakerDeviceID = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_SPEAKER_DEVICE_ID])));
                     u32_PASpeakerKHz = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_SPEAKER_KHZ])));
-                    u32_PASpeakerFrameSamples = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_SPEAKER_FRAME_SAMPLES])));
                 }
                 else if (Block.GetName().compare(p_Identifier[BLOCK_POCKET_SPHINX]) == 0)
                 {
@@ -239,12 +235,6 @@ MRH_Uint32 Configuration::GetPASpeakerKHz() noexcept
 {
     std::lock_guard<std::mutex> c_Guard(c_Mutex);
     return u32_PASpeakerKHz;
-}
-
-MRH_Uint32 Configuration::GetPASpeakerFrameSamples() noexcept
-{
-    std::lock_guard<std::mutex> c_Guard(c_Mutex);
-    return u32_PASpeakerFrameSamples;
 }
 
 std::string Configuration::GetSphinxModelDirPath() noexcept

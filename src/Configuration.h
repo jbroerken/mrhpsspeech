@@ -147,14 +147,6 @@ public:
     MRH_Uint32 GetPASpeakerKHz() noexcept;
     
     /**
-     *  Get the speaker frame sample count. This function is thread safe.
-     *
-     *  \return The speaker frame sample count.
-     */
-    
-    MRH_Uint32 GetPASpeakerFrameSamples() noexcept;
-    
-    /**
      *  Get the directory path to the pocket sphinx model. This function is thread
      *  safe.
      *

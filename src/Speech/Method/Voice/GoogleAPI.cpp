@@ -229,6 +229,5 @@ VoiceAudio GoogleAPI::GrabTTSAudio()
     
     return VoiceAudio(c_TTSAudio.v_Buffer.data(),
                       c_TTSAudio.v_Buffer.size(),
-                      c_TTSAudio.u32_KHz,
-                      1);
+                      c_TTSAudio.u32_KHz);
 }

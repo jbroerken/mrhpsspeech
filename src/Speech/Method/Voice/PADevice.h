@@ -171,7 +171,6 @@ private:
         size_t us_BufferSize;
         
         MRH_Uint32 u32_KHz;
-        MRH_Uint8 u8_Channels;
         MRH_Uint32 u32_FrameSamples;
     };
     
@@ -205,8 +204,6 @@ private:
         size_t us_BufferPos;
         
         MRH_Uint32 u32_KHz;
-        MRH_Uint8 u8_Channels;
-        MRH_Uint32 u32_FrameSamples;
     };
     
     //*************************************************************************************
@@ -290,18 +287,6 @@ private:
                                 const PaStreamCallbackTimeInfo* p_TimeInfo,
                                 PaStreamCallbackFlags e_StatusFlags,
                                 void* p_UserData) noexcept;
-    
-    //*************************************************************************************
-    // Setters
-    //*************************************************************************************
-    
-    /**
-     *  Set the output audio buffer.
-     *
-     *  \param v_Buffer The buffer to use.
-     */
-    
-    void SetOutputAudioBuffer(std::vector<MRH_Sint16> const& v_Buffer) noexcept;
     
     //*************************************************************************************
     // Data

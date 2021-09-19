@@ -36,43 +36,20 @@
 
 VoiceAudio::VoiceAudio(const MRH_Sint16* p_Buffer,
                        size_t us_Elements,
-                       MRH_Uint32 u32_KHz,
-                       MRH_Uint8 u8_Channels) noexcept : u32_KHz(u32_KHz),
-                                                         f32_Peak(0.f)
+                       MRH_Uint32 u32_KHz) noexcept : u32_KHz(u32_KHz),
+                                                      f32_Peak(0.f)
 {
     // Insert data first for calculation
-    if (us_Elements == 0 || us_Elements % u8_Channels != 0)
+    if (us_Elements == 0)
     {
         MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "Creating empty sample!",
                                        "VoiceAudio.cpp", __LINE__);
         return;
     }
     
-    // Mix down if needed
-    v_Buffer.reserve(us_Elements / u8_Channels);
-    
-    if (u8_Channels > 1)
-    {
-        MRH_Sint64 s64_Combine;
-        
-        for (size_t i = 0; i < us_Elements; i += u8_Channels)
-        {
-            s64_Combine = 0;
-            
-            for (MRH_Uint8 j = 0; j < u8_Channels; ++j)
-            {
-                s64_Combine += p_Buffer[i + j];
-            }
-            
-            v_Buffer.emplace_back((s64_Combine / u8_Channels));
-        }
-    }
-    else
-    {
-        v_Buffer.insert(v_Buffer.end(),
-                        p_Buffer,
-                        p_Buffer + (us_Elements * sizeof(MRH_Sint16)));
-    }
+    v_Buffer.insert(v_Buffer.end(),
+                    p_Buffer,
+                    p_Buffer + (us_Elements * sizeof(MRH_Sint16)));
     
     // Calculate peak amplitude
     us_Elements = v_Buffer.size();
