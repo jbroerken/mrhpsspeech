@@ -80,7 +80,7 @@ int main(int argc, const char* argv[])
     }
     
     Speech c_Speech;
-    sleep(30);
+    sleep(300);
     return 0;
     */
     // Setup service base

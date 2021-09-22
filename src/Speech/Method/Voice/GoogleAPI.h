@@ -135,12 +135,12 @@ private:
          *
          *  \param v_Buffer The audio buffer.
          *  \param u32_KHz The audio KHz.
-         *  \param b_Finished If the audio is complete or not.
+         *  \param b_Available If the audio is available or not.
          */
         
         Audio(std::vector<MRH_Sint16> const& v_Buffer,
               MRH_Uint32 u32_KHz,
-              bool b_Finished);
+              bool b_Available);
         
         //*************************************************************************************
         // Data
@@ -148,7 +148,7 @@ private:
         
         std::vector<MRH_Sint16> v_Buffer;
         MRH_Uint32 u32_KHz;
-        std::atomic<bool> b_Finished;
+        std::atomic<bool> b_Available;
     };
     
     //*************************************************************************************

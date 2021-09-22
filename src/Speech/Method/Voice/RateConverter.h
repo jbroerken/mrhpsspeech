@@ -1,5 +1,5 @@
 /**
- *  VoiceAudio.h
+ *  RateConverter.h
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -19,20 +19,21 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef VoiceAudio_h
-#define VoiceAudio_h
+#ifndef RateConverter_h
+#define RateConverter_h
 
 // C / C++
 #include <vector>
 
 // External
 #include <MRH_Typedefs.h>
+#include <samplerate.h>
 
 // Project
 #include "../../../Exception.h"
 
 
-class VoiceAudio
+class RateConverter
 {
 public:
     
@@ -43,29 +44,37 @@ public:
     /**
      *  Default constructor.
      *
-     *  \param p_Buffer The sample data stored in this sample.
-     *  \param us_Elements The length of the sample data to use in Sint16 elements.
-     *  \param u32_KHz The sample KHz.
+     *  \param u32_SourceKHz The KHz to convert from.
      */
     
-    VoiceAudio(const MRH_Sint16* p_Buffer,
-               size_t us_Elements,
-               MRH_Uint32 u32_KHz) noexcept;
+    RateConverter(MRH_Uint32 u32_SourceKHz);
     
     /**
      *  Default destructor.
      */
     
-    ~VoiceAudio() noexcept;
+    ~RateConverter() noexcept;
     
     //*************************************************************************************
-    // Data
+    // Convert
     //*************************************************************************************
     
-    std::vector<MRH_Sint16> v_Buffer;
+    /**
+     *  Reset the converter.
+     */
     
-    MRH_Uint32 u32_KHz;
-    MRH_Sfloat32 f32_Peak;
+    void Reset();
+    
+    /**
+     *  Convert a audio sample.
+     *
+     *  \param v_Buffer The audio buffer to convert.
+     *  \param u32_KHz The KHz to convert to.
+     *
+     *  \return The converted audio data.
+     */
+    
+    std::vector<MRH_Sint16> Convert(std::vector<MRH_Sint16> const& v_Buffer, MRH_Uint32 u32_KHz);
     
 private:
     
@@ -73,8 +82,12 @@ private:
     // Data
     //*************************************************************************************
     
+    SRC_STATE* p_State;
+    
+    MRH_Uint32 u32_SourceKHz;
+    
 protected:
     
 };
 
-#endif /* VoiceAudio_h */
+#endif /* RateConverter_h */

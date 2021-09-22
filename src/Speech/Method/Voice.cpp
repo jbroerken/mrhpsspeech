@@ -28,13 +28,13 @@
 
 // Project
 #include "./Voice.h"
+#include "./Voice/RateConverter.h"
 #include "./Voice/PADevice.h"
 #include "./Voice/PocketSphinx.h"
 #include "./Voice/GoogleAPI.h"
 #include "../../Configuration.h"
 
 // Pre-defined
-#define NEXT_LISTEN_WAIT_TIME_S 2 // Time diff for listen processing
 #define LISTEN_CHECK_WAIT_MS 100 // Wait before checking again
 
 
@@ -45,22 +45,29 @@
 Voice::Voice() : p_Device(NULL),
                  p_PocketSphinx(NULL),
                  p_GoogleAPI(NULL),
-                 u64_NextListenS(time(NULL) + NEXT_LISTEN_WAIT_TIME_S), // 2 seconds ahead
                  b_TriggerRecognized(false),
                  u64_TriggerValidS(0),
                  b_ListenAudioAvailable(false),
                  us_ListenWaitSamples(0),
-                 b_StringSet(false)
+                 b_StringSet(false),
+                 p_Converter(NULL)
 {
     // Init components
     try
     {
+        p_Converter = new RateConverter(POCKET_SPHINX_REQUIRED_KHZ);
         p_Device = new PADevice();
         p_PocketSphinx = new PocketSphinx(Configuration::Singleton().GetSphinxModelDirPath());
         p_GoogleAPI = new GoogleAPI();
     }
     catch (Exception& e)
     {
+        if (p_Converter != NULL)
+        {
+            delete p_Converter;
+            p_Converter = NULL;
+        }
+        
         if (p_Device != NULL)
         {
             delete p_Device;
@@ -83,6 +90,11 @@ Voice::Voice() : p_Device(NULL),
 
 Voice::~Voice() noexcept
 {
+    if (p_Converter != NULL)
+    {
+        delete p_Converter;
+    }
+    
     if (p_Device != NULL)
     {
         delete p_Device;
@@ -105,15 +117,11 @@ Voice::~Voice() noexcept
 
 void Voice::Resume()
 {
-    // Just start listening
+    // Just start recording
     if (p_Device != NULL)
     {
-        p_Device->ResetInputAudio();
-        p_Device->StartListening();
+        p_Device->Record();
     }
-    
-    // Set next listen processing
-    u64_NextListenS = time(NULL) + NEXT_LISTEN_WAIT_TIME_S;
 }
 
 void Voice::Pause()
@@ -121,8 +129,7 @@ void Voice::Pause()
     // Stop device
     if (p_Device != NULL)
     {
-        p_Device->StopPlayback();
-        p_Device->StopListening();
+        p_Device->StopAll();
     }
     
     if (p_GoogleAPI != NULL)
@@ -136,6 +143,11 @@ void Voice::Pause()
     {
         // Reset decoder, new recognition next time
         p_PocketSphinx->ResetDecoder();
+    }
+    
+    if (p_Converter != NULL)
+    {
+        p_Converter->Reset();
     }
     
     // Reset listen flags
@@ -178,158 +190,142 @@ void Voice::Listen()
      *  Wait
      */
     
-    // Can we event record?
-    if (p_Device->GetInputRecording() == false)
+    // NOTE: We ALWAYS wait - either for input recording to not rapid fire or
+    //       for playback to continue
+    std::this_thread::sleep_for(std::chrono::milliseconds(LISTEN_CHECK_WAIT_MS));
+    
+    // Can we even record?
+    if (p_Device->GetRecording() == false)
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(LISTEN_CHECK_WAIT_MS));
         return;
     }
     
-    // Check time passed
-    MRH_Uint64 u64_CurrentTimeS = time(NULL);
+    /**
+     *  Process
+     */
     
-    if (u64_NextListenS > u64_CurrentTimeS)
+    // Grab sample
+    VoiceAudio c_Audio = p_Device->GetRecordedAudio();
+    
+    if (c_Audio.v_Buffer.size() == 0)
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(LISTEN_CHECK_WAIT_MS));
-        u64_CurrentTimeS = time(NULL);
-        
-        // Still not enough?
-        if (u64_NextListenS > u64_CurrentTimeS)
+        return;
+    }
+    
+    // Is the sample data valid for sphinx?
+    if (c_Audio.u32_KHz == POCKET_SPHINX_REQUIRED_KHZ)
+    {
+        // Same, simply add
+        p_PocketSphinx->AddAudio(c_Audio.v_Buffer);
+    }
+    else
+    {
+        try
         {
-            // Return for say
+            // Not the same, convert then add
+            p_PocketSphinx->AddAudio(p_Converter->Convert(c_Audio.v_Buffer,
+                                                          c_Audio.u32_KHz));
+        }
+        catch (Exception& e)
+        {
+            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, e.what(),
+                                           "Voice.cpp", __LINE__);
             return;
         }
     }
     
-    // Next listen time
-    u64_NextListenS = u64_CurrentTimeS + NEXT_LISTEN_WAIT_TIME_S;
+    /**
+     *  Check Speech
+     */
     
-    // Grab samples
-    Configuration& c_Config = Configuration::Singleton();
-    VoiceAudio c_Audio = p_Device->GetInputAudio();
-    size_t us_Pos = 0;
-    size_t us_Elements = c_Config.GetPAMicFrameSamples();
-    std::vector<MRH_Sint16> v_Buffer;
-    
-    while (us_Pos < c_Audio.v_Buffer.size())
+    // Added, was this speech?
+    if (p_PocketSphinx->AudioContainsSpeech() == true)
     {
-        /**
-         *  Convert Audio
-         */
+        // Audio valid, add to speech to text api
+        p_GoogleAPI->AddAudioSTT(c_Audio.v_Buffer,
+                                 c_Audio.u32_KHz);
         
-        // Is the sample data valid for sphinx?
-        if (c_Audio.u32_KHz == POCKET_SPHINX_REQUIRED_KHZ)
+        // Grab next
+        b_ListenAudioAvailable = true;
+        return; // Always return, more audio might come
+    }
+    else
+    {
+        if (b_ListenAudioAvailable == false)
         {
-            // Same, simply add
-            v_Buffer = { &(c_Audio.v_Buffer[us_Pos]),
-                         &(c_Audio.v_Buffer[us_Pos + us_Elements]) };
+            // No usable audio stored, return directly
+            return;
         }
-        else
+        else if (us_ListenWaitSamples < c_Audio.u32_KHz) // 1 Sec
         {
-            try
-            {
-                // Not the same, convert then add
-                v_Buffer = c_Audio.Convert(us_Pos,
-                                           us_Elements,
-                                           POCKET_SPHINX_REQUIRED_KHZ);
-            }
-            catch (Exception& e)
-            {
-                MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, e.what(),
-                                               "Voice.cpp", __LINE__);
-                us_Pos += us_Elements; // Increment, we don't retry this buffer chunk
-                continue;
-            }
-        }
-        
-        // Add audio to sphinx
-        p_PocketSphinx->AddAudio(v_Buffer);
-        us_Pos += us_Elements;
-        
-        /**
-         *  Check Speech
-         */
-        
-        // Added, was this speech?
-        if (p_PocketSphinx->AudioContainsSpeech() == true)
-        {
-            // Audio valid, add to speech to text api
-            p_GoogleAPI->AddAudioSTT(v_Buffer,
+            // Add the pause
+            p_GoogleAPI->AddAudioSTT(c_Audio.v_Buffer,
                                      c_Audio.u32_KHz);
             
-            // Grab next
-            b_ListenAudioAvailable = true;
-            continue;
+            // Stil in "pause" phase, wait
+            us_ListenWaitSamples += c_Audio.v_Buffer.size();
+            return;
         }
-        else
+    }
+    
+    // Reset, available will now be processed
+    b_ListenAudioAvailable = false;
+    us_ListenWaitSamples = 0;
+    p_Converter->Reset(); // Reset for next audio (state based)
+    
+    // TEST
+    //
+    //    ----> TODO: Test 44100 KHZ input / output! Add Mono Audio to all channels for output callback!
+    //    -> Add flag for remove trigger from first string to send if recorded with trigger recognized
+    //
+    //
+    printf("-- %s\n", p_PocketSphinx->Recognize().c_str());
+    p_GoogleAPI->ProcessAudioSTT();
+    return;
+    
+    
+    /**
+     *  Trigger
+     */
+    
+    // Do we need to check for the trigger
+    Configuration& c_Config = Configuration::Singleton();
+    MRH_Uint64 u64_CurrentTimeS = time(NULL);
+    
+    if (u64_TriggerValidS < u64_CurrentTimeS)
+    {
+        std::string s_SphinxResult = p_PocketSphinx->Recognize();
+        
+        // Set trigger recognized
+        if (MRH_StringCompareLS::ContainedIn(c_Config.GetTriggerString(),
+                                             s_SphinxResult,
+                                             c_Config.GetTriggerLSSimilarity()) == true)
         {
-            if (b_ListenAudioAvailable == false)
-            {
-                // No usable audio stored, return directly
-                continue;
-            }
-            else if (us_ListenWaitSamples < c_Audio.u32_KHz) // 1 Sec
-            {
-                // Add the pause
-                p_GoogleAPI->AddAudioSTT(v_Buffer,
-                                         c_Audio.u32_KHz);
-                
-                // Stil in "pause" phase, wait
-                us_ListenWaitSamples += us_Elements;
-                continue;
-            }
-        }
-        
-        // Reset, available will now be processed
-        b_ListenAudioAvailable = false;
-        us_ListenWaitSamples = 0;
-        
-        // TEST
-        printf("%s\n", p_PocketSphinx->Recognize().c_str());
-        p_GoogleAPI->ProcessAudioSTT();
-        continue;
-        
-        
-        /**
-         *  Trigger
-         */
-        
-        // Do we need to check for the trigger?
-        if (u64_TriggerValidS < u64_CurrentTimeS)
-        {
-            std::string s_SphinxResult = p_PocketSphinx->Recognize();
-            
-            // Set trigger recognized
-            if (MRH_StringCompareLS::ContainedIn(c_Config.GetTriggerString(),
-                                                 s_SphinxResult,
-                                                 c_Config.GetTriggerLSSimilarity()) == true)
-            {
-                b_TriggerRecognized = true;
-                u64_TriggerValidS = u64_CurrentTimeS;
-            }
-            else
-            {
-                // Not recognized, reset api buffer
-                p_GoogleAPI->ClearSTTAudio();
-                continue;
-            }
-        }
-        else
-        {
-            // Reset decoder for new check later
-            p_PocketSphinx->ResetDecoder();
-            
-            // Reset timer, valid audio with input
+            b_TriggerRecognized = true;
             u64_TriggerValidS = u64_CurrentTimeS;
         }
-        
-        /**
-         *  Convert
-         */
-        
-        // Run speech recognition with google api
-        p_GoogleAPI->ProcessAudioSTT();
+        else
+        {
+            // Not recognized, reset api buffer
+            p_GoogleAPI->ClearSTTAudio();
+            return;
+        }
     }
+    else
+    {
+        // Reset decoder for new check later
+        p_PocketSphinx->ResetDecoder();
+        
+        // Reset timer, valid audio with input
+        u64_TriggerValidS = u64_CurrentTimeS;
+    }
+    
+    /**
+     *  Convert
+     */
+    
+    // Run speech recognition with google api
+    p_GoogleAPI->ProcessAudioSTT();
 }
 
 //*************************************************************************************
@@ -369,7 +365,7 @@ void Voice::Say(OutputStorage& c_OutputStorage)
      */
     
     // Do nothing during output playback
-    if (p_Device->GetOutputPlayback() == true)
+    if (p_Device->GetPlayback() == true)
     {
         return;
     }
@@ -379,14 +375,11 @@ void Voice::Say(OutputStorage& c_OutputStorage)
     {
         try
         {
-            // Add speech as output data
-            p_Device->SetOutputAudio(p_GoogleAPI->GrabTTSAudio());
+            // Add speech as output data and play
+            p_Device->SetPlaybackAudio(p_GoogleAPI->GrabTTSAudio());
             
-            // Pause listening and perform output
-            p_Device->StopListening();
-            p_Device->ResetInputAudio();
-            
-            p_Device->StartPlayback();
+            printf("Start Playback\n");
+            p_Device->Playback();
         }
         catch (Exception& e)
         {
@@ -394,10 +387,11 @@ void Voice::Say(OutputStorage& c_OutputStorage)
                                            "Voice.cpp", __LINE__);
         }
     }
-    else if (p_Device->GetInputRecording() == false)
+    else if (p_Device->GetRecording() == false)
     {
         // Nothing to play, start listening again
-        p_Device->StartListening();
+        printf("Start Listening\n");
+        p_Device->Record();
         
         // Send info about performed output
         b_StringSet = false;

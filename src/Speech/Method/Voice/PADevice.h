@@ -32,6 +32,7 @@
 
 // Project
 #include "./VoiceAudio.h"
+#include "./RateConverter.h"
 
 
 class PADevice
@@ -55,42 +56,34 @@ public:
     ~PADevice() noexcept;
     
     //*************************************************************************************
+    // Stream
+    //*************************************************************************************
+    
+    /**
+     *  Stop all audio streams.
+     */
+    
+    void StopAll() noexcept;
+    
+    //*************************************************************************************
     // Input
     //*************************************************************************************
     
     /**
-     *  Start listening.
+     *  Start recording audio.
      */
     
-    void StartListening();
-    
-    /**
-     *  Stop listening.
-     */
-    
-    void StopListening();
-    
-    /**
-     *  Reset input buffer.
-     */
-    
-    void ResetInputAudio();
+    void Record();
     
     //*************************************************************************************
     // Output
     //*************************************************************************************
     
     /**
-     *  Start playback.
+     *  Play the currently set audio.
      */
     
-    void StartPlayback();
-    
-    /**
-     *  Stop playback.
-     */
-    
-    void StopPlayback();
+    void Playback();
     
     //*************************************************************************************
     // Getters
@@ -102,7 +95,7 @@ public:
      *  \return The current voice audio.
      */
     
-    VoiceAudio GetInputAudio() noexcept;
+    VoiceAudio GetRecordedAudio() noexcept;
     
     /**
      *  Check if audio is currently being played.
@@ -110,7 +103,7 @@ public:
      *  \return true if audio is playing, false if not.
      */
     
-    bool GetOutputPlayback() noexcept;
+    bool GetPlayback() noexcept;
     
     /**
      *  Check if audio input is currently being recorded.
@@ -118,7 +111,7 @@ public:
      *  \return true if audio is being recorded, false if not.
      */
     
-    bool GetInputRecording() noexcept;
+    bool GetRecording() noexcept;
     
     //*************************************************************************************
     // Setters
@@ -130,7 +123,7 @@ public:
      *  \param c_Audio The audio for playback.
      */
     
-    void SetOutputAudio(VoiceAudio const& c_Audio);
+    void SetPlaybackAudio(VoiceAudio const& c_Audio);
     
 private:
     
@@ -171,7 +164,6 @@ private:
         size_t us_BufferSize;
         
         MRH_Uint32 u32_KHz;
-        MRH_Uint32 u32_FrameSamples;
     };
     
     class Output
@@ -198,7 +190,7 @@ private:
         // Data
         //*************************************************************************************
         
-        std::atomic<bool> b_Playback;
+        std::mutex c_Mutex;
         
         std::vector<MRH_Sint16> v_Buffer;
         size_t us_BufferPos;
@@ -251,6 +243,12 @@ private:
     void CloseInput() noexcept;
     
     /**
+     *  Flip the input buffer in use.
+     */
+    
+    void FlipInputBuffer() noexcept;
+    
+    /**
      *  Update callback for input audio.
      */
     
@@ -297,6 +295,8 @@ private:
     
     Input c_InputAudio;
     Output c_OutputAudio;
+    
+    RateConverter c_Converter;
     
 protected:
     

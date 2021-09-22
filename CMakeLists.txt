@@ -73,6 +73,8 @@ set(SRC_LIST_CALLBACK "${SRC_DIR_PATH}/Callback/Service/CBAvail.cpp"
                  
 set(SRC_LIST_SPEECH "${SRC_DIR_PATH}/Speech/Method/Voice/VoiceAudio.cpp"
                     "${SRC_DIR_PATH}/Speech/Method/Voice/VoiceAudio.h"
+                    "${SRC_DIR_PATH}/Speech/Method/Voice/RateConverter.cpp"
+                    "${SRC_DIR_PATH}/Speech/Method/Voice/RateConverter.h"
                     "${SRC_DIR_PATH}/Speech/Method/Voice/PADevice.cpp"
                     "${SRC_DIR_PATH}/Speech/Method/Voice/PADevice.h"
                     "${SRC_DIR_PATH}/Speech/Method/Voice/PocketSphinx.cpp"
@@ -128,7 +130,6 @@ find_library(libmrhvt NAMES mrhvt REQUIRED)
 find_library(libsodium NAMES sodium REQUIRED)
 find_library(libportaudio NAMES portaudio REQUIRED)
 find_library(libsamplerate NAMES samplerate REQUIRED)
-find_library(libsphinxad NAMES sphinxad REQUIRED)
 find_library(libsphinxbase NAMES sphinxbase REQUIRED)
 find_library(libpocketsphinx NAMES pocketsphinx REQUIRED)
 
@@ -146,7 +147,6 @@ target_link_libraries(mrhpsspeech PUBLIC mrhvt)
 target_link_libraries(mrhpsspeech PUBLIC sodium)
 target_link_libraries(mrhpsspeech PUBLIC portaudio)
 target_link_libraries(mrhpsspeech PUBLIC samplerate)
-target_link_libraries(mrhpsspeech PUBLIC sphinxad)
 target_link_libraries(mrhpsspeech PUBLIC sphinxbase)
 target_link_libraries(mrhpsspeech PUBLIC pocketsphinx)
 

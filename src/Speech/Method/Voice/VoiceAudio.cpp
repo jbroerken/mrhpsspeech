@@ -42,8 +42,6 @@ VoiceAudio::VoiceAudio(const MRH_Sint16* p_Buffer,
     // Insert data first for calculation
     if (us_Elements == 0)
     {
-        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "Creating empty sample!",
-                                       "VoiceAudio.cpp", __LINE__);
         return;
     }
     
@@ -71,61 +69,3 @@ VoiceAudio::VoiceAudio(const MRH_Sint16* p_Buffer,
 
 VoiceAudio::~VoiceAudio() noexcept
 {}
-
-//*************************************************************************************
-// Convert
-//*************************************************************************************
-
-std::vector<MRH_Sint16> VoiceAudio::Convert(size_t us_Pos, size_t us_Elements, MRH_Uint32 u32_KHz) const
-{
-    // Check end pos for conversion
-    size_t us_End = us_Pos + us_Elements;
-    
-    if (us_End > v_Buffer.size())
-    {
-        us_Elements = v_Buffer.size() - us_Pos;
-        us_End = v_Buffer.size();
-    }
-    
-    if (us_Elements == 0)
-    {
-        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "Returning empty sample!",
-                                       "VoiceAudio.cpp", __LINE__);
-        return {};
-    }
-    
-    // Convert to float
-    MRH_Sfloat32 p_In[us_Elements];
-    MRH_Sfloat32 p_Out[us_Elements];
-    size_t us_DstPos = 0;
-    
-    for (; us_Pos < us_End; ++us_Pos, ++us_DstPos)
-    {
-        p_In[us_DstPos] = static_cast<MRH_Sfloat32>(v_Buffer[us_Pos] / 32768.f);
-    }
-    
-    // Convert
-    SRC_DATA c_CVTInfo;
-    c_CVTInfo.data_in = p_In;
-    c_CVTInfo.data_out = p_Out;
-    c_CVTInfo.input_frames = us_Elements;
-    c_CVTInfo.output_frames = us_Elements;
-    c_CVTInfo.src_ratio = static_cast<double>(u32_KHz / this->u32_KHz);
-    
-    if (src_simple(&c_CVTInfo, SRC_SINC_MEDIUM_QUALITY, 1) != 0)
-    {
-        throw Exception("Failed to convert audio sample!");
-    }
-    
-    // Create result
-    std::vector<MRH_Sint16> v_Result(0, c_CVTInfo.output_frames_gen);
-    size_t us_ResultElements = c_CVTInfo.output_frames_gen;
-    us_Pos = 0;
-    
-    for (; us_Pos < us_ResultElements; ++us_Pos)
-    {
-        v_Result[us_Pos] = static_cast<MRH_Sint16>(p_Out[us_Pos] * 32768);
-    }
-    
-    return v_Result;
-}

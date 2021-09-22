@@ -35,6 +35,7 @@
 class PADevice;
 class PocketSphinx;
 class GoogleAPI;
+class RateConverter;
 
 
 class Voice : public SpeechMethod
@@ -119,7 +120,6 @@ private:
     GoogleAPI* p_GoogleAPI;
     
     // Listen Input
-    MRH_Uint64 u64_NextListenS;
     bool b_TriggerRecognized;
     MRH_Uint64 u64_TriggerValidS;
     bool b_ListenAudioAvailable;
@@ -129,6 +129,9 @@ private:
     bool b_StringSet;
     MRH_Uint32 u32_SayStringID;
     MRH_Uint32 u32_SayGroupID;
+    
+    // Convert
+    RateConverter* p_Converter;
     
 protected:
 
