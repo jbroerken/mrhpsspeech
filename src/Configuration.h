@@ -115,6 +115,14 @@ public:
     MRH_Uint32 GetPAMicKHz() noexcept;
     
     /**
+     *  Get the microhpone frame samples. This function is thread safe.
+     *
+     *  \return The microhpone frame samples.
+     */
+    
+    MRH_Uint32 GetPAMicFrameSamples() noexcept;
+    
+    /**
      *  Get the microhpone recording storage size. This function is thread safe.
      *
      *  \return The microhpone recording storage size.
@@ -137,6 +145,14 @@ public:
      */
     
     MRH_Uint32 GetPASpeakerKHz() noexcept;
+    
+    /**
+     *  Get the speaker frame samples. This function is thread safe.
+     *
+     *  \return The speaker frame samples.
+     */
+    
+    MRH_Uint32 GetPASpeakerFrameSamples() noexcept;
     
     /**
      *  Get the directory path to the pocket sphinx model. This function is thread
@@ -179,11 +195,13 @@ private:
     // PA Microphone
     MRH_Uint32 u32_PAMicDeviceID;
     MRH_Uint32 u32_PAMicKHz;
+    MRH_Uint32 u32_PAMicFrameSamples;
     MRH_Uint32 u32_PAMicRecordingStorageS;
     
     // PA Speaker
     MRH_Uint32 u32_PASpeakerDeviceID;
     MRH_Uint32 u32_PASpeakerKHz;
+    MRH_Uint32 u32_PASpeakerFrameSamples;
     
     // Pocket Sphinx
     std::string s_SphinxModelDirPath;

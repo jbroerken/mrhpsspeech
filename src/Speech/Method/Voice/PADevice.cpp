@@ -211,7 +211,7 @@ void PADevice::SetupInput()
                             &c_InputParameters,
                             NULL, // No output info
                             u32_KHz,
-                            paFramesPerBufferUnspecified,
+                            c_Config.GetPAMicFrameSamples(),
                             paClipOff,// paNoFlag,
                             PAInputCallback,
                             &c_InputAudio);
@@ -240,6 +240,7 @@ void PADevice::SetupInput()
     MRH_PSBLogger& c_Logger = MRH_PSBLogger::Singleton();
     c_Logger.Log(MRH_PSBLogger::INFO, "Input Device: " + std::string(p_DevInfo->name), "PADevice.cpp", __LINE__);
     c_Logger.Log(MRH_PSBLogger::INFO, "Input KHz: " + std::to_string(c_InputAudio.u32_KHz), "PADevice.cpp", __LINE__);
+    c_Logger.Log(MRH_PSBLogger::INFO, "Input Sample Frames: " + std::to_string(c_Config.GetPAMicFrameSamples()), "PADevice.cpp", __LINE__);
     c_Logger.Log(MRH_PSBLogger::INFO, "Input Recording Storage Seconds: " + std::to_string(c_Config.GetPAMicRecordingStorageS()), "PADevice.cpp", __LINE__);
     c_Logger.Log(MRH_PSBLogger::INFO, "Input Recording Storage Byte Size: " + std::to_string(c_InputAudio.us_BufferSize * sizeof(MRH_Sint16) * 2), "PADevice.cpp", __LINE__);
     
@@ -358,7 +359,7 @@ void PADevice::SetupOutput()
                             NULL, // No input, output only
                             &c_OutputParameters,
                             u32_KHz,
-                            paFramesPerBufferUnspecified,
+                            c_Config.GetPASpeakerFrameSamples(),
                             paClipOff,// paNoFlag,
                             PAOutputCallback,
                             &c_OutputAudio);
@@ -376,6 +377,7 @@ void PADevice::SetupOutput()
     MRH_PSBLogger& c_Logger = MRH_PSBLogger::Singleton();
     c_Logger.Log(MRH_PSBLogger::INFO, "Output Device: " + std::string(p_DevInfo->name), "PADevice.cpp", __LINE__);
     c_Logger.Log(MRH_PSBLogger::INFO, "Output KHz: " + std::to_string(c_OutputAudio.u32_KHz), "PADevice.cpp", __LINE__);
+    c_Logger.Log(MRH_PSBLogger::INFO, "Output Sample Frames: " + std::to_string(c_Config.GetPASpeakerFrameSamples()), "PADevice.cpp", __LINE__);
     
     // @NOTE: Only start on available audio!
 }
@@ -415,9 +417,6 @@ int PADevice::PAOutputCallback(const void* p_Input,
 {
     PADevice::Output* p_Audio = static_cast<PADevice::Output*>(p_UserData);
     
-    // Zero buffer for silence
-    std::memset(p_Output, 0, u32_FrameCount * sizeof(MRH_Sint16));
-    
     // Lock
     std::lock_guard<std::mutex> c_Guard(p_Audio->c_Mutex);
     
@@ -427,6 +426,13 @@ int PADevice::PAOutputCallback(const void* p_Input,
     if (ss_Copy > u32_FrameCount)
     {
         ss_Copy = u32_FrameCount;
+    }
+    else if (ss_Copy > 0 && ss_Copy < u32_FrameCount)
+    {
+        // Zero missing
+        std::memset(&(((MRH_Sint16*)p_Output)[ss_Copy]),
+                    0,
+                    (u32_FrameCount - ss_Copy) * sizeof(MRH_Sint16));
     }
     
     // Copy data

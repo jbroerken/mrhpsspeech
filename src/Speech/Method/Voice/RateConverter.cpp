@@ -100,7 +100,7 @@ std::vector<MRH_Sint16> RateConverter::Convert(std::vector<MRH_Sint16> const& v_
     
     if ((i_Error = src_simple(&c_CVTInfo, SRC_SINC_MEDIUM_QUALITY, 1)) != 0)
     {
-        throw Exception("Failed to convert audio sample: " + std::string(src_strerror(i_Error)));
+        throw Exception("Failed to convert: " + std::string(src_strerror(i_Error)));
     }
     
     // Create result
