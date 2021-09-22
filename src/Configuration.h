@@ -74,20 +74,12 @@ public:
     //*************************************************************************************
 
     /**
-     *  Get the trigger string to start listening.
+     *  Get the trigger key phrase to start listening.
      *
-     *  \return The trigger string.
+     *  \return The trigger key phrase.
      */
 
-    std::string GetTriggerString() noexcept;
-    
-    /**
-     *  Get the required trigger similarity in percent.
-     *
-     *  \return The required trigger similarity.
-     */
-    
-    MRH_Sfloat32 GetTriggerLSSimilarity() noexcept;
+    std::string GetTriggerKeyphrase() noexcept;
     
     /**
      *  Get the trigger recognized timout in seconds.
@@ -184,8 +176,7 @@ private:
     //**************************************************************************************
 
     // Trigger
-    std::string s_TriggerString;
-    MRH_Sfloat32 f32_TriggerLSSimilarity;
+    std::string s_TriggerKeyphrase;
     MRH_Uint32 u32_TriggerTimeoutS;
     
     // PA Microphone

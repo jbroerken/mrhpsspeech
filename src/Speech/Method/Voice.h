@@ -84,6 +84,8 @@ public:
     
     void Listen() override;
     
+    void Listen2();
+    
     //*************************************************************************************
     // Say
     //*************************************************************************************
@@ -120,7 +122,6 @@ private:
     GoogleAPI* p_GoogleAPI;
     
     // Listen Input
-    bool b_TriggerRecognized;
     MRH_Uint64 u64_TriggerValidS;
     bool b_ListenAudioAvailable;
     size_t us_ListenWaitSamples;

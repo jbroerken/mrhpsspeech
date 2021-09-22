@@ -27,6 +27,7 @@
 
 // Project
 #include "./PocketSphinx.h"
+#include "../../../Configuration.h"
 
 // Pre-defined
 #define MRH_SPEECH_SPHINX_LM_EXT ".lm.bin"
@@ -78,6 +79,22 @@ PocketSphinx::PocketSphinx(std::string const& s_ModelDir) : p_Decoder(NULL),
         p_Config = NULL;
             
         throw Exception("Failed to create sphinx recognizer!");
+    }
+    
+    // Now set the keyphrase
+    std::string s_Keyphrase(Configuration::Singleton().GetTriggerKeyphrase());
+    
+    if (s_Keyphrase.size() == 0 ||
+        ps_set_keyphrase(p_Decoder, "keyphrase_search", s_Keyphrase.c_str()) != 0 ||
+        ps_set_search(p_Decoder, "keyphrase_search") != 0)
+    {
+        ps_free(p_Decoder);
+        p_Decoder = NULL;
+        
+        cmd_ln_free_r(p_Config);
+        p_Config = NULL;
+        
+        throw Exception("Failed to set sphinx keyphrase search!");
     }
     
     // Start initial
@@ -164,36 +181,47 @@ bool PocketSphinx::AudioContainsSpeech() noexcept
     return true;
 }
 
-std::string PocketSphinx::Recognize() noexcept
+bool PocketSphinx::Recognize() noexcept
 {
     if (b_DecoderRunning == false)
     {
         MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "Decoder not running!",
                                        "PocketSphinx.cpp", __LINE__);
-        return "";
+        return false;
     }
     else if (ps_end_utt(p_Decoder) < 0)
     {
         MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Failed to end utterance!",
                                        "PocketSphinx.cpp", __LINE__);
-        return "";
+        return false;
     }
     
     b_DecoderRunning = false;
     
-    std::string s_Result = "";
-    const char* p_Hypothesis;
+    // Check hypo
+    bool b_Result = false;
     MRH_Sint32 s32_Score;
     
-    if ((p_Hypothesis = ps_get_hyp(p_Decoder, &s32_Score)) == NULL)
+#ifdef DEBUG
+    const char* p_Hypothesis;
+    
+    if ((p_Hypothesis = ps_get_hyp(p_Decoder, &s32_Score)) != NULL)
     {
-        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Failed to get hypothesis!",
+        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, "Hypothesis: " + std::string(p_Hypothesis),
                                        "PocketSphinx.cpp", __LINE__);
+        b_Result = true;
     }
     else
     {
-        s_Result = p_Hypothesis;
+        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, "No keyphrase hypothesis for current input!",
+                                       "PocketSphinx.cpp", __LINE__);
     }
+#else
+    if (ps_get_hyp(p_Decoder, &s32_Score) != NULL)
+    {
+        b_Result = true;
+    }
+#endif
     
     // Got hypo, restart utt
     if (ps_start_utt(p_Decoder) < 0)
@@ -203,5 +231,7 @@ std::string PocketSphinx::Recognize() noexcept
     }
     
     b_DecoderRunning = true;
-    return s_Result;
+    
+    // Reset, give result
+    return b_Result;
 }

@@ -24,7 +24,6 @@
 
 // External
 #include <libmrhbf.h>
-#include <libmrhpsb/MRH_PSBLogger.h>
 
 // Project
 #include "./Configuration.h"
@@ -45,13 +44,12 @@ namespace
         BLOCK_POCKET_SPHINX = 3,
         
         // Trigger Key
-        TRIGGER_STRING = 4,
-        TRIGGER_LS_SIMILARITY = 5,
-        TRIGGER_TIMEOUT_S = 6,
+        TRIGGER_KEYPHRASE = 4,
+        TRIGGER_TIMEOUT_S = 5,
         
         // PA Microphone Key
-        PA_MICROPHONE_DEVICE_ID = 7,
-        PA_MICROPHONE_KHZ,
+        PA_MICROPHONE_DEVICE_ID = 6,
+        PA_MICROPHONE_KHZ = 7,
         PA_MICROPHONE_FRAME_SAMPLES,
         PA_MICROPHONE_RECORDING_STORAGE_S,
         
@@ -78,8 +76,7 @@ namespace
         "PocketSphinx",
         
         // Trigger Key
-        "String",
-        "LSSimilarity",
+        "Keyphrase",
         "TimeoutS",
         
         // PA Microphone Key
@@ -103,8 +100,7 @@ namespace
 // Constructor / Destructor
 //*************************************************************************************
 
-Configuration::Configuration() noexcept : s_TriggerString("Hey Kogoro"),
-                                          f32_TriggerLSSimilarity(0.75f),
+Configuration::Configuration() noexcept : s_TriggerKeyphrase("Hey Maro"),
                                           u32_TriggerTimeoutS(30),
                                           u32_PAMicDeviceID(0),
                                           u32_PAMicKHz(16000),
@@ -141,37 +137,27 @@ void Configuration::Load()
         
         for (auto& Block : c_File.l_Block)
         {
-            // Internal block, grab as much as possible
-            try
+            if (Block.GetName().compare(p_Identifier[BLOCK_TRIGGER]) == 0)
             {
-                if (Block.GetName().compare(p_Identifier[BLOCK_TRIGGER]) == 0)
-                {
-                    s_TriggerString = Block.GetValue(p_Identifier[TRIGGER_STRING]);
-                    f32_TriggerLSSimilarity = std::stof(Block.GetValue(p_Identifier[TRIGGER_LS_SIMILARITY]));
-                    u32_TriggerTimeoutS = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[TRIGGER_TIMEOUT_S])));
-                }
-                else if (Block.GetName().compare(p_Identifier[BLOCK_PA_MICROPHONE]) == 0)
-                {
-                    u32_PAMicDeviceID = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_MICROPHONE_DEVICE_ID])));
-                    u32_PAMicKHz = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_MICROPHONE_KHZ])));
-                    u32_PAMicFrameSamples = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_MICROPHONE_FRAME_SAMPLES])));
-                    u32_PAMicRecordingStorageS = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_MICROPHONE_RECORDING_STORAGE_S])));
-                }
-                else if (Block.GetName().compare(p_Identifier[BLOCK_PA_SPEAKER]) == 0)
-                {
-                    u32_PASpeakerDeviceID = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_SPEAKER_DEVICE_ID])));
-                    u32_PASpeakerKHz = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_SPEAKER_KHZ])));
-                    u32_PASpeakerFrameSamples = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_SPEAKER_FRAME_SAMPLES])));
-                }
-                else if (Block.GetName().compare(p_Identifier[BLOCK_POCKET_SPHINX]) == 0)
-                {
-                    s_SphinxModelDirPath = Block.GetValue(p_Identifier[POCKET_SPHINX_MODEL_DIR_PATH]);
-                }
+                s_TriggerKeyphrase = Block.GetValue(p_Identifier[TRIGGER_KEYPHRASE]);
+                u32_TriggerTimeoutS = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[TRIGGER_TIMEOUT_S])));
             }
-            catch (MRH_BFException& e)
+            else if (Block.GetName().compare(p_Identifier[BLOCK_PA_MICROPHONE]) == 0)
             {
-                MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "Failed to read value: " + e.what2(),
-                                               "Configuration.cpp", __LINE__);
+                u32_PAMicDeviceID = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_MICROPHONE_DEVICE_ID])));
+                u32_PAMicKHz = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_MICROPHONE_KHZ])));
+                u32_PAMicFrameSamples = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_MICROPHONE_FRAME_SAMPLES])));
+                u32_PAMicRecordingStorageS = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_MICROPHONE_RECORDING_STORAGE_S])));
+            }
+            else if (Block.GetName().compare(p_Identifier[BLOCK_PA_SPEAKER]) == 0)
+            {
+                u32_PASpeakerDeviceID = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_SPEAKER_DEVICE_ID])));
+                u32_PASpeakerKHz = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_SPEAKER_KHZ])));
+                u32_PASpeakerFrameSamples = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_SPEAKER_FRAME_SAMPLES])));
+            }
+            else if (Block.GetName().compare(p_Identifier[BLOCK_POCKET_SPHINX]) == 0)
+            {
+                s_SphinxModelDirPath = Block.GetValue(p_Identifier[POCKET_SPHINX_MODEL_DIR_PATH]);
             }
         }
     }
@@ -185,14 +171,9 @@ void Configuration::Load()
 // Getters
 //*************************************************************************************
 
-std::string Configuration::GetTriggerString() noexcept
+std::string Configuration::GetTriggerKeyphrase() noexcept
 {
-    return s_TriggerString;
-}
-
-MRH_Sfloat32 Configuration::GetTriggerLSSimilarity() noexcept
-{
-    return f32_TriggerLSSimilarity;
+    return s_TriggerKeyphrase;
 }
 
 MRH_Uint32 Configuration::GetTriggerTimeoutS() noexcept

@@ -45,7 +45,6 @@
 Voice::Voice() : p_Device(NULL),
                  p_PocketSphinx(NULL),
                  p_GoogleAPI(NULL),
-                 b_TriggerRecognized(false),
                  u64_TriggerValidS(0),
                  b_ListenAudioAvailable(false),
                  us_ListenWaitSamples(0),
@@ -151,7 +150,6 @@ void Voice::Pause()
     }
     
     // Reset listen flags
-    b_TriggerRecognized = false;
     u64_TriggerValidS = 0;
     b_ListenAudioAvailable = false;
     us_ListenWaitSamples = 0;
@@ -235,15 +233,24 @@ void Voice::Listen()
     }
     
     /**
-     *  Check Speech
+     *  Grab Speech
      */
     
-    // Added, was this speech?
+    // Set current time for trigger validity
+    MRH_Uint64 u64_CurrentTimeS = time(NULL);
+    Configuration& c_Config = Configuration::Singleton();
+    
+    // Was this speech?
     if (p_PocketSphinx->AudioContainsSpeech() == true)
     {
         // Audio valid, add to speech to text api
-        p_GoogleAPI->AddAudioSTT(c_Audio.v_Buffer,
-                                 c_Audio.u32_KHz);
+        if (u64_TriggerValidS >= u64_CurrentTimeS)
+        {
+            // Trigger was valid, now keep valid during speech
+            u64_TriggerValidS = u64_CurrentTimeS + c_Config.GetTriggerTimeoutS();
+            p_GoogleAPI->AddAudioSTT(c_Audio.v_Buffer,
+                                     c_Audio.u32_KHz);
+        }
         
         // Grab next
         b_ListenAudioAvailable = true;
@@ -259,8 +266,13 @@ void Voice::Listen()
         else if (us_ListenWaitSamples < c_Audio.u32_KHz) // 1 Sec
         {
             // Add the pause
-            p_GoogleAPI->AddAudioSTT(c_Audio.v_Buffer,
-                                     c_Audio.u32_KHz);
+            if (u64_TriggerValidS >= u64_CurrentTimeS)
+            {
+                // Trigger was valid, now keep valid during speech
+                u64_TriggerValidS = u64_CurrentTimeS + c_Config.GetTriggerTimeoutS();
+                p_GoogleAPI->AddAudioSTT(c_Audio.v_Buffer,
+                                         c_Audio.u32_KHz);
+            }
             
             // Stil in "pause" phase, wait
             us_ListenWaitSamples += c_Audio.v_Buffer.size();
@@ -273,59 +285,27 @@ void Voice::Listen()
     us_ListenWaitSamples = 0;
     p_Converter->Reset(); // Reset for next audio (state based)
     
-    // TEST
-    //
-    //    ----> TODO: Add Mono Audio to all channels for output callback!
-    //    -> Add flag for remove trigger from first string to send if recorded with trigger recognized
-    //
-    //
-    printf("-- %s\n", p_PocketSphinx->Recognize().c_str());
-    p_GoogleAPI->ProcessAudioSTT();
-    return;
-    
-    
     /**
-     *  Trigger
+     *  Process
      */
     
     // Do we need to check for the trigger
-    Configuration& c_Config = Configuration::Singleton();
-    MRH_Uint64 u64_CurrentTimeS = time(NULL);
-    
     if (u64_TriggerValidS < u64_CurrentTimeS)
     {
-        std::string s_SphinxResult = p_PocketSphinx->Recognize();
-        
-        // Set trigger recognized
-        if (MRH_StringCompareLS::ContainedIn(c_Config.GetTriggerString(),
-                                             s_SphinxResult,
-                                             c_Config.GetTriggerLSSimilarity()) == true)
+        // Check, was the trigger recognized?
+        if (p_PocketSphinx->Recognize() == true)
         {
-            b_TriggerRecognized = true;
-            u64_TriggerValidS = u64_CurrentTimeS;
-        }
-        else
-        {
-            // Not recognized, reset api buffer
-            p_GoogleAPI->ClearSTTAudio();
-            return;
+            u64_TriggerValidS = u64_CurrentTimeS + c_Config.GetTriggerTimeoutS();
         }
     }
     else
     {
-        // Reset decoder for new check later
+        // Trigger recognition reset
         p_PocketSphinx->ResetDecoder();
         
-        // Reset timer, valid audio with input
-        u64_TriggerValidS = u64_CurrentTimeS;
+        // Run speech recognition with google api
+        p_GoogleAPI->ProcessAudioSTT();
     }
-    
-    /**
-     *  Convert
-     */
-    
-    // Run speech recognition with google api
-    p_GoogleAPI->ProcessAudioSTT();
 }
 
 //*************************************************************************************
@@ -348,6 +328,7 @@ void Voice::Say(OutputStorage& c_OutputStorage)
         try
         {
             p_GoogleAPI->UpdateStringTTS(c_String.s_String);
+            
             u32_SayStringID = c_String.u32_StringID;
             u32_SayGroupID = c_String.u32_GroupID;
         
@@ -370,6 +351,9 @@ void Voice::Say(OutputStorage& c_OutputStorage)
         return;
     }
     
+    // Remember playback time for trigger timeout
+    static MRH_Uint64 u64_PlaybackStartS;
+    
     // Should we start speaking or resume listening?
     if (p_GoogleAPI->TTSAudioAvailable() == true)
     {
@@ -378,6 +362,9 @@ void Voice::Say(OutputStorage& c_OutputStorage)
             // Add speech as output data and play
             p_Device->SetPlaybackAudio(p_GoogleAPI->GrabTTSAudio());
             p_Device->Playback();
+            
+            // Set start
+            u64_PlaybackStartS = time(NULL);
         }
         catch (Exception& e)
         {
@@ -389,6 +376,9 @@ void Voice::Say(OutputStorage& c_OutputStorage)
     {
         // Nothing to play, start listening again
         p_Device->Record();
+        
+        // Add time passed in seconds to trigger timeout
+        u64_TriggerValidS += (time(NULL) - u64_PlaybackStartS);
         
         // Send info about performed output
         b_StringSet = false;

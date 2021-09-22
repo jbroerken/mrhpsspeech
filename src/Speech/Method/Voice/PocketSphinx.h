@@ -89,12 +89,12 @@ public:
     bool AudioContainsSpeech() noexcept;
     
     /**
-     *  Convert a given audio sample to a string.
+     *  Check if the decoder recognized correct speech.
      *
-     *  \return The recognized string.
+     *  \return true if recognized, false if not.
      */
     
-    std::string Recognize() noexcept;
+    bool Recognize() noexcept;
     
 private:
     
