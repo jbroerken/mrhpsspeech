@@ -23,7 +23,6 @@
 #define Configuration_h
 
 // C / C++
-#include <mutex>
 
 // External
 #include <MRH_Typedefs.h>
@@ -53,7 +52,7 @@ public:
     //*************************************************************************************
 
     /**
-     *  Get the class instance. This function is thread safe.
+     *  Get the class instance.
      *
      *  \return The class instance.
      */
@@ -65,7 +64,7 @@ public:
     //*************************************************************************************
 
     /**
-     *  Load the configuration. This function is thread safe.
+     *  Load the configuration.
      */
     
     void Load();
@@ -75,7 +74,7 @@ public:
     //*************************************************************************************
 
     /**
-     *  Get the trigger string to start listening. This function is thread safe.
+     *  Get the trigger string to start listening.
      *
      *  \return The trigger string.
      */
@@ -83,7 +82,7 @@ public:
     std::string GetTriggerString() noexcept;
     
     /**
-     *  Get the required trigger similarity in percent. This function is thread safe.
+     *  Get the required trigger similarity in percent.
      *
      *  \return The required trigger similarity.
      */
@@ -91,7 +90,7 @@ public:
     MRH_Sfloat32 GetTriggerLSSimilarity() noexcept;
     
     /**
-     *  Get the trigger recognized timout in seconds. This function is thread safe.
+     *  Get the trigger recognized timout in seconds.
      *
      *  \return The trigger recognized reset timeout.
      */
@@ -99,7 +98,7 @@ public:
     MRH_Uint32 GetTriggerTimeoutS() noexcept;
     
     /**
-     *  Get the id of the device used for the microhpone. This function is thread safe.
+     *  Get the id of the device used for the microhpone.
      *
      *  \return The id of the device used for the microhpone.
      */
@@ -107,7 +106,7 @@ public:
     MRH_Uint32 GetPAMicDeviceID() noexcept;
     
     /**
-     *  Get the microhpone KHz. This function is thread safe.
+     *  Get the microhpone KHz.
      *
      *  \return The microhpone KHz.
      */
@@ -115,7 +114,7 @@ public:
     MRH_Uint32 GetPAMicKHz() noexcept;
     
     /**
-     *  Get the microhpone frame samples. This function is thread safe.
+     *  Get the microhpone frame samples.
      *
      *  \return The microhpone frame samples.
      */
@@ -123,7 +122,7 @@ public:
     MRH_Uint32 GetPAMicFrameSamples() noexcept;
     
     /**
-     *  Get the microhpone recording storage size. This function is thread safe.
+     *  Get the microhpone recording storage size.
      *
      *  \return The microhpone recording storage size.
      */
@@ -131,7 +130,7 @@ public:
     MRH_Uint32 GetPAMicRecordingStorageS() noexcept;
     
     /**
-     *  Get the id of the device used for the speaker. This function is thread safe.
+     *  Get the id of the device used for the speaker.
      *
      *  \return The id of the device used for the speaker.
      */
@@ -139,7 +138,7 @@ public:
     MRH_Uint32 GetPASpeakerDeviceID() noexcept;
     
     /**
-     *  Get the speaker KHz. This function is thread safe.
+     *  Get the speaker KHz.
      *
      *  \return The speaker KHz.
      */
@@ -147,7 +146,7 @@ public:
     MRH_Uint32 GetPASpeakerKHz() noexcept;
     
     /**
-     *  Get the speaker frame samples. This function is thread safe.
+     *  Get the speaker frame samples.
      *
      *  \return The speaker frame samples.
      */
@@ -155,8 +154,7 @@ public:
     MRH_Uint32 GetPASpeakerFrameSamples() noexcept;
     
     /**
-     *  Get the directory path to the pocket sphinx model. This function is thread
-     *  safe.
+     *  Get the directory path to the pocket sphinx model.
      *
      *  \return The sphinx model directory path.
      */
@@ -185,8 +183,6 @@ private:
     // Data
     //**************************************************************************************
 
-    std::mutex c_Mutex;
-    
     // Trigger
     std::string s_TriggerString;
     MRH_Sfloat32 f32_TriggerLSSimilarity;

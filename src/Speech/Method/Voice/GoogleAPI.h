@@ -93,12 +93,12 @@ public:
     //*************************************************************************************
     
     /**
-     *  Add string data for text to speech.
+     *  Update string data for text to speech.
      *
-     *  \param s_String The UTF-8 string to add.
+     *  \param s_String The UTF-8 string to set.
      */
     
-    void AddStringTTS(std::string const& s_String);
+    void UpdateStringTTS(std::string const& s_String);
     
     /**
      *  Check if a audio buffer for speech if available.

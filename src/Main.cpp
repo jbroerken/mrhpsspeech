@@ -28,7 +28,6 @@
 
 // Project
 #include "./Callback/Service/CBAvail.h"
-#include "./Callback/Service/CBReset.h"
 #include "./Callback/Service/CBCustomCommand.h"
 #include "./Callback/Speech/CBSayString.h"
 #include "./Callback/Speech/CBSpeechMethod.h"
@@ -37,7 +36,7 @@
 
 // Pre-defined
 #ifndef MRH_SPEECH_SERVICE_THREAD_COUNT
-    #define MRH_SPEECH_SERVICE_THREAD_COUNT 1
+    #define MRH_SPEECH_SERVICE_THREAD_COUNT 2
 #endif
 
 
@@ -123,7 +122,6 @@ int main(int argc, const char* argv[])
         std::shared_ptr<Speech> p_Speech(new Speech());
         
         std::shared_ptr<MRH_Callback> p_CBAvail(new CBAvail(p_Speech));
-        std::shared_ptr<MRH_Callback> p_CBReset(new CBReset(p_Speech));
         std::shared_ptr<MRH_Callback> p_CBCustomCommand(new CBCustomCommand());
         
         std::shared_ptr<MRH_Callback> p_CBSayString(new CBSayString(p_Speech));
@@ -131,7 +129,6 @@ int main(int argc, const char* argv[])
         
         p_Context->AddCallback(p_CBAvail, MRH_EVENT_LISTEN_AVAIL_U);
         p_Context->AddCallback(p_CBAvail, MRH_EVENT_SAY_AVAIL_U);
-        p_Context->AddCallback(p_CBReset, MRH_EVENT_PS_RESET_REQUEST_U);
         p_Context->AddCallback(p_CBCustomCommand, MRH_EVENT_LISTEN_CUSTOM_COMMAND_U);
         p_Context->AddCallback(p_CBCustomCommand, MRH_EVENT_SAY_CUSTOM_COMMAND_U);
         

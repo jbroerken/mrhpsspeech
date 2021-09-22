@@ -417,6 +417,14 @@ int PADevice::PAOutputCallback(const void* p_Input,
 {
     PADevice::Output* p_Audio = static_cast<PADevice::Output*>(p_UserData);
     
+    /**
+     *
+     *  @TODO:
+     *  ------
+     *  Multi Channel: Add same mono voice sample to all channels equally!
+     *
+     */
+    
     // Lock
     std::lock_guard<std::mutex> c_Guard(p_Audio->c_Mutex);
     

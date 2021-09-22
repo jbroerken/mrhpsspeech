@@ -135,8 +135,6 @@ Configuration& Configuration::Singleton() noexcept
 
 void Configuration::Load()
 {
-    std::lock_guard<std::mutex> c_Guard(c_Mutex);
-    
     try
     {
         MRH_BlockFile c_File(MRH_SPEECH_CONFIGURATION_PATH);
@@ -189,66 +187,55 @@ void Configuration::Load()
 
 std::string Configuration::GetTriggerString() noexcept
 {
-    std::lock_guard<std::mutex> c_Guard(c_Mutex);
     return s_TriggerString;
 }
 
 MRH_Sfloat32 Configuration::GetTriggerLSSimilarity() noexcept
 {
-    std::lock_guard<std::mutex> c_Guard(c_Mutex);
     return f32_TriggerLSSimilarity;
 }
 
 MRH_Uint32 Configuration::GetTriggerTimeoutS() noexcept
 {
-    std::lock_guard<std::mutex> c_Guard(c_Mutex);
     return u32_TriggerTimeoutS;
 }
 
 MRH_Uint32 Configuration::GetPAMicDeviceID() noexcept
 {
-    std::lock_guard<std::mutex> c_Guard(c_Mutex);
     return u32_PAMicDeviceID;
 }
 
 MRH_Uint32 Configuration::GetPAMicKHz() noexcept
 {
-    std::lock_guard<std::mutex> c_Guard(c_Mutex);
     return u32_PAMicKHz;
 }
 
 MRH_Uint32 Configuration::GetPAMicFrameSamples() noexcept
 {
-    std::lock_guard<std::mutex> c_Guard(c_Mutex);
     return u32_PAMicFrameSamples;
 }
 
 MRH_Uint32 Configuration::GetPAMicRecordingStorageS() noexcept
 {
-    std::lock_guard<std::mutex> c_Guard(c_Mutex);
     return u32_PAMicRecordingStorageS;
 }
 
 MRH_Uint32 Configuration::GetPASpeakerDeviceID() noexcept
 {
-    std::lock_guard<std::mutex> c_Guard(c_Mutex);
     return u32_PASpeakerDeviceID;
 }
 
 MRH_Uint32 Configuration::GetPASpeakerKHz() noexcept
 {
-    std::lock_guard<std::mutex> c_Guard(c_Mutex);
     return u32_PASpeakerKHz;
 }
 
 MRH_Uint32 Configuration::GetPASpeakerFrameSamples() noexcept
 {
-    std::lock_guard<std::mutex> c_Guard(c_Mutex);
     return u32_PASpeakerFrameSamples;
 }
 
 std::string Configuration::GetSphinxModelDirPath() noexcept
 {
-    std::lock_guard<std::mutex> c_Guard(c_Mutex);
     return s_SphinxModelDirPath;
 }

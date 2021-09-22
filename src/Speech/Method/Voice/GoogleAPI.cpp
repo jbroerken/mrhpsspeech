@@ -139,38 +139,10 @@ void GoogleAPI::AddAudioSTT(std::vector<MRH_Sint16> const& v_Buffer, MRH_Uint32 
     }
 }
 
-#include <cstdio>
-
 void GoogleAPI::ProcessAudioSTT() noexcept
 {
     std::lock_guard<std::mutex> c_Guard(c_STTMutex);
     c_STTAudio.b_Available = true;
-    /*
-    FILE* p_File = fopen("/Users/Jens/Desktop/record.raw", "wb");
-    
-    size_t size = c_STTAudio.v_Buffer.size();
-    size_t r;
-    size_t pos = 0;
-    
-    while (pos < size)
-    {
-        if ((size - pos) > 512)
-        {
-            r = 512;
-        }
-        else
-        {
-            r = (size - pos);
-        }
-        
-        fwrite(&(c_STTAudio.v_Buffer[pos]), r, 1, p_File);
-        pos += r;
-    }
-    */
-    std::lock_guard<std::mutex> c_GuardT(c_TTSMutex);
-    c_TTSAudio.v_Buffer = c_STTAudio.v_Buffer;
-    c_TTSAudio.u32_KHz = c_STTAudio.u32_KHz;
-    c_TTSAudio.b_Available = true;
 }
 
 std::list<std::string> GoogleAPI::RecieveStringsSTT() noexcept
@@ -231,7 +203,7 @@ void GoogleAPI::UpdateTTS(GoogleAPI* p_Instance) noexcept
     }
 }
 
-void GoogleAPI::AddStringTTS(std::string const& s_String)
+void GoogleAPI::UpdateStringTTS(std::string const& s_String)
 {
     std::lock_guard<std::mutex> c_Guard(c_TTSMutex);
     

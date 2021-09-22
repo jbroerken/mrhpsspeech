@@ -62,8 +62,6 @@ set(SRC_DIR_PATH "${CMAKE_SOURCE_DIR}/src/")
 			 
 set(SRC_LIST_CALLBACK "${SRC_DIR_PATH}/Callback/Service/CBAvail.cpp"
                       "${SRC_DIR_PATH}/Callback/Service/CBAvail.h"
-                      "${SRC_DIR_PATH}/Callback/Service/CBReset.cpp"
-                      "${SRC_DIR_PATH}/Callback/Service/CBReset.h"
                       "${SRC_DIR_PATH}/Callback/Service/CBCustomCommand.cpp"
                       "${SRC_DIR_PATH}/Callback/Service/CBCustomCommand.h"
                       "${SRC_DIR_PATH}/Callback/Speech/CBSayString.cpp"
@@ -155,7 +153,7 @@ target_link_libraries(mrhpsspeech PUBLIC pocketsphinx)
 #  ------------------
 #  Preprocessor source definitions.
 ###
-target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SERVICE_THREAD_COUNT=1)
+target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SERVICE_THREAD_COUNT=2)
 target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_CONFIGURATION_PATH="/usr/local/etc/mrh/mrhpservice/Speech.conf")
 target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_CLI_ENABLED=1)
 target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_CLI_SOCKET_PATH="/tmp/mrhpsspeech_cli.socket")

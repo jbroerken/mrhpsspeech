@@ -275,7 +275,7 @@ void Voice::Listen()
     
     // TEST
     //
-    //    ----> TODO: Test 44100 KHZ input / output! Add Mono Audio to all channels for output callback!
+    //    ----> TODO: Add Mono Audio to all channels for output callback!
     //    -> Add flag for remove trigger from first string to send if recorded with trigger recognized
     //
     //
@@ -347,7 +347,7 @@ void Voice::Say(OutputStorage& c_OutputStorage)
         //       grabbed during playback or conversion because of b_StringSet.
         try
         {
-            p_GoogleAPI->AddStringTTS(c_String.s_String);
+            p_GoogleAPI->UpdateStringTTS(c_String.s_String);
             u32_SayStringID = c_String.u32_StringID;
             u32_SayGroupID = c_String.u32_GroupID;
         
@@ -377,8 +377,6 @@ void Voice::Say(OutputStorage& c_OutputStorage)
         {
             // Add speech as output data and play
             p_Device->SetPlaybackAudio(p_GoogleAPI->GrabTTSAudio());
-            
-            printf("Start Playback\n");
             p_Device->Playback();
         }
         catch (Exception& e)
@@ -390,7 +388,6 @@ void Voice::Say(OutputStorage& c_OutputStorage)
     else if (p_Device->GetRecording() == false)
     {
         // Nothing to play, start listening again
-        printf("Start Listening\n");
         p_Device->Record();
         
         // Send info about performed output
