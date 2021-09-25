@@ -53,7 +53,7 @@ VoiceAudio::VoiceAudio(const MRH_Sint16* p_Buffer,
     us_Elements = v_Buffer.size();
     float f32_Value;
 
-    for (unsigned long i = 0; i < us_Elements; ++i)
+    for (size_t i = 0; i < us_Elements; ++i)
     {
         // Get float value first
         f32_Value = v_Buffer[i] / 32768.f;

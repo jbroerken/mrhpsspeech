@@ -173,7 +173,13 @@ void PocketSphinx::AddAudio(std::vector<MRH_Sint16> const& v_Buffer) noexcept
 
 bool PocketSphinx::AudioContainsSpeech() noexcept
 {
-    if (b_DecoderRunning == false || ps_get_in_speech(p_Decoder) < 1)
+    if (b_DecoderRunning == false)
+    {
+        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "Decoder not running!",
+                                       "PocketSphinx.cpp", __LINE__);
+        return false;
+    }
+    else if (ps_get_in_speech(p_Decoder) < 1)
     {
         return false;
     }

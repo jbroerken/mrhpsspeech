@@ -28,7 +28,6 @@
 
 // Project
 #include "./PADevice.h"
-#include "./PASpeakerSound.h"
 #include "../../../Configuration.h"
 
 
@@ -559,21 +558,4 @@ void PADevice::SetPlaybackAudio(VoiceAudio const& c_Audio)
     
     // Reset output pos for next playback
     c_OutputAudio.us_BufferPos = 0;
-}
-
-void PADevice::SetPlaybackDefaultAudio()
-{
-    // @TODO: This is really lazy
-    try
-    {
-        SetPlaybackAudio({
-            (MRH_Sint16*)p_SoundData,
-            (SPEAKER_SOUND_BYTE_SIZE / sizeof(MRH_Sint16)),
-            SPEAKER_SOUND_SAMPLE_RATE
-        });
-    }
-    catch (...)
-    {
-        throw;
-    }
 }

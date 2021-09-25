@@ -84,6 +84,7 @@ void GoogleAPI::UpdateSTT(GoogleAPI* p_Instance) noexcept
     
     std::vector<MRH_Sint16> v_Buffer;
     MRH_Uint32 u32_KHz;
+    int i = 0;
     
     while (p_Instance->b_STTUpdate == true)
     {
@@ -103,6 +104,14 @@ void GoogleAPI::UpdateSTT(GoogleAPI* p_Instance) noexcept
             c_Audio.b_Available = false; // Reset, now grabbed
             
             c_Mutex.unlock();
+            
+            // Write to file
+            printf("Write\n");
+            FILE* p = fopen(("/Users/Jens/Desktop/" + std::to_string(u32_KHz) + "_" + std::to_string(i) + ".raw").c_str(), "wb");
+            fwrite(v_Buffer.data(), v_Buffer.size(), 1, p);
+            fclose(p);
+            
+            ++i;
         }
         else
         {
@@ -143,11 +152,6 @@ void GoogleAPI::ProcessAudioSTT() noexcept
 {
     std::lock_guard<std::mutex> c_Guard(c_STTMutex);
     c_STTAudio.b_Available = true;
-    
-    // TEST
-    c_TTSAudio.v_Buffer = c_STTAudio.v_Buffer;
-    c_TTSAudio.u32_KHz = c_STTAudio.u32_KHz;
-    c_TTSAudio.b_Available = true;
 }
 
 std::list<std::string> GoogleAPI::RecieveStringsSTT() noexcept

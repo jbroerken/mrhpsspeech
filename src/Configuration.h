@@ -90,6 +90,14 @@ public:
     MRH_Uint32 GetTriggerTimeoutS() noexcept;
     
     /**
+     *  Get the path to the trigger recognized sound.
+     *
+     *  \return The path to the trigger recognized sound.
+     */
+    
+    std::string GetTriggerSoundPath() noexcept;
+    
+    /**
      *  Get the id of the device used for the microhpone.
      *
      *  \return The id of the device used for the microhpone.
@@ -178,6 +186,7 @@ private:
     // Trigger
     std::string s_TriggerKeyphrase;
     MRH_Uint32 u32_TriggerTimeoutS;
+    std::string s_TriggerSoundPath;
     
     // PA Microphone
     MRH_Uint32 u32_PAMicDeviceID;

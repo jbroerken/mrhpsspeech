@@ -35,7 +35,8 @@
 #include "../../Configuration.h"
 
 // Pre-defined
-#define LISTEN_CHECK_WAIT_MS 100 // Wait before checking again
+#define LISTEN_CHECK_WAIT_MS 250 // Wait before checking again
+#define LISTEN_PAUSE_ACCEPT_TIME_S 3 // 3 Second pauses count as speech
 
 
 //*************************************************************************************
@@ -45,16 +46,18 @@
 Voice::Voice() : p_Device(NULL),
                  p_PocketSphinx(NULL),
                  p_GoogleAPI(NULL),
+                 p_Converter(NULL),
+                 p_TriggerSound(NULL),
                  u64_TriggerValidS(0),
+                 b_PlayTriggerSound(false),
                  b_ListenAudioAvailable(false),
                  us_ListenWaitSamples(0),
-                 b_StringSet(false),
-                 b_PlayTriggerSound(false),
-                 p_Converter(NULL)
+                 b_StringSet(false)
 {
     // Init components
     try
     {
+        p_TriggerSound = new VoiceAudio({}, 0, 0);
         p_Converter = new RateConverter(POCKET_SPHINX_REQUIRED_KHZ);
         p_Device = new PADevice();
         p_PocketSphinx = new PocketSphinx(Configuration::Singleton().GetSphinxModelDirPath());
@@ -62,6 +65,12 @@ Voice::Voice() : p_Device(NULL),
     }
     catch (Exception& e)
     {
+        if (p_TriggerSound != NULL)
+        {
+            delete p_TriggerSound;
+            p_TriggerSound = NULL;
+        }
+        
         if (p_Converter != NULL)
         {
             delete p_Converter;
@@ -84,12 +93,40 @@ Voice::Voice() : p_Device(NULL),
         throw;
     }
     
+    // Load trigger sound
+    std::FILE* p_File = std::fopen(Configuration::Singleton().GetTriggerSoundPath().c_str(), "rb");
+    
+    if (p_File != NULL)
+    {
+        // @NOTE: Raw Data, has to match otherwise unpleasant sounds happen
+        p_TriggerSound->u32_KHz = 22050;
+        char p_Buffer[256];
+        
+        while (std::feof(p_File) == 0)
+        {
+            std::fread(p_Buffer, 256, 1, p_File);
+            p_TriggerSound->v_Buffer.insert(p_TriggerSound->v_Buffer.end(),
+                                           (MRH_Sint16*)p_Buffer,
+                                           (MRH_Sint16*)&(p_Buffer[255]));
+        }
+    }
+    else
+    {
+        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "Failed to read trigger sound file!",
+                                       "PocketSphinx.cpp", __LINE__);
+    }
+    
     MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, "Voice speech now available.",
                                    "PocketSphinx.cpp", __LINE__);
 }
 
 Voice::~Voice() noexcept
 {
+    if (p_TriggerSound != NULL)
+    {
+        delete p_TriggerSound;
+    }
+    
     if (p_Converter != NULL)
     {
         delete p_Converter;
@@ -265,7 +302,7 @@ void Voice::Listen()
             // No usable audio stored, return directly
             return;
         }
-        else if (us_ListenWaitSamples < c_Audio.u32_KHz) // 1 Sec
+        else if (us_ListenWaitSamples < (c_Audio.u32_KHz * LISTEN_PAUSE_ACCEPT_TIME_S))
         {
             // Add the pause
             if (u64_TriggerValidS >= u64_CurrentTimeS)
@@ -295,22 +332,28 @@ void Voice::Listen()
     if (u64_TriggerValidS < u64_CurrentTimeS)
     {
         // Check, was the trigger recognized?
-        if (p_PocketSphinx->Recognize() == true)// || 1)
+        if (p_PocketSphinx->Recognize() == true)
         {
-            printf("Set trigger valid\n");
+            // Trigger recognized, valid
             u64_TriggerValidS = u64_CurrentTimeS + c_Config.GetTriggerTimeoutS();
             
+            // Reset decoder for audio recognition
+            p_PocketSphinx->ResetDecoder();
+            
             // Play signal sound next
-            b_PlayTriggerSound = true;
+            if (p_TriggerSound->v_Buffer.size() > 0)
+            {
+                b_PlayTriggerSound = true;
+            }
         }
     }
     else
     {
-        // Trigger recognition reset
-        p_PocketSphinx->ResetDecoder();
-        
         // Run speech recognition with google api
         p_GoogleAPI->ProcessAudioSTT();
+        
+        // Reset decoder for audio recognition
+        p_PocketSphinx->ResetDecoder();
     }
 }
 
@@ -368,7 +411,7 @@ void Voice::Say(OutputStorage& c_OutputStorage)
             // Add sound as output data and play
             if (b_PlayTriggerSound == true)
             {
-                p_Device->SetPlaybackDefaultAudio();
+                p_Device->SetPlaybackAudio(*p_TriggerSound);
                 b_PlayTriggerSound = false; // Reset request
             }
             else
@@ -377,8 +420,6 @@ void Voice::Say(OutputStorage& c_OutputStorage)
             }
             
             p_Device->Playback();
-            
-            printf("Start Playback!\n");
             
             // Set start
             u64_PlaybackStartS = time(NULL);
@@ -392,7 +433,6 @@ void Voice::Say(OutputStorage& c_OutputStorage)
     else if (p_Device->GetRecording() == false)
     {
         // Nothing to play, start listening again
-        printf("Stop Playback\n");
         p_Device->Record();
         
         // Add time passed in seconds to trigger timeout

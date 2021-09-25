@@ -36,6 +36,7 @@ class PADevice;
 class PocketSphinx;
 class GoogleAPI;
 class RateConverter;
+class VoiceAudio;
 
 
 class Voice : public SpeechMethod
@@ -121,14 +122,17 @@ private:
     PocketSphinx* p_PocketSphinx;
     GoogleAPI* p_GoogleAPI;
     
-    // Listen Input
+    // Trigger
+    VoiceAudio* p_TriggerSound;
     MRH_Uint64 u64_TriggerValidS;
+    bool b_PlayTriggerSound;
+    
+    // Listen Input
     bool b_ListenAudioAvailable;
     size_t us_ListenWaitSamples;
     
     // Speech output
     bool b_StringSet;
-    bool b_PlayTriggerSound;
     MRH_Uint32 u32_SayStringID;
     MRH_Uint32 u32_SayGroupID;
     

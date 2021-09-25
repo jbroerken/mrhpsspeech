@@ -125,12 +125,6 @@ public:
     
     void SetPlaybackAudio(VoiceAudio const& c_Audio);
     
-    /**
-     *  Set the default speaker audio for playback.
-     */
-    
-    void SetPlaybackDefaultAudio();
-    
 private:
     
     //*************************************************************************************

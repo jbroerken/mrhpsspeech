@@ -46,10 +46,11 @@ namespace
         // Trigger Key
         TRIGGER_KEYPHRASE = 4,
         TRIGGER_TIMEOUT_S = 5,
+        TRIGGER_SOUND_PATH = 6,
         
         // PA Microphone Key
-        PA_MICROPHONE_DEVICE_ID = 6,
-        PA_MICROPHONE_KHZ = 7,
+        PA_MICROPHONE_DEVICE_ID = 7,
+        PA_MICROPHONE_KHZ,
         PA_MICROPHONE_FRAME_SAMPLES,
         PA_MICROPHONE_RECORDING_STORAGE_S,
         
@@ -78,6 +79,7 @@ namespace
         // Trigger Key
         "Keyphrase",
         "TimeoutS",
+        "SoundFilePath",
         
         // PA Microphone Key
         "DeviceID",
@@ -102,6 +104,7 @@ namespace
 
 Configuration::Configuration() noexcept : s_TriggerKeyphrase("Hey Maro"),
                                           u32_TriggerTimeoutS(30),
+                                          s_TriggerSoundPath("/var/mrh/mrhpsspeech/triggered.raw"),
                                           u32_PAMicDeviceID(0),
                                           u32_PAMicKHz(16000),
                                           u32_PAMicFrameSamples(2048),
@@ -141,6 +144,7 @@ void Configuration::Load()
             {
                 s_TriggerKeyphrase = Block.GetValue(p_Identifier[TRIGGER_KEYPHRASE]);
                 u32_TriggerTimeoutS = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[TRIGGER_TIMEOUT_S])));
+                s_TriggerSoundPath = Block.GetValue(p_Identifier[TRIGGER_SOUND_PATH]);
             }
             else if (Block.GetName().compare(p_Identifier[BLOCK_PA_MICROPHONE]) == 0)
             {
@@ -179,6 +183,11 @@ std::string Configuration::GetTriggerKeyphrase() noexcept
 MRH_Uint32 Configuration::GetTriggerTimeoutS() noexcept
 {
     return u32_TriggerTimeoutS;
+}
+
+std::string Configuration::GetTriggerSoundPath() noexcept
+{
+    return s_TriggerSoundPath;
 }
 
 MRH_Uint32 Configuration::GetPAMicDeviceID() noexcept
