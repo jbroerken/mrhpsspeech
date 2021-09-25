@@ -49,6 +49,7 @@ Voice::Voice() : p_Device(NULL),
                  b_ListenAudioAvailable(false),
                  us_ListenWaitSamples(0),
                  b_StringSet(false),
+                 b_PlayTriggerSound(false),
                  p_Converter(NULL)
 {
     // Init components
@@ -156,6 +157,7 @@ void Voice::Pause()
     
     // Reset say flags
     b_StringSet = false;
+    b_PlayTriggerSound = false;
 }
 
 //*************************************************************************************
@@ -293,9 +295,13 @@ void Voice::Listen()
     if (u64_TriggerValidS < u64_CurrentTimeS)
     {
         // Check, was the trigger recognized?
-        if (p_PocketSphinx->Recognize() == true)
+        if (p_PocketSphinx->Recognize() == true)// || 1)
         {
+            printf("Set trigger valid\n");
             u64_TriggerValidS = u64_CurrentTimeS + c_Config.GetTriggerTimeoutS();
+            
+            // Play signal sound next
+            b_PlayTriggerSound = true;
         }
     }
     else
@@ -355,13 +361,24 @@ void Voice::Say(OutputStorage& c_OutputStorage)
     static MRH_Uint64 u64_PlaybackStartS;
     
     // Should we start speaking or resume listening?
-    if (p_GoogleAPI->TTSAudioAvailable() == true)
+    if (b_PlayTriggerSound == true || p_GoogleAPI->TTSAudioAvailable() == true)
     {
         try
         {
-            // Add speech as output data and play
-            p_Device->SetPlaybackAudio(p_GoogleAPI->GrabTTSAudio());
+            // Add sound as output data and play
+            if (b_PlayTriggerSound == true)
+            {
+                p_Device->SetPlaybackDefaultAudio();
+                b_PlayTriggerSound = false; // Reset request
+            }
+            else
+            {
+                p_Device->SetPlaybackAudio(p_GoogleAPI->GrabTTSAudio());
+            }
+            
             p_Device->Playback();
+            
+            printf("Start Playback!\n");
             
             // Set start
             u64_PlaybackStartS = time(NULL);
@@ -375,6 +392,7 @@ void Voice::Say(OutputStorage& c_OutputStorage)
     else if (p_Device->GetRecording() == false)
     {
         // Nothing to play, start listening again
+        printf("Stop Playback\n");
         p_Device->Record();
         
         // Add time passed in seconds to trigger timeout

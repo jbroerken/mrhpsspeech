@@ -28,11 +28,8 @@
 
 // Project
 #include "./PADevice.h"
+#include "./PASpeakerSound.h"
 #include "../../../Configuration.h"
-
-// Pre-defined
-#define PORTAUDIO_INPUT_CHANNELS 1 // Voice sound, simply use mono
-#define PORTAUDIO_OUTPUT_CHANNELS 1
 
 
 //*************************************************************************************
@@ -69,7 +66,8 @@ PADevice::Input::Input() noexcept : p_Buffer(NULL),
                                     p_BufferB(NULL),
                                     us_BufferSize(0),
                                     us_BufferPos(0),
-                                    u32_KHz(0)
+                                    u32_KHz(16000),
+                                    u8_Channels(1)
 {}
 
 PADevice::Input::~Input() noexcept
@@ -86,7 +84,8 @@ PADevice::Input::~Input() noexcept
 }
 
 PADevice::Output::Output() noexcept : us_BufferPos(0),
-                                      u32_KHz(0)
+                                      u32_KHz(16000),
+                                      u8_Channels(1)
 {}
 
 PADevice::Output::~Output() noexcept
@@ -198,7 +197,7 @@ void PADevice::SetupInput()
     PaStreamParameters c_InputParameters;
     
     bzero(&c_InputParameters, sizeof(c_InputParameters));
-    c_InputParameters.channelCount = PORTAUDIO_INPUT_CHANNELS;
+    c_InputParameters.channelCount = p_DevInfo->maxInputChannels;
     c_InputParameters.device = u32_DevID;
     c_InputParameters.hostApiSpecificStreamInfo = NULL;
     c_InputParameters.sampleFormat = paInt16;
@@ -230,6 +229,7 @@ void PADevice::SetupInput()
     
     // Update audio info
     c_InputAudio.u32_KHz = u32_KHz;
+    c_InputAudio.u8_Channels = p_DevInfo->maxInputChannels;
     c_InputAudio.us_BufferSize = u32_KHz * c_Config.GetPAMicRecordingStorageS();
     c_InputAudio.p_BufferA = new MRH_Sint16[c_InputAudio.us_BufferSize];
     c_InputAudio.p_BufferB = new MRH_Sint16[c_InputAudio.us_BufferSize];
@@ -240,6 +240,7 @@ void PADevice::SetupInput()
     MRH_PSBLogger& c_Logger = MRH_PSBLogger::Singleton();
     c_Logger.Log(MRH_PSBLogger::INFO, "Input Device: " + std::string(p_DevInfo->name), "PADevice.cpp", __LINE__);
     c_Logger.Log(MRH_PSBLogger::INFO, "Input KHz: " + std::to_string(c_InputAudio.u32_KHz), "PADevice.cpp", __LINE__);
+    c_Logger.Log(MRH_PSBLogger::INFO, "Input Channels: " + std::to_string(c_InputAudio.u8_Channels), "PADevice.cpp", __LINE__);
     c_Logger.Log(MRH_PSBLogger::INFO, "Input Sample Frames: " + std::to_string(c_Config.GetPAMicFrameSamples()), "PADevice.cpp", __LINE__);
     c_Logger.Log(MRH_PSBLogger::INFO, "Input Recording Storage Seconds: " + std::to_string(c_Config.GetPAMicRecordingStorageS()), "PADevice.cpp", __LINE__);
     c_Logger.Log(MRH_PSBLogger::INFO, "Input Recording Storage Byte Size: " + std::to_string(c_InputAudio.us_BufferSize * sizeof(MRH_Sint16) * 2), "PADevice.cpp", __LINE__);
@@ -297,30 +298,53 @@ int PADevice::PAInputCallback(const void* p_Input,
     // Lock buffer for full operation
     std::lock_guard<std::mutex> c_Guard(p_Audio->c_Mutex);
     
-    MRH_Sint16* p_Buffer = p_Audio->p_Buffer;
-    size_t us_BufferPos = p_Audio->us_BufferPos;
-    ssize_t ss_Copy = p_Audio->us_BufferSize - us_BufferPos;
+    // Define vars first
+    MRH_Sint16* p_Src = (MRH_Sint16*)p_Input;
+    MRH_Sint16* p_Dst = &(p_Audio->p_Buffer[p_Audio->us_BufferPos]);
+    MRH_Uint8 u8_Channels = p_Audio->u8_Channels;
     
-    // Enough space?
-    if (ss_Copy > u32_FrameCount)
+    // Set bounds
+    size_t us_Copy = p_Audio->us_BufferSize - p_Audio->us_BufferPos;
+    
+    if (us_Copy > u32_FrameCount)
     {
-        ss_Copy = u32_FrameCount;
+        us_Copy = u32_FrameCount;
     }
-    else if (ss_Copy <= 0)
+    
+    // Now copy
+    for (size_t i = 0; i < us_Copy; ++i)
     {
-        // Space constraints, keep until switch
+        // Remember last ABS
+        MRH_Sint16 p_ABS[2] = { 0 };
+        MRH_Sint16 s16_Peak = 0;
+        
+        for (MRH_Uint8 j = 0; j < u8_Channels; ++j)
+        {
+            // Grab strongest
+            if (p_ABS[0] < (p_ABS[1] = abs(*p_Src)))
+            {
+                p_ABS[0] = p_ABS[1];
+                s16_Peak = *p_Src;
+            }
+            
+            ++p_Src;
+        }
+        
+        *p_Dst = s16_Peak;
+        ++p_Dst;
+    }
+    
+    // Warn if we had to drop frames
+    if (us_Copy < u32_FrameCount)
+    {
         MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "Input samples dropped, storage full!",
                                        "PADevice.cpp", __LINE__);
-        return paContinue;
     }
     
-    // Copy data
-    std::memcpy(&(p_Buffer[us_BufferPos]), // Current position, continuous
-                p_Input,
-                ss_Copy * sizeof(MRH_Sint16)); // sample for frame * bytes
-    p_Audio->us_BufferPos += ss_Copy;
+    // Set next pos
+    p_Audio->us_BufferPos += us_Copy;
     
-    // Done
+    // We always continue
     return paContinue;
 }
 
@@ -346,7 +370,7 @@ void PADevice::SetupOutput()
     PaStreamParameters c_OutputParameters;
     
     bzero(&c_OutputParameters, sizeof(c_OutputParameters));
-    c_OutputParameters.channelCount = PORTAUDIO_OUTPUT_CHANNELS;
+    c_OutputParameters.channelCount = p_DevInfo->maxOutputChannels;
     c_OutputParameters.device = u32_DevID;
     c_OutputParameters.hostApiSpecificStreamInfo = NULL;
     c_OutputParameters.sampleFormat = paInt16;
@@ -371,12 +395,14 @@ void PADevice::SetupOutput()
     
     // Update audio info
     c_OutputAudio.u32_KHz = u32_KHz;
+    c_OutputAudio.u8_Channels = p_DevInfo->maxOutputChannels;
     c_OutputAudio.us_BufferPos = 0;
     
     // Print info
     MRH_PSBLogger& c_Logger = MRH_PSBLogger::Singleton();
     c_Logger.Log(MRH_PSBLogger::INFO, "Output Device: " + std::string(p_DevInfo->name), "PADevice.cpp", __LINE__);
     c_Logger.Log(MRH_PSBLogger::INFO, "Output KHz: " + std::to_string(c_OutputAudio.u32_KHz), "PADevice.cpp", __LINE__);
+    c_Logger.Log(MRH_PSBLogger::INFO, "Output Channels: " + std::to_string(c_OutputAudio.u8_Channels), "PADevice.cpp", __LINE__);
     c_Logger.Log(MRH_PSBLogger::INFO, "Output Sample Frames: " + std::to_string(c_Config.GetPASpeakerFrameSamples()), "PADevice.cpp", __LINE__);
     
     // @NOTE: Only start on available audio!
@@ -417,39 +443,44 @@ int PADevice::PAOutputCallback(const void* p_Input,
 {
     PADevice::Output* p_Audio = static_cast<PADevice::Output*>(p_UserData);
     
-    /**
-     *
-     *  @TODO:
-     *  ------
-     *  Multi Channel: Add same mono voice sample to all channels equally!
-     *
-     */
-    
     // Lock
     std::lock_guard<std::mutex> c_Guard(p_Audio->c_Mutex);
     
-    // Audio buffer copy size
-    ssize_t ss_Copy = p_Audio->v_Buffer.size() - p_Audio->us_BufferPos;
+    // Define vars first
+    MRH_Sint16* p_Src = (MRH_Sint16*)&(p_Audio->v_Buffer[p_Audio->us_BufferPos]);
+    MRH_Sint16* p_Dst = (MRH_Sint16*)p_Output;
+    MRH_Uint8 u8_Channels = p_Audio->u8_Channels;
     
-    if (ss_Copy > u32_FrameCount)
+    // Set bounds
+    size_t us_Copy = p_Audio->v_Buffer.size() - p_Audio->us_BufferPos;
+    
+    if (us_Copy > u32_FrameCount)
     {
-        ss_Copy = u32_FrameCount;
+        us_Copy = u32_FrameCount;
     }
-    else if (ss_Copy > 0 && ss_Copy < u32_FrameCount)
+     
+    // Copy audio data
+    for (size_t i = 0; i < us_Copy; ++i)
     {
-        // Zero missing
-        std::memset(&(((MRH_Sint16*)p_Output)[ss_Copy]),
+        for (MRH_Uint8 j = 0; j < u8_Channels; ++j)
+        {
+            *p_Dst = *p_Src;
+            ++p_Dst;
+        }
+        
+        ++p_Src;
+    }
+    
+    // Zero missing
+    if (us_Copy < u32_FrameCount)
+    {
+        std::memset(p_Dst,
                     0,
-                    (u32_FrameCount - ss_Copy) * sizeof(MRH_Sint16));
+                    (u32_FrameCount - us_Copy) * sizeof(MRH_Sint16) * u8_Channels); // Bytes * Format * Channel
     }
-    
-    // Copy data
-    std::memcpy(p_Output,
-                &(p_Audio->v_Buffer[p_Audio->us_BufferPos]),
-                ss_Copy * sizeof(MRH_Sint16)); // sample for frame * bytes
     
     // Check copy result
-    if ((p_Audio->us_BufferPos += ss_Copy) >= p_Audio->v_Buffer.size())
+    if ((p_Audio->us_BufferPos += us_Copy) >= p_Audio->v_Buffer.size())
     {
         return paComplete;
     }
@@ -509,6 +540,7 @@ void PADevice::SetPlaybackAudio(VoiceAudio const& c_Audio)
         // Difference, we need to convert
         try
         {
+            c_Converter.Reset(); // New audio
             c_OutputAudio.v_Buffer = c_Converter.Convert(c_Audio.v_Buffer,
                                                          c_Audio.u32_KHz);
         }
@@ -527,4 +559,21 @@ void PADevice::SetPlaybackAudio(VoiceAudio const& c_Audio)
     
     // Reset output pos for next playback
     c_OutputAudio.us_BufferPos = 0;
+}
+
+void PADevice::SetPlaybackDefaultAudio()
+{
+    // @TODO: This is really lazy
+    try
+    {
+        SetPlaybackAudio({
+            (MRH_Sint16*)p_SoundData,
+            (SPEAKER_SOUND_BYTE_SIZE / sizeof(MRH_Sint16)),
+            SPEAKER_SOUND_SAMPLE_RATE
+        });
+    }
+    catch (...)
+    {
+        throw;
+    }
 }

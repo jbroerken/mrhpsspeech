@@ -20,6 +20,7 @@
  */
 
 // C / C++
+#include <limits.h>
 
 // External
 #include <libmrhpsb/MRH_PSBLogger.h>
@@ -84,29 +85,40 @@ std::vector<MRH_Sint16> RateConverter::Convert(std::vector<MRH_Sint16> const& v_
         throw Exception("Failed to convert: " + std::string(src_strerror(i_Error)));
     }
     
-    // Next, actual conversion
-    size_t us_SampleSize = v_Buffer.size();
-    MRH_Sfloat32 p_In[us_SampleSize];
-    MRH_Sfloat32 p_Out[us_SampleSize];
-    SRC_DATA c_CVTInfo;
+    // Convert data
+    std::vector<MRH_Sint16> v_Result;
+    size_t us_InSize = v_Buffer.size();
+    size_t us_InPos = 0;
+    size_t us_OutPos = 0;
+    int i_CVTSize;
     
-    src_short_to_float_array(&(v_Buffer[0]), p_In, us_SampleSize);
-    
-    c_CVTInfo.data_in = p_In;
-    c_CVTInfo.data_out = p_Out;
-    c_CVTInfo.input_frames = us_SampleSize;
-    c_CVTInfo.output_frames = us_SampleSize;
-    c_CVTInfo.src_ratio = f64_Ratio;
-    
-    if ((i_Error = src_simple(&c_CVTInfo, SRC_SINC_MEDIUM_QUALITY, 1)) != 0)
+    while (us_InPos < us_InSize)
     {
-        throw Exception("Failed to convert: " + std::string(src_strerror(i_Error)));
+        i_CVTSize = (us_InSize - us_InPos) >= INT_MAX ? INT_MAX : static_cast<int>(us_InSize - us_InPos);
+        MRH_Sfloat32 p_In[i_CVTSize];
+        MRH_Sfloat32 p_Out[i_CVTSize];
+        SRC_DATA c_CVTInfo;
+        
+        src_short_to_float_array(&(v_Buffer[us_InPos]), p_In, i_CVTSize);
+        
+        c_CVTInfo.data_in = p_In;
+        c_CVTInfo.data_out = p_Out;
+        c_CVTInfo.input_frames = i_CVTSize;
+        c_CVTInfo.output_frames = i_CVTSize;
+        c_CVTInfo.src_ratio = f64_Ratio;
+        
+        if ((i_Error = src_simple(&c_CVTInfo, SRC_SINC_MEDIUM_QUALITY, 1)) != 0)
+        {
+            throw Exception("Failed to convert: " + std::string(src_strerror(i_Error)));
+        }
+        
+        us_OutPos = v_Result.size();
+        v_Result.insert(v_Result.end(), i_CVTSize, 0);
+        
+        src_float_to_short_array(p_Out, &(v_Result[us_OutPos]), c_CVTInfo.output_frames_gen);
+        
+        us_InPos += i_CVTSize; // Increment based on input
     }
-    
-    // Create result
-    std::vector<MRH_Sint16> v_Result(c_CVTInfo.output_frames_gen, 0);
-    
-    src_float_to_short_array(p_Out, v_Result.data(), c_CVTInfo.output_frames_gen);
     
     return v_Result;
 }

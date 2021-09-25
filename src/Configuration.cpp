@@ -87,8 +87,8 @@ namespace
         
         // PA Speaker Key
         "DeviceID",
-        "FrameSamples",
         "KHz",
+        "FrameSamples",
         
         // Sphinx Key
         "ModelDirPath"

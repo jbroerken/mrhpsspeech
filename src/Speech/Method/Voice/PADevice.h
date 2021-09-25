@@ -125,6 +125,12 @@ public:
     
     void SetPlaybackAudio(VoiceAudio const& c_Audio);
     
+    /**
+     *  Set the default speaker audio for playback.
+     */
+    
+    void SetPlaybackDefaultAudio();
+    
 private:
     
     //*************************************************************************************
@@ -164,6 +170,7 @@ private:
         size_t us_BufferSize;
         
         MRH_Uint32 u32_KHz;
+        MRH_Uint8 u8_Channels;
     };
     
     class Output
@@ -196,6 +203,7 @@ private:
         size_t us_BufferPos;
         
         MRH_Uint32 u32_KHz;
+        MRH_Uint8 u8_Channels;
     };
     
     //*************************************************************************************

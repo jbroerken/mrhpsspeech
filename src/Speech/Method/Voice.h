@@ -128,6 +128,7 @@ private:
     
     // Speech output
     bool b_StringSet;
+    bool b_PlayTriggerSound;
     MRH_Uint32 u32_SayStringID;
     MRH_Uint32 u32_SayGroupID;
     

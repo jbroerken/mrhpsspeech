@@ -68,8 +68,7 @@ static int Exit(libmrhpsb* p_Context, const char* p_Exception, int i_Result)
 #include <unistd.h>
 */
 int main(int argc, const char* argv[])
-{
-    /*
+{/*
     std::setlocale(LC_ALL, "en_US.UTF-8");
     Configuration::Singleton().Load();
     PaError i_Err;
@@ -81,7 +80,7 @@ int main(int argc, const char* argv[])
     Speech c_Speech;
     sleep(300);
     return 0;
-    */
+*/
     // Setup service base
     MRH_PSBLogger& c_Logger = MRH_PSBLogger::Singleton();
     libmrhpsb* p_Context;

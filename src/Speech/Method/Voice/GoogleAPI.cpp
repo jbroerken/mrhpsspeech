@@ -143,6 +143,11 @@ void GoogleAPI::ProcessAudioSTT() noexcept
 {
     std::lock_guard<std::mutex> c_Guard(c_STTMutex);
     c_STTAudio.b_Available = true;
+    
+    // TEST
+    c_TTSAudio.v_Buffer = c_STTAudio.v_Buffer;
+    c_TTSAudio.u32_KHz = c_STTAudio.u32_KHz;
+    c_TTSAudio.b_Available = true;
 }
 
 std::list<std::string> GoogleAPI::RecieveStringsSTT() noexcept
