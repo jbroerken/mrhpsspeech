@@ -63,7 +63,7 @@ public:
      *  Reset the converter.
      */
     
-    void Reset();
+    void ResetConverter();
     
     /**
      *  Convert a audio sample.

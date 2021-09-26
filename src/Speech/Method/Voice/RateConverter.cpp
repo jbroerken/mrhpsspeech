@@ -58,7 +58,7 @@ RateConverter::~RateConverter() noexcept
 // Convert
 //*************************************************************************************
 
-void RateConverter::Reset()
+void RateConverter::ResetConverter()
 {
     int i_Error = src_reset(p_State);
     

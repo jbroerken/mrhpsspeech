@@ -1,5 +1,5 @@
 /**
- *  VoiceAudio.cpp
+ *  MonoAudio.cpp
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -27,17 +27,17 @@
 #include <libmrhpsb/MRH_PSBLogger.h>
 
 // Project
-#include "./VoiceAudio.h"
+#include "./MonoAudio.h"
 
 
 //*************************************************************************************
 // Constructor / Destructor
 //*************************************************************************************
 
-VoiceAudio::VoiceAudio(const MRH_Sint16* p_Buffer,
-                       size_t us_Elements,
-                       MRH_Uint32 u32_KHz) noexcept : u32_KHz(u32_KHz),
-                                                      f32_Peak(0.f)
+MonoAudio::MonoAudio(const MRH_Sint16* p_Buffer,
+                     size_t us_Elements,
+                     MRH_Uint32 u32_KHz) noexcept : u32_KHz(u32_KHz),
+                                                    f32_Peak(0.f)
 {
     // Insert data first for calculation
     if (us_Elements == 0)
@@ -67,5 +67,5 @@ VoiceAudio::VoiceAudio(const MRH_Sint16* p_Buffer,
     }
 }
 
-VoiceAudio::~VoiceAudio() noexcept
+MonoAudio::~MonoAudio() noexcept
 {}

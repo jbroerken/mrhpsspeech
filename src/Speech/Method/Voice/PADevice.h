@@ -31,7 +31,7 @@
 #include <portaudio.h>
 
 // Project
-#include "./VoiceAudio.h"
+#include "./MonoAudio.h"
 #include "./RateConverter.h"
 
 
@@ -63,7 +63,7 @@ public:
      *  Stop all audio streams.
      */
     
-    void StopAll() noexcept;
+    void StopDevice() noexcept;
     
     //*************************************************************************************
     // Input
@@ -95,7 +95,7 @@ public:
      *  \return The current voice audio.
      */
     
-    VoiceAudio GetRecordedAudio() noexcept;
+    MonoAudio GetRecordedAudio() noexcept;
     
     /**
      *  Check if audio is currently being played.
@@ -123,7 +123,7 @@ public:
      *  \param c_Audio The audio for playback.
      */
     
-    void SetPlaybackAudio(VoiceAudio const& c_Audio);
+    void SetPlaybackAudio(MonoAudio const& c_Audio);
     
 private:
     

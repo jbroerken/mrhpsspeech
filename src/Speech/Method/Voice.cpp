@@ -28,10 +28,6 @@
 
 // Project
 #include "./Voice.h"
-#include "./Voice/RateConverter.h"
-#include "./Voice/PADevice.h"
-#include "./Voice/PocketSphinx.h"
-#include "./Voice/GoogleAPI.h"
 #include "../../Configuration.h"
 
 // Pre-defined
@@ -43,69 +39,27 @@
 // Constructor / Destructor
 //*************************************************************************************
 
-Voice::Voice() : p_Device(NULL),
-                 p_PocketSphinx(NULL),
-                 p_GoogleAPI(NULL),
-                 p_Converter(NULL),
-                 p_TriggerSound(NULL),
+Voice::Voice() : c_PocketSphinx(Configuration::Singleton().GetSphinxModelDirPath()),
+                 c_Converter(POCKET_SPHINX_REQUIRED_KHZ),
+                 c_TriggerSound({}, 0, Configuration::Singleton().GetPASpeakerKHz()),
                  u64_TriggerValidS(0),
                  b_PlayTriggerSound(false),
                  b_ListenAudioAvailable(false),
                  us_ListenWaitSamples(0),
                  b_StringSet(false)
 {
-    // Init components
-    try
-    {
-        p_TriggerSound = new VoiceAudio({}, 0, 0);
-        p_Converter = new RateConverter(POCKET_SPHINX_REQUIRED_KHZ);
-        p_Device = new PADevice();
-        p_PocketSphinx = new PocketSphinx(Configuration::Singleton().GetSphinxModelDirPath());
-        p_GoogleAPI = new GoogleAPI();
-    }
-    catch (Exception& e)
-    {
-        if (p_TriggerSound != NULL)
-        {
-            delete p_TriggerSound;
-            p_TriggerSound = NULL;
-        }
-        
-        if (p_Converter != NULL)
-        {
-            delete p_Converter;
-            p_Converter = NULL;
-        }
-        
-        if (p_Device != NULL)
-        {
-            delete p_Device;
-            p_Device = NULL;
-        }
-        
-        if (p_PocketSphinx != NULL)
-        {
-            delete p_PocketSphinx;
-            p_PocketSphinx = NULL;
-        }
-        
-        // Last throw is google api, never not null on throw
-        throw;
-    }
-    
     // Load trigger sound
     std::FILE* p_File = std::fopen(Configuration::Singleton().GetTriggerSoundPath().c_str(), "rb");
     
     if (p_File != NULL)
     {
         // @NOTE: Raw Data, has to match otherwise unpleasant sounds happen
-        p_TriggerSound->u32_KHz = 22050;
         char p_Buffer[256];
         
         while (std::feof(p_File) == 0)
         {
             std::fread(p_Buffer, 256, 1, p_File);
-            p_TriggerSound->v_Buffer.insert(p_TriggerSound->v_Buffer.end(),
+            c_TriggerSound.v_Buffer.insert(c_TriggerSound.v_Buffer.end(),
                                            (MRH_Sint16*)p_Buffer,
                                            (MRH_Sint16*)&(p_Buffer[255]));
         }
@@ -121,32 +75,7 @@ Voice::Voice() : p_Device(NULL),
 }
 
 Voice::~Voice() noexcept
-{
-    if (p_TriggerSound != NULL)
-    {
-        delete p_TriggerSound;
-    }
-    
-    if (p_Converter != NULL)
-    {
-        delete p_Converter;
-    }
-    
-    if (p_Device != NULL)
-    {
-        delete p_Device;
-    }
-    
-    if (p_PocketSphinx != NULL)
-    {
-        delete p_PocketSphinx;
-    }
-    
-    if (p_GoogleAPI != NULL)
-    {
-        delete p_GoogleAPI;
-    }
-}
+{}
 
 //*************************************************************************************
 // Useage
@@ -154,38 +83,22 @@ Voice::~Voice() noexcept
 
 void Voice::Resume()
 {
+    // Reset Google conversions
+    c_GoogleSTT.ResetStrings();
+    c_GoogleTTS.ResetAudio();
+    
     // Just start recording
-    if (p_Device != NULL)
-    {
-        p_Device->Record();
-    }
+    c_Device.Record();
 }
 
 void Voice::Pause()
 {
-    // Stop device
-    if (p_Device != NULL)
-    {
-        p_Device->StopAll();
-    }
-    
-    if (p_GoogleAPI != NULL)
-    {
-        // Remove old data, we dont know how long we're stopped
-        p_GoogleAPI->ClearSTTAudio();
-        p_GoogleAPI->RecieveStringsSTT(); // Grab list to empty
-    }
-    
-    if (p_PocketSphinx != NULL)
-    {
-        // Reset decoder, new recognition next time
-        p_PocketSphinx->ResetDecoder();
-    }
-    
-    if (p_Converter != NULL)
-    {
-        p_Converter->Reset();
-    }
+    // Reset Components
+    c_Device.StopDevice(); // Stop both playback and recording
+    c_PocketSphinx.ResetDecoder(); // Reset decoder, new recognition next time
+    c_GoogleSTT.ResetAudio(); // Reset audio
+    c_GoogleTTS.ResetStrings(); // Reset passed strings
+    c_Converter.ResetConverter(); // State based, reset for new convert
     
     // Reset listen flags
     u64_TriggerValidS = 0;
@@ -208,7 +121,7 @@ void Voice::Listen()
      */
     
     // Grab google api speech results
-    std::list<std::string> l_Processed = p_GoogleAPI->RecieveStringsSTT();
+    std::list<std::string> l_Processed = c_GoogleSTT.GetStrings();
     
     for (auto& String : l_Processed)
     {
@@ -232,7 +145,7 @@ void Voice::Listen()
     std::this_thread::sleep_for(std::chrono::milliseconds(LISTEN_CHECK_WAIT_MS));
     
     // Can we even record?
-    if (p_Device->GetRecording() == false)
+    if (c_Device.GetRecording() == false)
     {
         return;
     }
@@ -242,7 +155,7 @@ void Voice::Listen()
      */
     
     // Grab sample
-    VoiceAudio c_Audio = p_Device->GetRecordedAudio();
+    MonoAudio c_Audio = c_Device.GetRecordedAudio();
     
     if (c_Audio.v_Buffer.size() == 0)
     {
@@ -253,15 +166,15 @@ void Voice::Listen()
     if (c_Audio.u32_KHz == POCKET_SPHINX_REQUIRED_KHZ)
     {
         // Same, simply add
-        p_PocketSphinx->AddAudio(c_Audio.v_Buffer);
+        c_PocketSphinx.AddAudio(c_Audio.v_Buffer);
     }
     else
     {
         try
         {
             // Not the same, convert then add
-            p_PocketSphinx->AddAudio(p_Converter->Convert(c_Audio.v_Buffer,
-                                                          c_Audio.u32_KHz));
+            c_PocketSphinx.AddAudio(c_Converter.Convert(c_Audio.v_Buffer,
+                                                        c_Audio.u32_KHz));
         }
         catch (Exception& e)
         {
@@ -280,15 +193,14 @@ void Voice::Listen()
     Configuration& c_Config = Configuration::Singleton();
     
     // Was this speech?
-    if (p_PocketSphinx->AudioContainsSpeech() == true)
+    if (c_PocketSphinx.AudioContainsSpeech() == true)
     {
         // Audio valid, add to speech to text api
         if (u64_TriggerValidS >= u64_CurrentTimeS)
         {
             // Trigger was valid, now keep valid during speech
             u64_TriggerValidS = u64_CurrentTimeS + c_Config.GetTriggerTimeoutS();
-            p_GoogleAPI->AddAudioSTT(c_Audio.v_Buffer,
-                                     c_Audio.u32_KHz);
+            c_GoogleSTT.AddAudio(c_Audio);
         }
         
         // Grab next
@@ -309,8 +221,7 @@ void Voice::Listen()
             {
                 // Trigger was valid, now keep valid during speech
                 u64_TriggerValidS = u64_CurrentTimeS + c_Config.GetTriggerTimeoutS();
-                p_GoogleAPI->AddAudioSTT(c_Audio.v_Buffer,
-                                         c_Audio.u32_KHz);
+                c_GoogleSTT.AddAudio(c_Audio);
             }
             
             // Stil in "pause" phase, wait
@@ -322,7 +233,7 @@ void Voice::Listen()
     // Reset, available will now be processed
     b_ListenAudioAvailable = false;
     us_ListenWaitSamples = 0;
-    p_Converter->Reset(); // Reset for next audio (state based)
+    c_Converter.ResetConverter(); // Reset for next audio (state based)
     
     /**
      *  Process
@@ -332,16 +243,16 @@ void Voice::Listen()
     if (u64_TriggerValidS < u64_CurrentTimeS)
     {
         // Check, was the trigger recognized?
-        if (p_PocketSphinx->Recognize() == true)
+        if (c_PocketSphinx.Recognize() == true)
         {
             // Trigger recognized, valid
             u64_TriggerValidS = u64_CurrentTimeS + c_Config.GetTriggerTimeoutS();
             
             // Reset decoder for audio recognition
-            p_PocketSphinx->ResetDecoder();
+            c_PocketSphinx.ResetDecoder();
             
             // Play signal sound next
-            if (p_TriggerSound->v_Buffer.size() > 0)
+            if (c_TriggerSound.v_Buffer.size() > 0)
             {
                 b_PlayTriggerSound = true;
             }
@@ -350,10 +261,10 @@ void Voice::Listen()
     else
     {
         // Run speech recognition with google api
-        p_GoogleAPI->ProcessAudioSTT();
+        c_GoogleSTT.ProcessAudio();
         
         // Reset decoder for audio recognition
-        p_PocketSphinx->ResetDecoder();
+        c_PocketSphinx.ResetDecoder();
     }
 }
 
@@ -376,7 +287,7 @@ void Voice::Say(OutputStorage& c_OutputStorage)
         //       grabbed during playback or conversion because of b_StringSet.
         try
         {
-            p_GoogleAPI->UpdateStringTTS(c_String.s_String);
+            c_GoogleTTS.AddString(c_String.s_String);
             
             u32_SayStringID = c_String.u32_StringID;
             u32_SayGroupID = c_String.u32_GroupID;
@@ -395,7 +306,7 @@ void Voice::Say(OutputStorage& c_OutputStorage)
      */
     
     // Do nothing during output playback
-    if (p_Device->GetPlayback() == true)
+    if (c_Device.GetPlayback() == true)
     {
         return;
     }
@@ -404,22 +315,22 @@ void Voice::Say(OutputStorage& c_OutputStorage)
     static MRH_Uint64 u64_PlaybackStartS;
     
     // Should we start speaking or resume listening?
-    if (b_PlayTriggerSound == true || p_GoogleAPI->TTSAudioAvailable() == true)
+    if (b_PlayTriggerSound == true || c_GoogleTTS.GetAudioAvailable() == true)
     {
         try
         {
             // Add sound as output data and play
             if (b_PlayTriggerSound == true)
             {
-                p_Device->SetPlaybackAudio(*p_TriggerSound);
+                c_Device.SetPlaybackAudio(c_TriggerSound);
                 b_PlayTriggerSound = false; // Reset request
             }
             else
             {
-                p_Device->SetPlaybackAudio(p_GoogleAPI->GrabTTSAudio());
+                c_Device.SetPlaybackAudio(c_GoogleTTS.GetAudio());
             }
             
-            p_Device->Playback();
+            c_Device.Playback();
             
             // Set start
             u64_PlaybackStartS = time(NULL);
@@ -430,10 +341,10 @@ void Voice::Say(OutputStorage& c_OutputStorage)
                                            "Voice.cpp", __LINE__);
         }
     }
-    else if (p_Device->GetRecording() == false)
+    else if (c_Device.GetRecording() == false)
     {
         // Nothing to play, start listening again
-        p_Device->Record();
+        c_Device.Record();
         
         // Add time passed in seconds to trigger timeout
         u64_TriggerValidS += (time(NULL) - u64_PlaybackStartS);
@@ -459,10 +370,5 @@ void Voice::Say(OutputStorage& c_OutputStorage)
 
 bool Voice::IsUsable() noexcept
 {
-    if (p_Device != NULL && p_PocketSphinx != NULL && p_GoogleAPI != NULL)
-    {
-        return true;
-    }
-    
-    return false;
+    return true;
 }

@@ -151,7 +151,7 @@ void PADevice::CloseStream(PaStream* p_Stream) noexcept
     }
 }
 
-void PADevice::StopAll() noexcept
+void PADevice::StopDevice() noexcept
 {
     try
     {
@@ -200,7 +200,7 @@ void PADevice::SetupInput()
     c_InputParameters.device = u32_DevID;
     c_InputParameters.hostApiSpecificStreamInfo = NULL;
     c_InputParameters.sampleFormat = paInt16;
-    c_InputParameters.suggestedLatency = p_DevInfo->defaultLowInputLatency;
+    c_InputParameters.suggestedLatency = p_DevInfo->defaultHighInputLatency;
     
     MRH_Uint32 u32_KHz = c_Config.GetPAMicKHz();
     
@@ -373,7 +373,7 @@ void PADevice::SetupOutput()
     c_OutputParameters.device = u32_DevID;
     c_OutputParameters.hostApiSpecificStreamInfo = NULL;
     c_OutputParameters.sampleFormat = paInt16;
-    c_OutputParameters.suggestedLatency = p_DevInfo->defaultLowInputLatency;
+    c_OutputParameters.suggestedLatency = p_DevInfo->defaultHighOutputLatency;
     
     MRH_Uint32 u32_KHz = c_Config.GetPASpeakerKHz();
     
@@ -491,7 +491,7 @@ int PADevice::PAOutputCallback(const void* p_Input,
 // Getters
 //*************************************************************************************
 
-VoiceAudio PADevice::GetRecordedAudio() noexcept
+MonoAudio PADevice::GetRecordedAudio() noexcept
 {
     // Grab current used buffer
     MRH_Sint16* p_Buffer = c_InputAudio.p_Buffer;
@@ -501,9 +501,9 @@ VoiceAudio PADevice::GetRecordedAudio() noexcept
     FlipInputBuffer();
     
     // Create audio sample
-    return VoiceAudio(p_Buffer,
-                      us_Length,
-                      c_InputAudio.u32_KHz);
+    return MonoAudio(p_Buffer,
+                     us_Length,
+                     c_InputAudio.u32_KHz);
 }
 
 bool PADevice::GetPlayback() noexcept
@@ -520,7 +520,7 @@ bool PADevice::GetRecording() noexcept
 // Setters
 //*************************************************************************************
 
-void PADevice::SetPlaybackAudio(VoiceAudio const& c_Audio)
+void PADevice::SetPlaybackAudio(MonoAudio const& c_Audio)
 {
     if (GetPlayback() == true)
     {
@@ -539,7 +539,7 @@ void PADevice::SetPlaybackAudio(VoiceAudio const& c_Audio)
         // Difference, we need to convert
         try
         {
-            c_Converter.Reset(); // New audio
+            c_Converter.ResetConverter(); // New audio
             c_OutputAudio.v_Buffer = c_Converter.Convert(c_Audio.v_Buffer,
                                                          c_Audio.u32_KHz);
         }

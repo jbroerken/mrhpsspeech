@@ -1,5 +1,5 @@
 /**
- *  Voice.h
+ *  GoogleSTT.h
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -19,26 +19,23 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef Voice_h
-#define Voice_h
+#ifndef GoogleSTT_h
+#define GoogleSTT_h
 
 // C / C++
 #include <thread>
+#include <mutex>
 #include <atomic>
+#include <string>
+#include <list>
 
 // External
 
 // Project
-#include "../SpeechMethod.h"
-#include "./Voice/MonoAudio.h"
-#include "./Voice/RateConverter.h"
-#include "./Voice/PADevice.h"
-#include "./Voice/PocketSphinx.h"
-#include "./Voice/GoogleSTT.h"
-#include "./Voice/GoogleTTS.h"
+#include "./MonoAudio.h"
 
 
-class Voice : public SpeechMethod
+class GoogleSTT
 {
 public:
     
@@ -50,95 +47,92 @@ public:
      *  Default constructor.
      */
     
-    Voice();
+    GoogleSTT();
     
     /**
      *  Default destructor.
      */
     
-    ~Voice() noexcept;
+    ~GoogleSTT() noexcept;
     
     //*************************************************************************************
-    // Useage
+    // Reset
     //*************************************************************************************
     
     /**
-     *  Resume speech method.
+     *  Clear speech to text audio buffer.
      */
     
-    void Resume() override;
+    void ResetAudio() noexcept;
     
     /**
-     *  Pause speech method.
+     *  Clear speech to text string results.
      */
     
-    void Pause() override;
+    void ResetStrings() noexcept;
     
     //*************************************************************************************
-    // Listen
-    //*************************************************************************************
-    
-    /**
-     *  Listen to speech input.
-     */
-    
-    void Listen() override;
-    
-    //*************************************************************************************
-    // Say
+    // Audio
     //*************************************************************************************
     
     /**
-     *  Perform speech output.
+     *  Add mono audio data for speech to text.
      *
-     *  \param c_OutputStorage The output storage to use.
+     *  \param c_Audio The audio buffer to add.
      */
     
-    void Say(OutputStorage& c_OutputStorage) override;
+    void AddAudio(MonoAudio const& c_Audio) noexcept;
+    
+    /**
+     *  Convert stored audio data for speech to text.
+     */
+    
+    void ProcessAudio() noexcept;
     
     //*************************************************************************************
     // Getters
     //*************************************************************************************
     
     /**
-     *  Check if this speech method is usable.
+     *  Recieve all recognized strings.
      *
-     *  \return true if usable, false if not.
+     *  \return All recognized string.
      */
     
-    bool IsUsable() noexcept override;
+    std::list<std::string> GetStrings() noexcept;
     
 private:
+    
+    //*************************************************************************************
+    // Transcribe
+    //*************************************************************************************
+    
+    /**
+     *  Update speech to text processing.
+     *
+     *  \param p_Instance The class instance to use.
+     */
+    
+    static void Transcribe(GoogleSTT* p_Instance) noexcept;
     
     //*************************************************************************************
     // Data
     //*************************************************************************************
     
-    // Components
-    PADevice c_Device;
-    PocketSphinx c_PocketSphinx;
-    GoogleSTT c_GoogleSTT;
-    GoogleTTS c_GoogleTTS;
+    // Thread
+    std::thread c_Thread;
+    std::atomic<bool> b_Update;
     
-    // Trigger
-    MonoAudio c_TriggerSound;
-    MRH_Uint64 u64_TriggerValidS;
-    bool b_PlayTriggerSound;
+    // Audio
+    std::mutex c_AudioMutex;
+    std::list<std::pair<MRH_Uint32, std::vector<MRH_Sint16>>> l_Audio;
     
-    // Listen Input
-    bool b_ListenAudioAvailable;
-    size_t us_ListenWaitSamples;
-    
-    // Speech output
-    bool b_StringSet;
-    MRH_Uint32 u32_SayStringID;
-    MRH_Uint32 u32_SayGroupID;
-    
-    // Convert
-    RateConverter c_Converter;
+    // String
+    std::mutex c_TranscribeMutex;
+    std::list<std::string> l_Transcribed;
     
 protected:
-
+    
 };
 
-#endif /* Voice_h */
+#endif /* GoogleSTT_h */

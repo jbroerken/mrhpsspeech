@@ -1,5 +1,5 @@
 /**
- *  VoiceAudio.h
+ *  MonoAudio.h
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -19,8 +19,8 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef VoiceAudio_h
-#define VoiceAudio_h
+#ifndef MonoAudio_h
+#define MonoAudio_h
 
 // C / C++
 #include <vector>
@@ -32,7 +32,7 @@
 #include "../../../Exception.h"
 
 
-class VoiceAudio
+class MonoAudio
 {
 public:
     
@@ -43,20 +43,20 @@ public:
     /**
      *  Default constructor.
      *
-     *  \param p_Buffer The sample data stored in this sample.
+     *  \param p_Buffer The sample data stored in this audio.
      *  \param us_Elements The length of the sample data to use in Sint16 elements.
      *  \param u32_KHz The sample KHz.
      */
     
-    VoiceAudio(const MRH_Sint16* p_Buffer,
-               size_t us_Elements,
-               MRH_Uint32 u32_KHz) noexcept;
+    MonoAudio(const MRH_Sint16* p_Buffer,
+              size_t us_Elements,
+              MRH_Uint32 u32_KHz) noexcept;
     
     /**
      *  Default destructor.
      */
     
-    ~VoiceAudio() noexcept;
+    ~MonoAudio() noexcept;
     
     //*************************************************************************************
     // Data
@@ -77,4 +77,4 @@ protected:
     
 };
 
-#endif /* VoiceAudio_h */
+#endif /* MonoAudio_h */
