@@ -65,9 +65,10 @@ namespace
         
         // Google API Key
         GOOGLE_API_LANGUAGE_CODE,
+        GOOGLE_API_VOICE_GENDER,
         
         // Bounds
-        IDENTIFIER_MAX = GOOGLE_API_LANGUAGE_CODE,
+        IDENTIFIER_MAX = GOOGLE_API_VOICE_GENDER,
 
         IDENTIFIER_COUNT = IDENTIFIER_MAX + 1
     };
@@ -101,7 +102,8 @@ namespace
         "ModelDirPath",
         
         // Google API Key
-        "LanguageCode"
+        "LanguageCode",
+        "VoiceGender"
     };
 }
 
@@ -121,7 +123,8 @@ Configuration::Configuration() noexcept : s_TriggerKeyphrase("Hey Maro"),
                                           u32_PASpeakerKHz(16000),
                                           u32_PASpeakerFrameSamples(2048),
                                           s_SphinxModelDirPath("/var/mrh/mrhpsspeech/sphinx/"),
-                                          s_GoogleLangCode("en")
+                                          s_GoogleLangCode("en"),
+                                          u32_GoogleVoiceGender(0)
 {}
 
 Configuration::~Configuration() noexcept
@@ -175,6 +178,7 @@ void Configuration::Load()
             else if (Block.GetName().compare(p_Identifier[BLOCK_GOOGLE_API]) == 0)
             {
                 s_GoogleLangCode = Block.GetValue(p_Identifier[GOOGLE_API_LANGUAGE_CODE]);
+                u32_GoogleVoiceGender = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[GOOGLE_API_VOICE_GENDER])));
             }
         }
     }
@@ -246,4 +250,9 @@ std::string Configuration::GetSphinxModelDirPath() noexcept
 std::string Configuration::GetGoogleLanguageCode() noexcept
 {
     return s_GoogleLangCode;
+}
+
+MRH_Uint32 Configuration::GetGoogleVoiceGender() noexcept
+{
+    return u32_GoogleVoiceGender;
 }

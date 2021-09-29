@@ -23,7 +23,6 @@
 
 // External
 #include <google/cloud/speech/v1/cloud_speech.grpc.pb.h>
-#include <google/longrunning/operations.grpc.pb.h>
 #include <grpcpp/grpcpp.h>
 #include <libmrhpsb/MRH_PSBLogger.h>
 
@@ -35,8 +34,8 @@
 #define AUDIO_WRITE_SIZE_ELEMENTS 32 * 1024 // Google recommends 64 * 1024 in bytes, so /2 for PCM16 elements
 
 using google::cloud::speech::v1::Speech;
-using google::cloud::speech::v1::LongRunningRecognizeRequest;
-using google::cloud::speech::v1::LongRunningRecognizeResponse;
+using google::cloud::speech::v1::RecognizeRequest;
+using google::cloud::speech::v1::RecognizeResponse;
 using google::cloud::speech::v1::RecognitionConfig;
 using google::cloud::speech::v1::StreamingRecognitionResult;
 
@@ -118,8 +117,6 @@ void GoogleSTT::Transcribe(GoogleSTT* p_Instance) noexcept
 {
     // Service vars
     MRH_PSBLogger& c_Logger = MRH_PSBLogger::Singleton();
-    
-    // Audio vars
     std::pair<MRH_Uint32, std::vector<MRH_Sint16>> c_Audio;
     
     std::mutex& c_AudioMutex = p_Instance->c_AudioMutex;
@@ -157,7 +154,7 @@ void GoogleSTT::Transcribe(GoogleSTT* p_Instance) noexcept
          */
         
         // @NOTE: Google speech api is accessed as shown here:
-        //        https://github.com/GoogleCloudPlatform/cpp-samples/blob/main/speech/api/async_transcribe.cc
+        //        https://github.com/GoogleCloudPlatform/cpp-samples/blob/main/speech/api/transcribe.cc
         
         // Setup google connection with credentials for this request
         auto c_Credentials = grpc::GoogleDefaultCredentials();
@@ -165,14 +162,11 @@ void GoogleSTT::Transcribe(GoogleSTT* p_Instance) noexcept
         std::unique_ptr<Speech::Stub> p_Speech(Speech::NewStub(c_CloudChannel));
         
         /**
-         *  Create Long operation Request
+         *  Create Request
          */
         
-        // Create the long running operation
-        std::unique_ptr<google::longrunning::Operations::Stub> p_LongOperation(google::longrunning::Operations::NewStub(c_CloudChannel));
-        
         // Define our request to use for config and audio
-        LongRunningRecognizeRequest c_RecognizeRequest;
+        RecognizeRequest c_RecognizeRequest;
         
         // Set recognition configuration
         auto* p_Config = c_RecognizeRequest.mutable_config();
@@ -187,14 +181,14 @@ void GoogleSTT::Transcribe(GoogleSTT* p_Instance) noexcept
                                                         c_Audio.second.size() * sizeof(MRH_Sint16)); // Byte len
         
         /**
-         *  Run Long Operation
+         *  Transcribe
          */
         
         grpc::ClientContext c_Context;
-        google::longrunning::Operation c_Operation;
-        grpc::Status c_RPCStatus = p_Speech->LongRunningRecognize(&c_Context,
-                                                                  c_RecognizeRequest,
-                                                                  &c_Operation);
+        RecognizeResponse c_RecognizeResponse;
+        grpc::Status c_RPCStatus = p_Speech->Recognize(&c_Context,
+                                                       c_RecognizeRequest,
+                                                       &c_RecognizeResponse);
         
         if (c_RPCStatus.ok() == false)
         {
@@ -203,52 +197,6 @@ void GoogleSTT::Transcribe(GoogleSTT* p_Instance) noexcept
                          "GoogleSTT.cpp", __LINE__);
             continue;
         }
-        
-        /**
-         *  Wait For Result
-         */
-        
-        google::longrunning::GetOperationRequest c_OperationRequest;
-        c_OperationRequest.set_name(c_Operation.name());
-        bool b_RPCError = false;
-        
-        while (c_Operation.done() == false)
-        {
-            std::this_thread::sleep_for(std::chrono::milliseconds(250));
-            
-            grpc::ClientContext c_OperationContext;
-            c_RPCStatus = p_LongOperation->GetOperation(&c_OperationContext,
-                                                        c_OperationRequest,
-                                                        &c_Operation);
-            
-            if (c_RPCStatus.ok() == false)
-            {
-                c_Logger.Log(MRH_PSBLogger::ERROR, "GRPC Streamer error: " +
-                                                   c_RPCStatus.error_message(),
-                             "GoogleSTT.cpp", __LINE__);
-                
-                // Something went wrong, return to loop start
-                b_RPCError = false;
-                break;
-            }
-        }
-        
-        // End here, can't continue
-        if (b_RPCError == true)
-        {
-            continue;
-        }
-        
-        // Unpack the response
-        if (c_Operation.response().Is<LongRunningRecognizeResponse>() == false)
-        {
-            c_Logger.Log(MRH_PSBLogger::ERROR, "Operation completed with wrong response!",
-                         "GoogleSTT.cpp", __LINE__);
-            continue;
-        }
-        
-        LongRunningRecognizeResponse c_RecognizeResponse;
-        c_Operation.response().UnpackTo(&c_RecognizeResponse);
         
         /**
          *  Add Transcribed
@@ -277,11 +225,12 @@ void GoogleSTT::Transcribe(GoogleSTT* p_Instance) noexcept
         // Add to strings
         if (s_Transcipt.size() > 0)
         {
+            printf("Transcribed: %s\n", s_Transcipt.c_str());
             c_TranscribeMutex.lock();
             l_Transcribed.emplace_back(s_Transcipt);
             c_TranscribeMutex.unlock();
         }
-    } // Loop End
+    }
 }
 
 //*************************************************************************************

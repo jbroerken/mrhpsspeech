@@ -169,6 +169,14 @@ public:
     
     std::string GetGoogleLanguageCode() noexcept;
     
+    /**
+     *  Get the google cloud api voice gender.
+     *
+     *  \return The google cloud api voice gender.
+     */
+    
+    MRH_Uint32 GetGoogleVoiceGender() noexcept;
+    
 private:
     
     //*************************************************************************************
@@ -212,6 +220,7 @@ private:
     
     // Google
     std::string s_GoogleLangCode;
+    MRH_Uint32 u32_GoogleVoiceGender;
     
 protected:
 
