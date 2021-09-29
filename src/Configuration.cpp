@@ -112,7 +112,7 @@ namespace
 
 Configuration::Configuration() noexcept : s_TriggerKeyphrase("Hey Maro"),
                                           u32_TriggerTimeoutS(30),
-                                          s_TriggerSoundPath("/var/mrh/mrhpsspeech/triggered.raw"),
+                                          s_TriggerSoundPath("/var/mrh/mrhpsspeech/Triggered.raw"),
                                           u32_PAMicDeviceID(0),
                                           u32_PAMicKHz(16000),
                                           u32_PAMicFrameSamples(2048),
