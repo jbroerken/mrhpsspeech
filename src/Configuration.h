@@ -161,6 +161,14 @@ public:
     
     std::string GetSphinxModelDirPath() noexcept;
     
+    /**
+     *  Get the google cloud api language code.
+     *
+     *  \return The google cloud api language code.
+     */
+    
+    std::string GetGoogleLanguageCode() noexcept;
+    
 private:
     
     //*************************************************************************************
@@ -201,6 +209,9 @@ private:
     
     // Pocket Sphinx
     std::string s_SphinxModelDirPath;
+    
+    // Google
+    std::string s_GoogleLangCode;
     
 protected:
 

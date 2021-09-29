@@ -42,14 +42,15 @@ namespace
         BLOCK_PA_MICROPHONE = 1,
         BLOCK_PA_SPEAKER = 2,
         BLOCK_POCKET_SPHINX = 3,
+        BLOCK_GOOGLE_API = 4,
         
         // Trigger Key
-        TRIGGER_KEYPHRASE = 4,
-        TRIGGER_TIMEOUT_S = 5,
-        TRIGGER_SOUND_PATH = 6,
+        TRIGGER_KEYPHRASE = 5,
+        TRIGGER_TIMEOUT_S = 6,
+        TRIGGER_SOUND_PATH = 7,
         
         // PA Microphone Key
-        PA_MICROPHONE_DEVICE_ID = 7,
+        PA_MICROPHONE_DEVICE_ID,
         PA_MICROPHONE_KHZ,
         PA_MICROPHONE_FRAME_SAMPLES,
         PA_MICROPHONE_RECORDING_STORAGE_S,
@@ -62,8 +63,11 @@ namespace
         // Pocket Sphinx Key
         POCKET_SPHINX_MODEL_DIR_PATH,
         
+        // Google API Key
+        GOOGLE_API_LANGUAGE_CODE,
+        
         // Bounds
-        IDENTIFIER_MAX = POCKET_SPHINX_MODEL_DIR_PATH,
+        IDENTIFIER_MAX = GOOGLE_API_LANGUAGE_CODE,
 
         IDENTIFIER_COUNT = IDENTIFIER_MAX + 1
     };
@@ -75,6 +79,7 @@ namespace
         "PAMicrophone",
         "PASpeaker",
         "PocketSphinx",
+        "GoogleAPI",
         
         // Trigger Key
         "Keyphrase",
@@ -93,7 +98,10 @@ namespace
         "FrameSamples",
         
         // Sphinx Key
-        "ModelDirPath"
+        "ModelDirPath",
+        
+        // Google API Key
+        "LanguageCode"
     };
 }
 
@@ -112,7 +120,8 @@ Configuration::Configuration() noexcept : s_TriggerKeyphrase("Hey Maro"),
                                           u32_PASpeakerDeviceID(0),
                                           u32_PASpeakerKHz(16000),
                                           u32_PASpeakerFrameSamples(2048),
-                                          s_SphinxModelDirPath("/var/mrh/mrhpsspeech/sphinx/")
+                                          s_SphinxModelDirPath("/var/mrh/mrhpsspeech/sphinx/"),
+                                          s_GoogleLangCode("en")
 {}
 
 Configuration::~Configuration() noexcept
@@ -162,6 +171,10 @@ void Configuration::Load()
             else if (Block.GetName().compare(p_Identifier[BLOCK_POCKET_SPHINX]) == 0)
             {
                 s_SphinxModelDirPath = Block.GetValue(p_Identifier[POCKET_SPHINX_MODEL_DIR_PATH]);
+            }
+            else if (Block.GetName().compare(p_Identifier[BLOCK_GOOGLE_API]) == 0)
+            {
+                s_GoogleLangCode = Block.GetValue(p_Identifier[GOOGLE_API_LANGUAGE_CODE]);
             }
         }
     }
@@ -228,4 +241,9 @@ MRH_Uint32 Configuration::GetPASpeakerFrameSamples() noexcept
 std::string Configuration::GetSphinxModelDirPath() noexcept
 {
     return s_SphinxModelDirPath;
+}
+
+std::string Configuration::GetGoogleLanguageCode() noexcept
+{
+    return s_GoogleLangCode;
 }

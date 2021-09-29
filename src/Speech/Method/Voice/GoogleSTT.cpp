@@ -22,9 +22,23 @@
 // C / C++
 
 // External
+#include <google/cloud/speech/v1/cloud_speech.grpc.pb.h>
+#include <google/longrunning/operations.grpc.pb.h>
+#include <grpcpp/grpcpp.h>
+#include <libmrhpsb/MRH_PSBLogger.h>
 
 // Project
 #include "./GoogleSTT.h"
+#include "../../../Configuration.h"
+
+// Pre-defined
+#define AUDIO_WRITE_SIZE_ELEMENTS 32 * 1024 // Google recommends 64 * 1024 in bytes, so /2 for PCM16 elements
+
+using google::cloud::speech::v1::Speech;
+using google::cloud::speech::v1::LongRunningRecognizeRequest;
+using google::cloud::speech::v1::LongRunningRecognizeResponse;
+using google::cloud::speech::v1::RecognitionConfig;
+using google::cloud::speech::v1::StreamingRecognitionResult;
 
 
 //*************************************************************************************
@@ -102,12 +116,19 @@ void GoogleSTT::ProcessAudio() noexcept
 
 void GoogleSTT::Transcribe(GoogleSTT* p_Instance) noexcept
 {
+    // Service vars
+    MRH_PSBLogger& c_Logger = MRH_PSBLogger::Singleton();
+    
+    // Audio vars
     std::pair<MRH_Uint32, std::vector<MRH_Sint16>> c_Audio;
     
     std::mutex& c_AudioMutex = p_Instance->c_AudioMutex;
     std::mutex& c_TranscribeMutex = p_Instance->c_TranscribeMutex;
     std::list<std::pair<MRH_Uint32, std::vector<MRH_Sint16>>>& l_Audio = p_Instance->l_Audio;
     std::list<std::string>& l_Transcribed = p_Instance->l_Transcribed;
+    
+    // Google vars
+    std::string s_LangCode = Configuration::Singleton().GetGoogleLanguageCode();
     
     while (p_Instance->b_Update == true)
     {
@@ -132,23 +153,135 @@ void GoogleSTT::Transcribe(GoogleSTT* p_Instance) noexcept
         }
         
         /**
-         *  Data Process
+         *  Credentials Setup
          */
         
-        // Run processing
-        std::string s_String = "";
+        // @NOTE: Google speech api is accessed as shown here:
+        //        https://github.com/GoogleCloudPlatform/cpp-samples/blob/main/speech/api/async_transcribe.cc
         
-        // @TODO: Run, add if finished
+        // Setup google connection with credentials for this request
+        auto c_Credentials = grpc::GoogleDefaultCredentials();
+        auto c_CloudChannel = grpc::CreateChannel("speech.googleapis.com", c_Credentials);
+        std::unique_ptr<Speech::Stub> p_Speech(Speech::NewStub(c_CloudChannel));
         
+        /**
+         *  Create Long operation Request
+         */
+        
+        // Create the long running operation
+        std::unique_ptr<google::longrunning::Operations::Stub> p_LongOperation(google::longrunning::Operations::NewStub(c_CloudChannel));
+        
+        // Define our request to use for config and audio
+        LongRunningRecognizeRequest c_RecognizeRequest;
+        
+        // Set recognition configuration
+        auto* p_Config = c_RecognizeRequest.mutable_config();
+        p_Config->set_language_code(s_LangCode);
+        p_Config->set_sample_rate_hertz(c_Audio.first);
+        p_Config->set_encoding(RecognitionConfig::LINEAR16);
+        p_Config->set_profanity_filter(true);
+        p_Config->set_audio_channel_count(1); // Always mono
+        
+        // Now add the audio
+        c_RecognizeRequest.mutable_audio()->set_content(c_Audio.second.data(),
+                                                        c_Audio.second.size() * sizeof(MRH_Sint16)); // Byte len
+        
+        /**
+         *  Run Long Operation
+         */
+        
+        grpc::ClientContext c_Context;
+        google::longrunning::Operation c_Operation;
+        grpc::Status c_RPCStatus = p_Speech->LongRunningRecognize(&c_Context,
+                                                                  c_RecognizeRequest,
+                                                                  &c_Operation);
+        
+        if (c_RPCStatus.ok() == false)
+        {
+            c_Logger.Log(MRH_PSBLogger::ERROR, "GRPC Streamer error: " +
+                                               c_RPCStatus.error_message(),
+                         "GoogleSTT.cpp", __LINE__);
+            continue;
+        }
+        
+        /**
+         *  Wait For Result
+         */
+        
+        google::longrunning::GetOperationRequest c_OperationRequest;
+        c_OperationRequest.set_name(c_Operation.name());
+        bool b_RPCError = false;
+        
+        while (c_Operation.done() == false)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(250));
+            
+            grpc::ClientContext c_OperationContext;
+            c_RPCStatus = p_LongOperation->GetOperation(&c_OperationContext,
+                                                        c_OperationRequest,
+                                                        &c_Operation);
+            
+            if (c_RPCStatus.ok() == false)
+            {
+                c_Logger.Log(MRH_PSBLogger::ERROR, "GRPC Streamer error: " +
+                                                   c_RPCStatus.error_message(),
+                             "GoogleSTT.cpp", __LINE__);
+                
+                // Something went wrong, return to loop start
+                b_RPCError = false;
+                break;
+            }
+        }
+        
+        // End here, can't continue
+        if (b_RPCError == true)
+        {
+            continue;
+        }
+        
+        // Unpack the response
+        if (c_Operation.response().Is<LongRunningRecognizeResponse>() == false)
+        {
+            c_Logger.Log(MRH_PSBLogger::ERROR, "Operation completed with wrong response!",
+                         "GoogleSTT.cpp", __LINE__);
+            continue;
+        }
+        
+        LongRunningRecognizeResponse c_RecognizeResponse;
+        c_Operation.response().UnpackTo(&c_RecognizeResponse);
         
         /**
          *  Add Transcribed
          */
         
-        c_TranscribeMutex.lock();
-        l_Transcribed.emplace_back(std::move(s_String));
-        c_TranscribeMutex.unlock();
-    }
+        // Check all results and grab highest confidence
+        float f32_Confidence = -1.f;
+        std::string s_Transcipt = "";
+        
+        for (int i = 0; i < c_RecognizeResponse.results_size(); ++i)
+        {
+            const auto& c_Result = c_RecognizeResponse.results(i);
+            
+            for (int j = 0; j < c_Result.alternatives_size(); ++j)
+            {
+                const auto& c_Alternative = c_Result.alternatives(i);
+                
+                if (f32_Confidence < c_Alternative.confidence())
+                {
+                    f32_Confidence = c_Alternative.confidence();
+                    s_Transcipt = c_Alternative.transcript();
+                }
+            }
+        }
+        
+        // Add to strings
+        if (s_Transcipt.size() > 0)
+        {
+            c_TranscribeMutex.lock();
+            l_Transcribed.emplace_back(s_Transcipt);
+            c_TranscribeMutex.unlock();
+        }
+    } // Loop End
 }
 
 //*************************************************************************************

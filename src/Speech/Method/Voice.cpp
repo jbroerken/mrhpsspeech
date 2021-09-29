@@ -216,8 +216,8 @@ void Voice::Listen()
         }
         else if (us_ListenWaitSamples < (c_Audio.u32_KHz * LISTEN_PAUSE_ACCEPT_TIME_S))
         {
-            // Add the pause
-            if (u64_TriggerValidS >= u64_CurrentTimeS)
+            // Add the pause for the first sample
+            if (us_ListenWaitSamples == 0 && u64_TriggerValidS >= u64_CurrentTimeS)
             {
                 // Trigger was valid, now keep valid during speech
                 u64_TriggerValidS = u64_CurrentTimeS + c_Config.GetTriggerTimeoutS();

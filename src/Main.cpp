@@ -82,6 +82,7 @@ int main(int argc, const char* argv[])
     sleep(300);
     return 0;
     */
+    
     // Setup service base
     MRH_PSBLogger& c_Logger = MRH_PSBLogger::Singleton();
     libmrhpsb* p_Context;
