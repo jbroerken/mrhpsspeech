@@ -23,6 +23,15 @@ set(CMAKE_CXX_COMPILER "g++")
 set(CMAKE_CXX_STANDARD 14)
 
 ###
+#  CMake Options
+#  -------------
+#  Options to use when building with CMake.
+###
+option(USE_METHOD_CLI "Enable the local CLI text speech method" OFF)
+option(USE_METHOD_SERVER "Enable the server based text speech method" ON)
+option(USE_METHOD_VOICE "Enable the internet based voice speech method" ON)
+
+###
 #  Project Info
 #  ------------
 #  General simple information about our project.
@@ -68,24 +77,37 @@ set(SRC_LIST_CALLBACK "${SRC_DIR_PATH}/Callback/Service/CBAvail.cpp"
                       "${SRC_DIR_PATH}/Callback/Speech/CBSayString.h"
                       "${SRC_DIR_PATH}/Callback/Speech/CBSpeechMethod.cpp"
                       "${SRC_DIR_PATH}/Callback/Speech/CBSpeechMethod.h")
+                      
+set(SRC_LIST_SPEECH_METHOD)
+
+if(USE_METHOD_CLI)
+    set(SRC_LIST_SPEECH_METHOD "${SRC_DIR_PATH}/Speech/Method/CLI.cpp"
+                               "${SRC_DIR_PATH}/Speech/Method/CLI.h")
+endif(USE_METHOD_CLI)
+
+if(USE_METHOD_SERVER)
+    set(SRC_LIST_SPEECH_METHOD "${SRC_DIR_PATH}/Speech/Method/Server.cpp"
+                               "${SRC_DIR_PATH}/Speech/Method/Server.h")
+endif(USE_METHOD_SERVER)
+
+if(USE_METHOD_VOICE)
+    set(SRC_LIST_SPEECH_METHOD "${SRC_DIR_PATH}/Speech/Method/Voice/VoiceAudio.cpp"
+                               "${SRC_DIR_PATH}/Speech/Method/Voice/VoiceAudio.h"
+                               "${SRC_DIR_PATH}/Speech/Method/Voice/RateConverter.cpp"
+                               "${SRC_DIR_PATH}/Speech/Method/Voice/RateConverter.h"
+                               "${SRC_DIR_PATH}/Speech/Method/Voice/PADevice.cpp"
+                               "${SRC_DIR_PATH}/Speech/Method/Voice/PADevice.h"
+                               "${SRC_DIR_PATH}/Speech/Method/Voice/PocketSphinx.cpp"
+                               "${SRC_DIR_PATH}/Speech/Method/Voice/PocketSphinx.h"
+                               "${SRC_DIR_PATH}/Speech/Method/Voice/GoogleSTT.cpp"
+                               "${SRC_DIR_PATH}/Speech/Method/Voice/GoogleSTT.h"
+                               "${SRC_DIR_PATH}/Speech/Method/Voice/GoogleTTS.cpp"
+                               "${SRC_DIR_PATH}/Speech/Method/Voice/GoogleTTS.h"
+                               "${SRC_DIR_PATH}/Speech/Method/Voice.cpp"
+                               "${SRC_DIR_PATH}/Speech/Method/Voice.h")
+endif(USE_METHOD_VOICE)
                  
-set(SRC_LIST_SPEECH "${SRC_DIR_PATH}/Speech/Method/Voice/VoiceAudio.cpp"
-                    "${SRC_DIR_PATH}/Speech/Method/Voice/VoiceAudio.h"
-                    "${SRC_DIR_PATH}/Speech/Method/Voice/RateConverter.cpp"
-                    "${SRC_DIR_PATH}/Speech/Method/Voice/RateConverter.h"
-                    "${SRC_DIR_PATH}/Speech/Method/Voice/PADevice.cpp"
-                    "${SRC_DIR_PATH}/Speech/Method/Voice/PADevice.h"
-                    "${SRC_DIR_PATH}/Speech/Method/Voice/PocketSphinx.cpp"
-                    "${SRC_DIR_PATH}/Speech/Method/Voice/PocketSphinx.h"
-                    "${SRC_DIR_PATH}/Speech/Method/Voice/GoogleSTT.cpp"
-                    "${SRC_DIR_PATH}/Speech/Method/Voice/GoogleSTT.h"
-                    "${SRC_DIR_PATH}/Speech/Method/Voice/GoogleTTS.cpp"
-                    "${SRC_DIR_PATH}/Speech/Method/Voice/GoogleTTS.h"
-                    "${SRC_DIR_PATH}/Speech/Method/CLI.cpp"
-                    "${SRC_DIR_PATH}/Speech/Method/CLI.h"
-                    "${SRC_DIR_PATH}/Speech/Method/Voice.cpp"
-                    "${SRC_DIR_PATH}/Speech/Method/Voice.h"
-                    "${SRC_DIR_PATH}/Speech/SpeechMethod.cpp"
+set(SRC_LIST_SPEECH "${SRC_DIR_PATH}/Speech/SpeechMethod.cpp"
                     "${SRC_DIR_PATH}/Speech/SpeechMethod.h"
                     "${SRC_DIR_PATH}/Speech/OutputStorage.cpp"
                     "${SRC_DIR_PATH}/Speech/OutputStorage.h"
@@ -110,6 +132,7 @@ set(SRC_LIST_SERVICE "${SRC_DIR_PATH}/Configuration.cpp"
 #  The target(s) to build.
 ###
 add_executable(mrhpsspeech ${SRC_LIST_CALLBACK}
+                           ${SRC_LIST_SPEECH_METHOD}
                            ${SRC_LIST_SPEECH}
                            ${SRC_LIST_SERVICE})
 
@@ -127,16 +150,18 @@ find_library(libmrhev NAMES mrhev REQUIRED)
 find_library(libmrhcevs NAMES mrhcevs REQUIRED)
 find_library(libmrhpsb NAMES mrhpsb REQUIRED)
 find_library(libmrhvt NAMES mrhvt REQUIRED)
-find_library(libsodium NAMES sodium REQUIRED)
-find_library(libportaudio NAMES portaudio REQUIRED)
-find_library(libsamplerate NAMES samplerate REQUIRED)
-find_library(libsphinxbase NAMES sphinxbase REQUIRED)
-find_library(libpocketsphinx NAMES pocketsphinx REQUIRED)
 
-if(APPLE)
-    include_directories("/usr/local/include/sphinxbase")
-    include_directories("/usr/local/include/pocketsphinx")
-endif()
+if(USE_METHOD_SERVER)
+    find_library(libsodium NAMES sodium REQUIRED)
+endif(USE_METHOD_SERVER)
+
+if(USE_METHOD_VOICE)
+    find_library(libportaudio NAMES portaudio REQUIRED)
+    find_library(libsamplerate NAMES samplerate REQUIRED)
+    find_library(libsphinxbase NAMES sphinxbase REQUIRED)
+    find_library(libpocketsphinx NAMES pocketsphinx REQUIRED)
+    find_package(google-cloud-cpp REQUIRED)
+endif(USE_METHOD_VOICE)
 
 target_link_libraries(mrhpsspeech PUBLIC Threads::Threads)
 target_link_libraries(mrhpsspeech PUBLIC mrhbf)
@@ -144,11 +169,19 @@ target_link_libraries(mrhpsspeech PUBLIC mrhev)
 target_link_libraries(mrhpsspeech PUBLIC mrhcevs)
 target_link_libraries(mrhpsspeech PUBLIC mrhpsb)
 target_link_libraries(mrhpsspeech PUBLIC mrhvt)
-target_link_libraries(mrhpsspeech PUBLIC sodium)
-target_link_libraries(mrhpsspeech PUBLIC portaudio)
-target_link_libraries(mrhpsspeech PUBLIC samplerate)
-target_link_libraries(mrhpsspeech PUBLIC sphinxbase)
-target_link_libraries(mrhpsspeech PUBLIC pocketsphinx)
+
+if(USE_METHOD_SERVER)
+    target_link_libraries(mrhpsspeech PUBLIC sodium)
+endif(USE_METHOD_SERVER)
+
+if(USE_METHOD_VOICE)
+    target_link_libraries(mrhpsspeech PUBLIC portaudio)
+    target_link_libraries(mrhpsspeech PUBLIC samplerate)
+    target_link_libraries(mrhpsspeech PUBLIC sphinxbase)
+    target_link_libraries(mrhpsspeech PUBLIC pocketsphinx)
+    target_link_libraries(mrhpsspeech PUBLIC google-cloud-cpp::speech)
+    target_link_libraries(mrhpsspeech PUBLIC google-cloud-cpp::texttospeech)
+endif(USE_METHOD_VOICE)
 
 ###
 #  Source Definitions
@@ -157,10 +190,21 @@ target_link_libraries(mrhpsspeech PUBLIC pocketsphinx)
 ###
 target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SERVICE_THREAD_COUNT=2)
 target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_CONFIGURATION_PATH="/usr/local/etc/mrh/mrhpservice/Speech.conf")
-target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_CLI_ENABLED=1)
-target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_CLI_SOCKET_PATH="/tmp/mrhpsspeech_cli.socket")
 target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SERVICE_PRINT_INPUT=1)
 target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SERVICE_PRINT_OUTPUT=1)
+
+if(USE_METHOD_CLI)
+    target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_USE_METHOD_CLI=1)
+    target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_CLI_SOCKET_PATH="/tmp/mrhpsspeech_cli.socket")
+endif(USE_METHOD_CLI)
+
+if(USE_METHOD_SERVER)
+    target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_USE_METHOD_SERVER=1)
+endif(USE_METHOD_SERVER)
+
+if(USE_METHOD_VOICE)
+    target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_USE_METHOD_VOICE=1)
+endif(USE_METHOD_VOICE)
 
 ###
 #  Install

@@ -26,12 +26,14 @@
 
 // Project
 #include "./Speech.h"
+#if MRH_SPEECH_USE_METHOD_CLI > 0
 #include "./Method/CLI.h"
+#endif
+#if MRH_SPEECH_USE_METHOD_SERVER > 0
+#include "./Method/Server.h"
+#endif
+#if MRH_SPEECH_USE_METHOD_VOICE > 0
 #include "./Method/Voice.h"
-
-// Pre-defined
-#ifndef MRH_SPEECH_CLI_ENABLED
-    #define MRH_SPEECH_CLI_ENABLED 0
 #endif
 
 
@@ -50,14 +52,19 @@ Speech::Speech() : e_Method(MRH_EvSpeechMethod::VOICE),
             switch (i)
             {
                 case CLI:
-#if MRH_SPEECH_CLI_ENABLED > 0
+#if MRH_SPEECH_USE_METHOD_CLI > 0
                     m_Method.insert(std::make_pair(CLI, new class CLI()));
 #endif
                     break;
                 case MRH_SRV:
+#if MRH_SPEECH_USE_METHOD_SERVER > 0
+                    m_Method.insert(std::make_pair(MRH_SRV, new class Server()));
+#endif
                     break;
                 case VOICE:
-                    m_Method.insert(std::make_pair(VOICE, new Voice()));
+#if MRH_SPEECH_USE_METHOD_VOICE > 0
+                    m_Method.insert(std::make_pair(VOICE, new class Voice()));
+#endif
                     break;
             }
         }

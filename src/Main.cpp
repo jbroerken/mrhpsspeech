@@ -89,6 +89,7 @@ int main(int argc, const char* argv[])
     }
     
     // Setup PortAudio
+#if MRH_SPEECH_USE_METHOD_VOICE > 0
     PaError i_Error;
     if ((i_Error = Pa_Initialize()) != paNoError)
     {
@@ -96,6 +97,7 @@ int main(int argc, const char* argv[])
                     ("Failed to initialuze PortAudio! " + std::string(Pa_GetErrorText(i_Error))).c_str(),
                     EXIT_FAILURE);
     }
+#endif
     
     // Setup service specific data
     c_Logger.Log(MRH_PSBLogger::INFO, "Initializing mrhpsspeech (" + std::string(VERSION_NUMBER) + ")...",
@@ -138,6 +140,16 @@ int main(int argc, const char* argv[])
     // Exit
     c_Logger.Log(MRH_PSBLogger::INFO, "Terminating service.",
                  "Main.cpp", __LINE__);
+    
+#if MRH_SPEECH_USE_METHOD_VOICE > 0
+    if ((i_Error = Pa_Terminate()) != paNoError)
+    {
+        c_Logger.Log(MRH_PSBLogger::INFO, "Failed to terminate PortAudio!" +
+                                          std::string(Pa_GetErrorText(i_Error)),
+                     "Main.cpp", __LINE__);
+    }
+#endif
+    
     delete p_Context;
     return EXIT_SUCCESS;
 }
