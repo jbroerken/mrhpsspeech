@@ -51,7 +51,6 @@
 CLI::CLI() : b_Update(true),
              i_ConnectionFD(-1),
              i_ClientFD(-1),
-             b_CanConnect(false), // Only allow connections on Resume() call
              v_Read(0),
              u32_Read(0),
              v_Write(0),
@@ -115,14 +114,11 @@ CLI::~CLI() noexcept
 //*************************************************************************************
 
 void CLI::Resume()
-{
-    b_CanConnect = true;
-}
+{}
 
 void CLI::Pause()
 {
     DisconnectClient();
-    b_CanConnect = false;
 }
 
 //*************************************************************************************
@@ -174,7 +170,7 @@ void CLI::Update(CLI* p_Instance) noexcept
     while (p_Instance->b_Update == true)
     {
         // Connection required to be handled?
-        if (p_Instance->b_CanConnect == false || p_Instance->i_ClientFD > -1)
+        if (p_Instance->i_ClientFD > -1)
         {
             std::this_thread::sleep_for(std::chrono::seconds(1));
             continue;
