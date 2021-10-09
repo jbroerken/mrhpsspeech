@@ -42,7 +42,8 @@
 //*************************************************************************************
 
 Speech::Speech() : e_Method(MRH_EvSpeechMethod::VOICE),
-                   b_Update(true)
+                   b_Update(true),
+                   b_Reset(false)
 {
     // Add methods
     for (size_t i = 0; i < METHOD_COUNT; ++i)
@@ -110,22 +111,7 @@ Speech::~Speech() noexcept
 
 void Speech::Reset() noexcept
 {
-    std::lock_guard<std::mutex> c_Guard(c_Mutex);
-    
-    // Reset all
-    for (auto& Method : m_Method)
-    {
-        try
-        {
-            Method.second->Reset();
-        }
-        catch (Exception& e)
-        {
-            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "Failed to reset method: " +
-                                                                   std::string(e.what()),
-                                           "Speech.cpp", __LINE__);
-        }
-    }
+    b_Reset = true;
 }
 
 //*************************************************************************************
@@ -141,16 +127,24 @@ void Speech::Update(Speech* p_Instance) noexcept
     
     while (p_Instance->b_Update == true)
     {
-        // Lock reset mutex
-        std::lock_guard<std::mutex> c_Guard(p_Instance->c_Mutex);
-        
         // Grab the method to use
         // NOTE: We check the method each time for all even if the current one is
         //       valid to catch cli connections, etc.
         for (auto& Method : p_Instance->m_Method)
         {
-            // Is this method usable and different?
-            if (Method.second == p_Method || Method.second->IsUsable() == false)
+            // Is this method usable?
+            if (Method.second == p_Method)
+            {
+                // Reset if no longer usable
+                if (Method.second->IsUsable() == false)
+                {
+                    p_Method = NULL;
+                    p_Instance->e_Method = MRH_EvSpeechMethod::VOICE; // Default
+                }
+                
+                continue;
+            }
+            else if (Method.second->IsUsable() == false) // Other method than current
             {
                 continue;
             }
@@ -189,8 +183,21 @@ void Speech::Update(Speech* p_Instance) noexcept
         // No method?
         if (p_Method == NULL)
         {
+            // Remove reset if no method in use
+            if (p_Instance->b_Reset == true)
+            {
+                p_Instance->b_Reset = false;
+            }
+            
             std::this_thread::sleep_for(std::chrono::seconds(1));
             continue;
+        }
+        
+        // Method needs reset?
+        if (p_Instance->b_Reset == true)
+        {
+            p_Method->Reset();
+            p_Instance->b_Reset = false;
         }
         
         // Exchange data

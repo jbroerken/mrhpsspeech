@@ -119,8 +119,8 @@ private:
     //*************************************************************************************
     
     std::thread c_Thread;
-    std::mutex c_Mutex;
     std::atomic<bool> b_Update;
+    std::atomic<bool> b_Reset;
     
     OutputStorage c_OutputStorage;
     
