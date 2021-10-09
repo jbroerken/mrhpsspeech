@@ -1,5 +1,5 @@
 /**
- *  Server.h
+ *  CBReset.h
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -19,92 +19,53 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef Server_h
-#define Server_h
+#ifndef CBReset_h
+#define CBReset_h
 
 // C / C++
+#include <memory>
 
 // External
+#include <libmrhpsb/MRH_Callback.h>
 
 // Project
-#include "../SpeechMethod.h"
+#include "../../Speech/Speech.h"
 
 
-class Server : public SpeechMethod
+class CBReset : public MRH_Callback
 {
 public:
-    
+
     //*************************************************************************************
     // Constructor / Destructor
     //*************************************************************************************
     
     /**
      *  Default constructor.
+     *
+     *  \param p_Speech The used speech to check on callback.
      */
     
-    Server();
+    CBReset(std::shared_ptr<Speech>& p_Speech) noexcept;
     
     /**
      *  Default destructor.
      */
     
-    ~Server() noexcept;
+    ~CBReset() noexcept;
     
     //*************************************************************************************
-    // Useage
-    //*************************************************************************************
-    
-    /**
-     *  Resume speech method.
-     */
-    
-    void Resume() override;
-    
-    /**
-     *  Reset speech method.
-     */
-    
-    void Reset() override;
-    
-    /**
-     *  Pause speech method.
-     */
-    
-    void Pause() override;
-    
-    //*************************************************************************************
-    // Listen
+    // Callback
     //*************************************************************************************
     
     /**
-     *  Listen to speech input.
-     */
-    
-    void Listen() override;
-    
-    //*************************************************************************************
-    // Say
-    //*************************************************************************************
-    
-    /**
-     *  Perform speech output.
+     *  Perform a callback with a recieved service available event.
      *
-     *  \param c_OutputStorage The output storage to use.
+     *  \param p_Event The recieved service available event.
+     *  \param u32_GroupID The event group id for the user event.
      */
     
-    void Say(OutputStorage& c_OutputStorage) override;
-    
-    //*************************************************************************************
-    // Getters
-    //*************************************************************************************
-    
-    /**
-     *  Check if this speech method is usable.
-     *
-     *  \return true if usable, false if not.
-     */
-    
-    bool IsUsable() noexcept override;
+    void Callback(const MRH_EVBase* p_Event, MRH_Uint32 u32_GroupID) noexcept override;
     
 private:
     
@@ -112,8 +73,10 @@ private:
     // Data
     //*************************************************************************************
     
+    std::shared_ptr<Speech> p_Speech;
+    
 protected:
 
 };
 
-#endif /* Server_h */
+#endif /* CBReset_h */

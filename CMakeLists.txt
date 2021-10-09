@@ -71,6 +71,8 @@ set(SRC_DIR_PATH "${CMAKE_SOURCE_DIR}/src/")
 			 
 set(SRC_LIST_CALLBACK "${SRC_DIR_PATH}/Callback/Service/CBAvail.cpp"
                       "${SRC_DIR_PATH}/Callback/Service/CBAvail.h"
+                      "${SRC_DIR_PATH}/Callback/Service/CBReset.cpp"
+                      "${SRC_DIR_PATH}/Callback/Service/CBReset.h"
                       "${SRC_DIR_PATH}/Callback/Service/CBCustomCommand.cpp"
                       "${SRC_DIR_PATH}/Callback/Service/CBCustomCommand.h"
                       "${SRC_DIR_PATH}/Callback/Speech/CBSayString.cpp"

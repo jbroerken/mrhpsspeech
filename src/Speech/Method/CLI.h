@@ -48,6 +48,12 @@ public:
     CLI();
     
     /**
+     *  Reset speech method.
+     */
+    
+    void Reset() override;
+    
+    /**
      *  Default destructor.
      */
     

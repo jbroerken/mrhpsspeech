@@ -55,6 +55,12 @@ public:
     virtual void Resume();
     
     /**
+     *  Reset speech method.
+     */
+    
+    virtual void Reset();
+    
+    /**
      *  Pause speech method.
      */
     

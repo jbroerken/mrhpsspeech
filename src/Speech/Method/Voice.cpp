@@ -91,6 +91,19 @@ void Voice::Resume()
     c_Device.Record();
 }
 
+void Voice::Reset()
+{
+    // Reset current audio but keep listening
+    c_PocketSphinx.ResetDecoder();
+    c_GoogleSTT.ResetAudio();
+    c_Converter.ResetConverter();
+    
+    // Reset trigger and audio info
+    u64_TriggerValidS = 0;
+    b_ListenAudioAvailable = false;
+    us_ListenWaitSamples = 0;
+}
+
 void Voice::Pause()
 {
     // Reset Components

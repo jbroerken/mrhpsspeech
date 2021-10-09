@@ -105,6 +105,30 @@ Speech::~Speech() noexcept
 }
 
 //*************************************************************************************
+// Reset
+//*************************************************************************************
+
+void Speech::Reset() noexcept
+{
+    std::lock_guard<std::mutex> c_Guard(c_Mutex);
+    
+    // Reset all
+    for (auto& Method : m_Method)
+    {
+        try
+        {
+            Method.second->Reset();
+        }
+        catch (Exception& e)
+        {
+            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "Failed to reset method: " +
+                                                                   std::string(e.what()),
+                                           "Speech.cpp", __LINE__);
+        }
+    }
+}
+
+//*************************************************************************************
 // Update
 //*************************************************************************************
 
@@ -117,6 +141,9 @@ void Speech::Update(Speech* p_Instance) noexcept
     
     while (p_Instance->b_Update == true)
     {
+        // Lock reset mutex
+        std::lock_guard<std::mutex> c_Guard(p_Instance->c_Mutex);
+        
         // Grab the method to use
         // NOTE: We check the method each time for all even if the current one is
         //       valid to catch cli connections, etc.

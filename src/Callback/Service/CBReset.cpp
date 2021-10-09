@@ -1,5 +1,5 @@
 /**
- *  Server.cpp
+ *  CBReset.cpp
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -20,81 +20,30 @@
  */
 
 // C / C++
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <errno.h>
-#include <cstring>
 
 // External
 #include <libmrhpsb/MRH_PSBLogger.h>
 
 // Project
-#include "./Server.h"
-
-// Pre-defined
+#include "./CBReset.h"
 
 
 //*************************************************************************************
 // Constructor / Destructor
 //*************************************************************************************
 
-Server::Server()
-{
-    
-}
+CBReset::CBReset(std::shared_ptr<Speech>& p_Speech) noexcept : p_Speech(p_Speech)
+{}
 
-Server::~Server() noexcept
-{
-    
-}
+CBReset::~CBReset() noexcept
+{}
 
 //*************************************************************************************
-// Useage
+// Callback
 //*************************************************************************************
 
-void Server::Resume()
+void CBReset::Callback(const MRH_EVBase* p_Event, MRH_Uint32 u32_GroupID) noexcept
 {
-
-}
-
-void Server::Reset()
-{
-    // @NOTE: Do not reset output buffers!
-}
-
-void Server::Pause()
-{
-
-}
-
-//*************************************************************************************
-// Listen
-//*************************************************************************************
-
-void Server::Listen()
-{
-
-}
-
-//*************************************************************************************
-// Say
-//*************************************************************************************
-
-void Server::Say(OutputStorage& c_OutputStorage)
-{
-
-}
-
-//*************************************************************************************
-// Getters
-//*************************************************************************************
-
-bool Server::IsUsable() noexcept
-{
-    return false;
+    // Let the speech class handle all
+    p_Speech->Reset();
 }

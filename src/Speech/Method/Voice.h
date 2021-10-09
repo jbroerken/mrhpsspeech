@@ -69,6 +69,12 @@ public:
     void Resume() override;
     
     /**
+     *  Reset speech method.
+     */
+    
+    void Reset() override;
+    
+    /**
      *  Pause speech method.
      */
     

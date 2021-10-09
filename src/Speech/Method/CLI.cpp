@@ -116,6 +116,11 @@ CLI::~CLI() noexcept
 void CLI::Resume()
 {}
 
+void CLI::Reset()
+{
+    // @NOTE: Do not reset output buffers!
+}
+
 void CLI::Pause()
 {
     DisconnectClient();

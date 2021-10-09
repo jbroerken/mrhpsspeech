@@ -64,6 +64,11 @@ void SpeechMethod::Resume()
     throw Exception("Default speech resume function called!");
 }
 
+void SpeechMethod::Reset()
+{
+    throw Exception("Default speech reset function called!");
+}
+
 void SpeechMethod::Pause()
 {
     throw Exception("Default speech pause function called!");
