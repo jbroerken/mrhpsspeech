@@ -53,7 +53,7 @@ CBAvail::~CBAvail() noexcept
 
 void CBAvail::Callback(const MRH_EVBase* p_Event, MRH_Uint32 u32_GroupID) noexcept
 {
-    bool b_Usable = true;
+    bool b_Usable = p_Speech->GetMethodSelected();
     
     try
     {

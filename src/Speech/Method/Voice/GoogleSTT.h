@@ -129,6 +129,7 @@ private:
     
     // String
     std::mutex c_TranscribeMutex;
+    std::atomic<MRH_Uint64> u64_TranscribeValidAfterMS;
     std::list<std::string> l_Transcribed;
     
 protected:

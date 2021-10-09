@@ -20,6 +20,7 @@
  */
 
 // C / C++
+#include <chrono>
 
 // External
 #include <google/cloud/speech/v1/cloud_speech.grpc.pb.h>
@@ -39,12 +40,17 @@ using google::cloud::speech::v1::RecognizeResponse;
 using google::cloud::speech::v1::RecognitionConfig;
 using google::cloud::speech::v1::StreamingRecognitionResult;
 
+using std::chrono::system_clock;
+using std::chrono::milliseconds;
+using std::chrono::duration_cast;
+
 
 //*************************************************************************************
 // Constructor / Destructor
 //*************************************************************************************
 
-GoogleSTT::GoogleSTT() : b_Update(true)
+GoogleSTT::GoogleSTT() : b_Update(true),
+                         u64_TranscribeValidAfterMS(0) // Lowest timepoint, always valid
 {
     try
     {
@@ -79,6 +85,12 @@ void GoogleSTT::ResetStrings() noexcept
 {
     std::lock_guard<std::mutex> c_Guard(c_TranscribeMutex);
     l_Transcribed.clear();
+    
+    // For the transcribe thread, in case it is currently running
+    // This now defines that all transcriptions before this time point
+    // should be ignored since a reset happended
+    auto Duration = system_clock::now().time_since_epoch();
+    u64_TranscribeValidAfterMS = duration_cast<milliseconds>(Duration).count();
 }
 
 //*************************************************************************************
@@ -123,6 +135,7 @@ void GoogleSTT::Transcribe(GoogleSTT* p_Instance) noexcept
     std::mutex& c_TranscribeMutex = p_Instance->c_TranscribeMutex;
     std::list<std::pair<MRH_Uint32, std::vector<MRH_Sint16>>>& l_Audio = p_Instance->l_Audio;
     std::list<std::string>& l_Transcribed = p_Instance->l_Transcribed;
+    std::atomic<MRH_Uint64>& u64_TranscribeValidAfterMS = p_Instance->u64_TranscribeValidAfterMS;
     
     // Google vars
     std::string s_LangCode = Configuration::Singleton().GetGoogleLanguageCode();
@@ -132,6 +145,13 @@ void GoogleSTT::Transcribe(GoogleSTT* p_Instance) noexcept
         /**
          *  Data Grab
          */
+        
+        // Set the starting time point, to check if a reset was requested
+        // which causes the transcription to be discarded.
+        // @NOTE: This is NOT the same as a audio reset, which can't start to
+        //        transcribe until the mutex was freed.
+        auto Duration = system_clock::now().time_since_epoch();
+        MRH_Uint64 u64_StartTimeMS = duration_cast<milliseconds>(Duration).count();
         
         // Grab allowed audio buffer
         c_AudioMutex.lock();
@@ -145,7 +165,7 @@ void GoogleSTT::Transcribe(GoogleSTT* p_Instance) noexcept
         else
         {
             c_AudioMutex.unlock();
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            std::this_thread::sleep_for(milliseconds(100));
             continue;
         }
         
@@ -222,10 +242,15 @@ void GoogleSTT::Transcribe(GoogleSTT* p_Instance) noexcept
             }
         }
         
+        // Should be discarded? (if reset happended during transcribe)
+        if (u64_StartTimeMS < u64_TranscribeValidAfterMS)
+        {
+            continue;
+        }
+        
         // Add to strings
         if (s_Transcipt.size() > 0)
         {
-            printf("Transcribed: %s\n", s_Transcipt.c_str());
             c_TranscribeMutex.lock();
             l_Transcribed.emplace_back(s_Transcipt);
             c_TranscribeMutex.unlock();

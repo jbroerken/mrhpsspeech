@@ -95,6 +95,7 @@ void Voice::Reset()
 {
     // Reset current audio but keep listening
     c_PocketSphinx.ResetDecoder();
+    c_GoogleSTT.ResetStrings();
     c_GoogleSTT.ResetAudio();
     c_Converter.ResetConverter();
     
@@ -232,10 +233,11 @@ void Voice::Listen()
             // Add the pause for the first sample
             if (us_ListenWaitSamples == 0 && u64_TriggerValidS >= u64_CurrentTimeS)
             {
-                // Trigger was valid, now keep valid during speech
-                u64_TriggerValidS = u64_CurrentTimeS + c_Config.GetTriggerTimeoutS();
                 c_GoogleSTT.AddAudio(c_Audio);
             }
+            
+            // Trigger was valid, now keep valid during speech pause
+            u64_TriggerValidS = u64_CurrentTimeS + c_Config.GetTriggerTimeoutS();
             
             // Stil in "pause" phase, wait
             us_ListenWaitSamples += c_Audio.v_Buffer.size();

@@ -84,6 +84,14 @@ public:
     
     MRH_EvSpeechMethod::Method GetMethod() noexcept;
     
+    /**
+     *  Check if a speech method was selected.
+     *
+     *  \return true if selected, false if not.
+     */
+    
+    bool GetMethodSelected() noexcept;
+    
 private:
     
     //*************************************************************************************
@@ -126,6 +134,7 @@ private:
     
     std::map<Method, SpeechMethod*> m_Method;
     std::atomic<MRH_EvSpeechMethod::Method> e_Method; // Separate for thread safety
+    std::atomic<bool> b_MethodSelected;
     
 protected:
 

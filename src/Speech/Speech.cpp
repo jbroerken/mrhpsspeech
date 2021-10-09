@@ -43,7 +43,8 @@
 
 Speech::Speech() : e_Method(MRH_EvSpeechMethod::VOICE),
                    b_Update(true),
-                   b_Reset(false)
+                   b_Reset(false),
+                   b_MethodSelected(false)
 {
     // Add methods
     for (size_t i = 0; i < METHOD_COUNT; ++i)
@@ -189,8 +190,18 @@ void Speech::Update(Speech* p_Instance) noexcept
                 p_Instance->b_Reset = false;
             }
             
+            // No longer selected
+            if (p_Instance->b_MethodSelected == true)
+            {
+                p_Instance->b_MethodSelected = false;
+            }
+            
             std::this_thread::sleep_for(std::chrono::seconds(1));
             continue;
+        }
+        else if (p_Instance->b_MethodSelected == false)
+        {
+            p_Instance->b_MethodSelected = true;
         }
         
         // Method needs reset?
@@ -226,4 +237,9 @@ OutputStorage& Speech::GetOutputStorage() noexcept
 MRH_EvSpeechMethod::Method Speech::GetMethod() noexcept
 {
     return e_Method;
+}
+
+bool Speech::GetMethodSelected() noexcept
+{
+    return b_MethodSelected;
 }
