@@ -97,14 +97,15 @@ if(USE_METHOD_VOICE)
                                "${SRC_DIR_PATH}/Speech/Method/Voice/VoiceAudio.h"
                                "${SRC_DIR_PATH}/Speech/Method/Voice/RateConverter.cpp"
                                "${SRC_DIR_PATH}/Speech/Method/Voice/RateConverter.h"
-                               "${SRC_DIR_PATH}/Speech/Method/Voice/PADevice.cpp"
-                               "${SRC_DIR_PATH}/Speech/Method/Voice/PADevice.h"
                                "${SRC_DIR_PATH}/Speech/Method/Voice/PocketSphinx.cpp"
                                "${SRC_DIR_PATH}/Speech/Method/Voice/PocketSphinx.h"
                                "${SRC_DIR_PATH}/Speech/Method/Voice/GoogleSTT.cpp"
                                "${SRC_DIR_PATH}/Speech/Method/Voice/GoogleSTT.h"
                                "${SRC_DIR_PATH}/Speech/Method/Voice/GoogleTTS.cpp"
                                "${SRC_DIR_PATH}/Speech/Method/Voice/GoogleTTS.h"
+                               "${SRC_DIR_PATH}/Speech/Method/Voice/AudioStream.cpp"
+                               "${SRC_DIR_PATH}/Speech/Method/Voice/AudioStream.h"
+                               "${SRC_DIR_PATH}/Speech/Method/Voice/AudioStreamOpCode.h"
                                "${SRC_DIR_PATH}/Speech/Method/Voice.cpp"
                                "${SRC_DIR_PATH}/Speech/Method/Voice.h")
 endif(USE_METHOD_VOICE)
@@ -158,7 +159,6 @@ if(USE_METHOD_SERVER)
 endif(USE_METHOD_SERVER)
 
 if(USE_METHOD_VOICE)
-    find_library(libportaudio NAMES portaudio REQUIRED)
     find_library(libsamplerate NAMES samplerate REQUIRED)
     find_library(libsphinxbase NAMES sphinxbase REQUIRED)
     find_library(libpocketsphinx NAMES pocketsphinx REQUIRED)
@@ -177,7 +177,6 @@ if(USE_METHOD_SERVER)
 endif(USE_METHOD_SERVER)
 
 if(USE_METHOD_VOICE)
-    target_link_libraries(mrhpsspeech PUBLIC portaudio)
     target_link_libraries(mrhpsspeech PUBLIC samplerate)
     target_link_libraries(mrhpsspeech PUBLIC sphinxbase)
     target_link_libraries(mrhpsspeech PUBLIC pocketsphinx)

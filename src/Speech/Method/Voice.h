@@ -32,7 +32,8 @@
 #include "../SpeechMethod.h"
 #include "./Voice/MonoAudio.h"
 #include "./Voice/RateConverter.h"
-#include "./Voice/PADevice.h"
+//#include "./Voice/PADevice.h"
+#include "./Voice/AudioStream.h"
 #include "./Voice/PocketSphinx.h"
 #include "./Voice/GoogleSTT.h"
 #include "./Voice/GoogleTTS.h"
@@ -121,7 +122,7 @@ private:
     //*************************************************************************************
     
     // Components
-    PADevice c_Device;
+    AudioStream c_AudioStream;
     PocketSphinx c_PocketSphinx;
     GoogleSTT c_GoogleSTT;
     GoogleTTS c_GoogleTTS;

@@ -88,7 +88,7 @@ void Voice::Resume()
     c_GoogleTTS.ResetAudio();
     
     // Just start recording
-    c_Device.Record();
+    c_AudioStream.Record();
 }
 
 void Voice::Reset()
@@ -108,7 +108,7 @@ void Voice::Reset()
 void Voice::Pause()
 {
     // Reset Components
-    c_Device.StopDevice(); // Stop both playback and recording
+    c_AudioStream.StopAll(); // Stop both playback and recording
     c_PocketSphinx.ResetDecoder(); // Reset decoder, new recognition next time
     c_GoogleSTT.ResetAudio(); // Reset audio
     c_GoogleTTS.ResetStrings(); // Reset passed strings
@@ -159,7 +159,7 @@ void Voice::Listen()
     std::this_thread::sleep_for(std::chrono::milliseconds(LISTEN_CHECK_WAIT_MS));
     
     // Can we even record?
-    if (c_Device.GetRecording() == false)
+    if (c_AudioStream.GetRecording() == false)
     {
         return;
     }
@@ -169,7 +169,7 @@ void Voice::Listen()
      */
     
     // Grab sample
-    MonoAudio c_Audio = c_Device.GetRecordedAudio();
+    MonoAudio c_Audio = c_AudioStream.GetRecordedAudio();
     
     if (c_Audio.v_Buffer.size() == 0)
     {
@@ -321,7 +321,7 @@ void Voice::Say(OutputStorage& c_OutputStorage)
      */
     
     // Do nothing during output playback
-    if (c_Device.GetPlayback() == true)
+    if (c_AudioStream.GetPlayback() == true)
     {
         return;
     }
@@ -337,15 +337,15 @@ void Voice::Say(OutputStorage& c_OutputStorage)
             // Add sound as output data and play
             if (b_PlayTriggerSound == true)
             {
-                c_Device.SetPlaybackAudio(c_TriggerSound);
+                c_AudioStream.SetPlaybackAudio(c_TriggerSound);
                 b_PlayTriggerSound = false; // Reset request
             }
             else
             {
-                c_Device.SetPlaybackAudio(c_GoogleTTS.GetAudio());
+                c_AudioStream.SetPlaybackAudio(c_GoogleTTS.GetAudio());
             }
             
-            c_Device.Playback();
+            c_AudioStream.Playback();
             
             // Set start
             u64_PlaybackStartS = time(NULL);
@@ -356,10 +356,10 @@ void Voice::Say(OutputStorage& c_OutputStorage)
                                            "Voice.cpp", __LINE__);
         }
     }
-    else if (c_Device.GetRecording() == false)
+    else if (c_AudioStream.GetRecording() == false)
     {
         // Nothing to play, start listening again
-        c_Device.Record();
+        c_AudioStream.Record();
         
         // Add time passed in seconds to trigger timeout
         u64_TriggerValidS += (time(NULL) - u64_PlaybackStartS);

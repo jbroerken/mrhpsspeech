@@ -1,5 +1,5 @@
 /**
- *  PADevice.h
+ *  AudioStream.h
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -19,23 +19,24 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef PADevice_h
-#define PADevice_h
+#ifndef AudioStream_h
+#define AudioStream_h
 
 // C / C++
-#include <vector>
+#include <thread>
 #include <atomic>
+#include <vector>
+#include <mutex>
+#include <list>
 
 // External
 #include <MRH_Typedefs.h>
-#include <portaudio.h>
 
 // Project
 #include "./MonoAudio.h"
-#include "./RateConverter.h"
 
 
-class PADevice
+class AudioStream
 {
 public:
     
@@ -47,13 +48,13 @@ public:
      *  Default constructor.
      */
     
-    PADevice();
+    AudioStream();
     
     /**
      *  Default destructor.
      */
     
-    ~PADevice() noexcept;
+    ~AudioStream() noexcept;
     
     //*************************************************************************************
     // Stream
@@ -63,7 +64,7 @@ public:
      *  Stop all audio streams.
      */
     
-    void StopDevice() noexcept;
+    void StopAll() noexcept;
     
     //*************************************************************************************
     // Input
@@ -131,10 +132,22 @@ private:
     // Types
     //*************************************************************************************
     
-    class Input
+    enum AudioState
+    {
+        NONE = 0,
+        
+        RECORDING = 1,
+        PLAYBACK = 2,
+        
+        AUDIO_STATE_MAX = PLAYBACK,
+        
+        AUDIO_STATE_COUNT = AUDIO_STATE_MAX + 1
+    };
+    
+    class AudioDevice
     {
     public:
-        
+    
         //*************************************************************************************
         // Constructor / Destructor
         //*************************************************************************************
@@ -143,165 +156,108 @@ private:
          *  Default constructor.
          */
         
-        Input() noexcept;
+        AudioDevice();
         
         /**
          *  Default destructor.
          */
         
-        ~Input() noexcept;
+        ~AudioDevice() noexcept;
+        
+        //*************************************************************************************
+        // Update
+        //*************************************************************************************
+        
+        /**
+         *  Record audio.
+         */
+        
+        void Record() noexcept;
+        
+        /**
+         *  Play audio.
+         */
+        
+        void Play() noexcept;
+        
+        //*************************************************************************************
+        // Getters
+        //*************************************************************************************
+        
+        /**
+         *  Get the current audio state.
+         *
+         *  \return The current audio state.
+         */
+        
+        AudioState GetState() noexcept;
+        
+        //*************************************************************************************
+        // Setters
+        //*************************************************************************************
+        
+        /**
+         *  Switch the current audio state.
+         *
+         *  \param e_State The new audio state.
+         */
+        
+        void SetState(AudioState e_State) noexcept;
         
         //*************************************************************************************
         // Data
         //*************************************************************************************
         
-        std::mutex c_Mutex;
+        std::vector<std::pair<float, std::vector<MRH_Sint16>>> v_Recieved; // <Peak Amp, Sound Data>
+        std::mutex c_RecievedMutex;
         
-        MRH_Sint16* p_Buffer;
-        MRH_Sint16* p_BufferA;
-        MRH_Sint16* p_BufferB;
-        size_t us_BufferPos;
-        size_t us_BufferSize;
+        std::vector<MRH_Sint16> v_Send;
+        std::mutex c_SendMutex;
         
-        MRH_Uint32 u32_KHz;
-        MRH_Uint8 u8_Channels;
-    };
-    
-    class Output
-    {
-    public:
+    private:
         
         //*************************************************************************************
-        // Constructor / Destructor
+        // Update
         //*************************************************************************************
         
         /**
-         *  Default constructor.
+         *  Update the audio device.
+         *
+         *  \param p_Instance The audio device to update.
          */
         
-        Output() noexcept;
-        
-        /**
-         *  Default destructor.
-         */
-        
-        ~Output() noexcept;
+        static void Update(AudioDevice* p_Instance) noexcept;
         
         //*************************************************************************************
         // Data
         //*************************************************************************************
         
-        std::mutex c_Mutex;
+        std::thread c_Thread;
+        std::atomic<bool> b_Update;
         
-        std::vector<MRH_Sint16> v_Buffer;
-        size_t us_BufferPos;
+        std::atomic<AudioState> e_State;
+        std::atomic<bool> b_StateChanged; // To send correct codes
         
-        MRH_Uint32 u32_KHz;
-        MRH_Uint8 u8_Channels;
+    protected:
+        
     };
-    
-    //*************************************************************************************
-    // Stream
-    //*************************************************************************************
-    
-    /**
-     *  Start a PortAudio stream.
-     *
-     *  \param p_Stream The stream to start.
-     */
-    
-    void StartStream(PaStream* p_Stream);
-    
-    /**
-     *  Stop a PortAudio stream.
-     *
-     *  \param p_Stream The stream to stop.
-     */
-    
-    void StopStream(PaStream* p_Stream);
-    
-    /**
-     *  Close a PortAudio stream.
-     *
-     *  \param p_Stream The stream to close.
-     */
-    
-    void CloseStream(PaStream* p_Stream) noexcept;
-    
-    //*************************************************************************************
-    // Input
-    //*************************************************************************************
-    
-    /**
-     *  Setup input device and stream.
-     */
-    
-    void SetupInput();
-    
-    /**
-     *  Close input device and stream.
-     */
-    
-    void CloseInput() noexcept;
-    
-    /**
-     *  Flip the input buffer in use.
-     */
-    
-    void FlipInputBuffer() noexcept;
-    
-    /**
-     *  Update callback for input audio.
-     */
-    
-    static int PAInputCallback(const void* p_Input,
-                               void* p_Output,
-                               unsigned long u32_FrameCount,
-                               const PaStreamCallbackTimeInfo* p_TimeInfo,
-                               PaStreamCallbackFlags e_StatusFlags,
-                               void* p_UserData) noexcept;
-    
-    //*************************************************************************************
-    // Output
-    //*************************************************************************************
-    
-    /**
-     *  Setup output device and stream.
-     */
-    
-    void SetupOutput();
-    
-    /**
-     *  Close output device and stream.
-     */
-    
-    void CloseOutput() noexcept;
-    
-    /**
-     *  Update callback for output audio.
-     */
-    
-    static int PAOutputCallback(const void* p_Input,
-                                void* p_Output,
-                                unsigned long u32_FrameCount,
-                                const PaStreamCallbackTimeInfo* p_TimeInfo,
-                                PaStreamCallbackFlags e_StatusFlags,
-                                void* p_UserData) noexcept;
     
     //*************************************************************************************
     // Data
     //*************************************************************************************
     
-    PaStream* p_InputStream;
-    PaStream* p_OutputStream;
+    std::list<AudioDevice> l_Device;
+    std::list<AudioDevice>::iterator ActiveDevice;
     
-    Input c_InputAudio;
-    Output c_OutputAudio;
+    // Audio Info
+    std::pair<MRH_Uint32, MRH_Uint32> c_RecordingFormat; // <KHz, Frame Elements>
+    std::pair<MRH_Uint32, MRH_Uint32> c_PlaybackFormat;
     
-    RateConverter c_Converter;
+    // Audio to add to devices
+    std::vector<MRH_Sint16> v_Send;
     
 protected:
     
 };
 
-#endif /* PADevice_h */
+#endif /* AudioStream_h */
