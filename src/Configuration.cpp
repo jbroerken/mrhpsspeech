@@ -112,7 +112,7 @@ namespace
 // Constructor / Destructor
 //*************************************************************************************
 
-Configuration::Configuration() noexcept : s_TriggerKeyphrase("Hey Maro"),
+Configuration::Configuration() noexcept : s_TriggerKeyphrase("Hey Mamao"),
                                           u32_TriggerTimeoutS(30),
                                           s_TriggerSoundPath("/var/mrh/mrhpsspeech/Triggered.raw"),
                                           u32_PAMicDeviceID(0),

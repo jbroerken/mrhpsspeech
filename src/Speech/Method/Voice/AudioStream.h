@@ -23,10 +23,8 @@
 #define AudioStream_h
 
 // C / C++
-#include <thread>
-#include <atomic>
+#include <utility>
 #include <vector>
-#include <mutex>
 #include <list>
 
 // External
@@ -34,6 +32,7 @@
 
 // Project
 #include "./MonoAudio.h"
+#include "./AudioDevice.h"
 
 
 class AudioStream
@@ -127,128 +126,6 @@ public:
     void SetPlaybackAudio(MonoAudio const& c_Audio);
     
 private:
-    
-    //*************************************************************************************
-    // Types
-    //*************************************************************************************
-    
-    enum AudioState
-    {
-        NONE = 0,
-        
-        RECORDING = 1,
-        PLAYBACK = 2,
-        
-        AUDIO_STATE_MAX = PLAYBACK,
-        
-        AUDIO_STATE_COUNT = AUDIO_STATE_MAX + 1
-    };
-    
-    class AudioDevice
-    {
-    public:
-    
-        //*************************************************************************************
-        // Constructor / Destructor
-        //*************************************************************************************
-        
-        /**
-         *  Default constructor.
-         *
-         *  \param b_CanRecord If the device is able to record audio.
-         *  \param b_CanPlay If the device is able to play audio.
-         */
-        
-        AudioDevice(bool b_CanRecord,
-                    bool b_CanPlay);
-        
-        /**
-         *  Default destructor.
-         */
-        
-        ~AudioDevice() noexcept;
-        
-        //*************************************************************************************
-        // Update
-        //*************************************************************************************
-        
-        /**
-         *  Record audio.
-         */
-        
-        void Record() noexcept;
-        
-        /**
-         *  Play audio.
-         */
-        
-        void Play() noexcept;
-        
-        //*************************************************************************************
-        // Getters
-        //*************************************************************************************
-        
-        /**
-         *  Get the current audio state.
-         *
-         *  \return The current audio state.
-         */
-        
-        AudioState GetState() noexcept;
-        
-        //*************************************************************************************
-        // Setters
-        //*************************************************************************************
-        
-        /**
-         *  Switch the current audio state.
-         *
-         *  \param e_State The new audio state.
-         */
-        
-        void SetState(AudioState e_State) noexcept;
-        
-        //*************************************************************************************
-        // Data
-        //*************************************************************************************
-        
-        const bool b_CanRecord;
-        const bool b_CanPlay;
-        
-        std::vector<std::pair<float, std::vector<MRH_Sint16>>> v_Recieved; // <Average Amp, Sound Data>
-        std::mutex c_RecievedMutex;
-        float f32_LastAmplitude; // Last average amplitude
-        
-        std::vector<MRH_Sint16> v_Send;
-        std::mutex c_SendMutex;
-        
-    private:
-        
-        //*************************************************************************************
-        // Update
-        //*************************************************************************************
-        
-        /**
-         *  Update the audio device.
-         *
-         *  \param p_Instance The audio device to update.
-         */
-        
-        static void Update(AudioDevice* p_Instance) noexcept;
-        
-        //*************************************************************************************
-        // Data
-        //*************************************************************************************
-        
-        std::thread c_Thread;
-        std::atomic<bool> b_Update;
-        
-        std::atomic<AudioState> e_State;
-        std::atomic<bool> b_StateChanged; // To send correct codes
-        
-    protected:
-        
-    };
     
     //*************************************************************************************
     // Data

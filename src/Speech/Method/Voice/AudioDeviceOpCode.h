@@ -1,5 +1,5 @@
 /**
- *  AudioStreamOpCode.h
+ *  AudioDeviceOpCode.h
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -19,8 +19,8 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef AudioStreamOpCode_h
-#define AudioStreamOpCode_h
+#ifndef AudioDeviceOpCode_h
+#define AudioDeviceOpCode_h
 
 // C / C++
 
@@ -32,13 +32,14 @@
 // Pre-defined
 #define AUDIO_STREAM_OPCODE_VERSION 1
 
-#define AUDIO_STREAM_CONNECT_NONCE_SIZE 256
+#define AUDIO_STREAM_CONNECT_NAME_SIZE 1024
+#define AUDIO_STREAM_CONNECT_ADDRESS_SIZE 512
 #define AUDIO_STREAM_PAIR_KEY_SIZE 1024
 #define AUDIO_STREAM_PAIR_SSID_SIZE 1024
 #define AUDIO_STREAM_PAIR_PASSWORD_SIZE 1024
 
 
-namespace AudioStreamOpCode
+namespace AudioDeviceOpCode
 {
     //*************************************************************************************
     // OpCodes
@@ -229,7 +230,10 @@ namespace AudioStreamOpCode
             // Pairing error (0 if none)
             OpCodeError u32_Error;
             
-            // TODO: Info for pairing
+            // Info for pairing
+            char p_Name[AUDIO_STREAM_CONNECT_NAME_SIZE];
+            char p_Address[AUDIO_STREAM_CONNECT_ADDRESS_SIZE];
+            int i_Port;
             
         }DEVICE_PAIR_GIVE_CONNECION_DATA;
         
@@ -258,4 +262,4 @@ namespace AudioStreamOpCode
     }
 }
 
-#endif /* AudioStreamOpCode_h */
+#endif /* AudioDeviceOpCode_h */

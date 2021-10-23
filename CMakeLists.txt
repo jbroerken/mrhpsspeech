@@ -105,7 +105,9 @@ if(USE_METHOD_VOICE)
                                "${SRC_DIR_PATH}/Speech/Method/Voice/GoogleTTS.h"
                                "${SRC_DIR_PATH}/Speech/Method/Voice/AudioStream.cpp"
                                "${SRC_DIR_PATH}/Speech/Method/Voice/AudioStream.h"
-                               "${SRC_DIR_PATH}/Speech/Method/Voice/AudioStreamOpCode.h"
+                               "${SRC_DIR_PATH}/Speech/Method/Voice/AudioDevice.cpp"
+                               "${SRC_DIR_PATH}/Speech/Method/Voice/AudioDevice.h"
+                               "${SRC_DIR_PATH}/Speech/Method/Voice/AudioDeviceOpCode.h"
                                "${SRC_DIR_PATH}/Speech/Method/Voice.cpp"
                                "${SRC_DIR_PATH}/Speech/Method/Voice.h")
 endif(USE_METHOD_VOICE)
@@ -205,6 +207,7 @@ endif(USE_METHOD_SERVER)
 
 if(USE_METHOD_VOICE)
     target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_USE_METHOD_VOICE=1)
+    target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_DEVICE_CONFIG_PATH="/usr/local/etc/mrh/mrhpservice/Speech_Device.conf")
 endif(USE_METHOD_VOICE)
 
 ###

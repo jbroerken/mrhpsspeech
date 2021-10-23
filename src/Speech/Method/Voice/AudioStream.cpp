@@ -25,15 +25,49 @@
 
 // External
 #include <libmrhpsb/MRH_PSBLogger.h>
+#include <libmrhbf.h>
 
 // Project
 #include "./AudioStream.h"
-#include "./AudioStreamOpCode.h"
 #include "./RateConverter.h"
 #include "../../../Configuration.h"
 
 // Pre-defined
-#define AVG_SAMPLES_MAX_AMOUNT (SIZE_MAX / INT16_MAX)
+#ifndef MRH_SPEECH_DEVICE_CONFIG_PATH
+    #define MRH_SPEECH_DEVICE_CONFIG_PATH "/usr/local/etc/mrh/mrhpservice/Speech_Device.conf"
+#endif
+
+namespace
+{
+    enum Identifier
+    {
+        // Block Name
+        BLOCK_DEVICE = 0,
+        
+        // Device Key
+        DEVICE_ID = 1,
+        DEVICE_NAME = 2,
+        DEVICE_ADDRESS = 3,
+        DEVICE_PORT = 4,
+        
+        // Bounds
+        IDENTIFIER_MAX = DEVICE_PORT,
+
+        IDENTIFIER_COUNT = IDENTIFIER_MAX + 1
+    };
+
+    const char* p_Identifier[IDENTIFIER_COUNT] =
+    {
+        // Block Name
+        "Device",
+        
+        // Trigger Key
+        "ID",
+        "Name",
+        "Address",
+        "Port"
+    };
+}
 
 
 //*************************************************************************************
@@ -42,124 +76,41 @@
 
 AudioStream::AudioStream()
 {
-    // @TODO: Read Device List, add connections for all
-    //        Individual exception for all devices
-    //          -> Set Active to list end on no devices
-    //          -> Also set formats from config!
+    // Set audio format
+    // @TODO: KHz and Sample Count
+    
+    // Now read devices
+    try
+    {
+        MRH_BlockFile c_File(MRH_SPEECH_DEVICE_CONFIG_PATH);
+        
+        for (auto& Block : c_File.l_Block)
+        {
+            try
+            {
+                if (Block.GetName().compare(p_Identifier[BLOCK_DEVICE]) == 0)
+                {
+                    l_Device.emplace_back(static_cast<MRH_Uint32>(std::stoi(Block.GetValue(p_Identifier[DEVICE_ID]))),
+                                          Block.GetValue(p_Identifier[DEVICE_NAME]),
+                                          Block.GetValue(p_Identifier[DEVICE_ADDRESS]),
+                                          std::stoi(Block.GetValue(p_Identifier[DEVICE_PORT])));
+                }
+            }
+            catch (std::exception& e)
+            {
+                MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "Failed to add device! " + std::string(e.what()),
+                                               "AudioStream.cpp", __LINE__);
+            }
+        }
+    }
+    catch (std::exception& e)
+    {
+        throw Exception("Could not read device configuration: " + std::string(e.what()));
+    }
 }
 
 AudioStream::~AudioStream() noexcept
 {}
-
-AudioStream::AudioDevice::AudioDevice(bool b_CanRecord,
-                                      bool b_CanPlay) : e_State(NONE),
-                                                        b_StateChanged(false),
-                                                        f32_LastAmplitude(0.f),
-                                                        b_CanPlay(b_CanPlay),
-                                                        b_CanRecord(b_CanRecord)
-{
-    // @TODO: Socket connection to device, throw on failed
-    
-    try
-    {
-        c_Thread = std::thread(AudioDevice::Update, this);
-    }
-    catch (std::exception& e)
-    {
-        throw Exception("Failed to start audio device thread!" + std::string(e.what()));
-    }
-}
-
-AudioStream::AudioDevice::~AudioDevice() noexcept
-{
-    b_Update = false;
-    c_Thread.join();
-}
-
-//*************************************************************************************
-// Update
-//*************************************************************************************
-
-void AudioStream::AudioDevice::Update(AudioDevice* p_Instance) noexcept
-{
-    while (p_Instance->b_Update == true)
-    {
-        // @TODO: Run depending on state
-    }
-}
-
-void AudioStream::AudioDevice::Record() noexcept
-{
-    MRH_Sint16 p_Data[2048] = { 0 };
-    size_t testsize = 2048;
-    
-    // @TODO: Switch if required and wait for response,
-    //        Otherwise recieve
-    //
-    //        CALCULATE SAMPLE -> AVERAGE <- AMPLITUDE HERE!
-    //        Also, set last average
-    
-    // Do we need to use arrays for the average?
-    size_t us_TotalSamples = 2048; // TODO: Buffer Size
-    size_t us_SampleAverage = 0;
-    
-    if (us_TotalSamples > AVG_SAMPLES_MAX_AMOUNT)
-    {
-        // First, store all samples in groups for size constraints
-        size_t us_Iterations = us_TotalSamples / AVG_SAMPLES_MAX_AMOUNT;
-        us_Iterations += (us_TotalSamples % AVG_SAMPLES_MAX_AMOUNT > 0 ? 1 : 0);
-        
-        size_t us_Pos = 0; // Pos in buffer
-        
-        for (size_t i = 0; i < us_Iterations; ++i)
-        {
-            size_t us_GroupTotal = 0;
-            size_t us_End;
-            size_t us_ProcessedSamples;
-            
-            if (us_TotalSamples > (us_Pos + AVG_SAMPLES_MAX_AMOUNT))
-            {
-                us_ProcessedSamples = AVG_SAMPLES_MAX_AMOUNT;
-                us_End = us_Pos + AVG_SAMPLES_MAX_AMOUNT;
-            }
-            else
-            {
-                us_ProcessedSamples = us_TotalSamples - us_Pos;
-                us_End = us_TotalSamples;
-            }
-            
-            for (; us_Pos < us_End; ++us_Pos)
-            {
-                us_GroupTotal += abs(p_Data[us_Pos]); // TODO: Buffer read
-            }
-            
-            us_SampleAverage += (us_GroupTotal / us_ProcessedSamples);
-        }
-        
-        // Now, create average for all
-        us_SampleAverage /= us_Iterations;
-    }
-    else
-    {
-        for (size_t i = 0; i < us_TotalSamples; ++i)
-        {
-            us_SampleAverage += abs(p_Data[i]); // TODO: Buffer Read
-        }
-        
-        us_SampleAverage /= us_TotalSamples;
-    }
-    
-    // Create float
-    float f32_Average = static_cast<double>(us_SampleAverage) / 32768.f;
-    
-}
-
-void AudioStream::AudioDevice::Play() noexcept
-{
-    // @TODO: Switch if required and wait for response,
-    //        Otherwise send
-    //        -> Data is correct here, no checking needed!
-}
 
 //*************************************************************************************
 // Stream
@@ -170,7 +121,7 @@ void AudioStream::StopAll() noexcept
     // Stop all for everything
     for (auto& Device : l_Device)
     {
-        Device.SetState(NONE);
+        Device.SetState(AudioDevice::NONE);
     }
 }
 
@@ -185,11 +136,11 @@ void AudioStream::Record()
     {
         if (Device.b_CanRecord == true)
         {
-            Device.SetState(RECORDING);
+            Device.SetState(AudioDevice::RECORDING);
         }
         else
         {
-            Device.SetState(NONE);
+            Device.SetState(AudioDevice::NONE);
         }
     }
 }
@@ -210,7 +161,7 @@ void AudioStream::Playback()
             continue;
         }
         else if (PlaybackDevice == l_Device.end() || /* No device set yet */
-                 PlaybackDevice->f32_LastAmplitude < It->f32_LastAmplitude) /* Device set, but quiter */
+                 PlaybackDevice->GetRecordingAmplitude() < It->GetRecordingAmplitude()) /* Device set, but quiter */
         {
             PlaybackDevice = It;
         }
@@ -234,11 +185,11 @@ void AudioStream::Playback()
             It->c_SendMutex.unlock();
             
             // Now start playback
-            It->SetState(PLAYBACK);
+            It->SetState(AudioDevice::PLAYBACK);
         }
         else
         {
-            It->SetState(NONE);
+            It->SetState(AudioDevice::NONE);
         }
     }
 }
@@ -246,11 +197,6 @@ void AudioStream::Playback()
 //*************************************************************************************
 // Getters
 //*************************************************************************************
-
-AudioStream::AudioState AudioStream::AudioDevice::GetState() noexcept
-{
-    return e_State;
-}
 
 MonoAudio AudioStream::GetRecordedAudio() noexcept
 {
@@ -304,7 +250,7 @@ bool AudioStream::GetPlayback() noexcept
 {
     for (auto& Device : l_Device)
     {
-        if (Device.GetState() == PLAYBACK)
+        if (Device.GetState() == AudioDevice::PLAYBACK)
         {
             return true;
         }
@@ -317,7 +263,7 @@ bool AudioStream::GetRecording() noexcept
 {
     for (auto& Device : l_Device)
     {
-        if (Device.GetState() == RECORDING)
+        if (Device.GetState() == AudioDevice::RECORDING)
         {
             return true;
         }
@@ -329,12 +275,6 @@ bool AudioStream::GetRecording() noexcept
 //*************************************************************************************
 // Setters
 //*************************************************************************************
-
-void AudioStream::AudioDevice::SetState(AudioState e_State) noexcept
-{
-    this->e_State = e_State;
-    b_StateChanged = true;
-}
 
 void AudioStream::SetPlaybackAudio(MonoAudio const& c_Audio)
 {
