@@ -134,7 +134,7 @@ void AudioStream::Record()
     // Record on all which are able to
     for (auto& Device : l_Device)
     {
-        if (Device.b_CanRecord == true)
+        if (Device.GetCanRecord() == true)
         {
             Device.SetState(AudioDevice::RECORDING);
         }
@@ -156,7 +156,7 @@ void AudioStream::Playback()
     
     for (auto It = l_Device.begin(); It != l_Device.end(); ++It)
     {
-        if (It->b_CanPlay == false) // Skip if not possible to playback
+        if (It->GetCanPlay() == false) // Skip if not possible to playback
         {
             continue;
         }
@@ -215,7 +215,7 @@ MonoAudio AudioStream::GetRecordedAudio() noexcept
         for (auto It = l_Device.begin(); It != l_Device.end(); ++It)
         {
             // No samples?
-            if (It->b_CanRecord == false || It->v_Recieved.size() >= us_Sample)
+            if (It->GetCanRecord() == false || It->v_Recieved.size() >= us_Sample)
             {
                 continue;
             }

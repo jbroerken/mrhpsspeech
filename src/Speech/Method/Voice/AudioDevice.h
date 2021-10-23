@@ -67,16 +67,12 @@ public:
      *  \param s_Name The device name.
      *  \param s_Address The device connection address.
      *  \param i_Port The device connection port.
-     *  \param b_CanRecord If the device is able to record audio.
-     *  \param b_CanPlay If the device is able to play audio.
      */
     
     AudioDevice(MRH_Uint32 u32_ID,
                 std::string const& s_Name,
                 std::string const& s_Address,
-                int i_Port,
-                bool b_CanRecord,
-                bool b_CanPlay);
+                int i_Port);
     
     /**
      *  Default destructor.
@@ -104,6 +100,22 @@ public:
     
     float GetRecordingAmplitude() noexcept;
     
+    /**
+     *  Check if the device can record audio.
+     *
+     *  \return true if the device can record audio, false if not.
+     */
+    
+    bool GetCanRecord() noexcept;
+    
+    /**
+     *  Check if the device can play audio.
+     *
+     *  \return true if the device can play audio, false if not.
+     */
+    
+    bool GetCanPlay() noexcept;
+    
     //*************************************************************************************
     // Setters
     //*************************************************************************************
@@ -114,7 +126,7 @@ public:
      *  \param e_State The new audio state.
      */
     
-    void SetState(DeviceState e_State) noexcept;
+    void SetState(DeviceState e_State);
     
     //*************************************************************************************
     // Data
@@ -122,9 +134,6 @@ public:
     
     const MRH_Uint32 u32_ID;
     const std::string s_Name;
-    
-    const bool b_CanRecord;
-    const bool b_CanPlay;
     
     std::vector<std::pair<float, std::vector<MRH_Sint16>>> v_Recieved; // <Average Amp, Sound Data>
     std::mutex c_RecievedMutex;
@@ -164,7 +173,7 @@ private:
      *  Play the currently set audio.
      */
     
-    void Playback();
+    void Play();
     
     //*************************************************************************************
     // Data
@@ -173,8 +182,14 @@ private:
     std::thread c_Thread;
     std::atomic<bool> b_Update;
     
+    std::atomic<int> i_SocketFD;
+    MRH_Uint8 u8_Endianess;
+    
     std::atomic<DeviceState> e_State;
     std::atomic<bool> b_StateChanged; // To send correct codes
+    
+    bool b_CanRecord;
+    bool b_CanPlay;
     
     std::atomic<float> f32_LastAmplitude; // Last average amplitude
     

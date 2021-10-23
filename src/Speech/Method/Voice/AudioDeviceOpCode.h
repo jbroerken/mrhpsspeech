@@ -30,13 +30,13 @@
 // Project
 
 // Pre-defined
-#define AUDIO_STREAM_OPCODE_VERSION 1
+#define AUDIO_DEVICE_OPCODE_VERSION 1
 
-#define AUDIO_STREAM_CONNECT_NAME_SIZE 1024
-#define AUDIO_STREAM_CONNECT_ADDRESS_SIZE 512
-#define AUDIO_STREAM_PAIR_KEY_SIZE 1024
-#define AUDIO_STREAM_PAIR_SSID_SIZE 1024
-#define AUDIO_STREAM_PAIR_PASSWORD_SIZE 1024
+#define AUDIO_DEVICE_CONNECT_NAME_SIZE 1024
+#define AUDIO_DEVICE_CONNECT_ADDRESS_SIZE 512
+#define AUDIO_DEVICE_PAIR_KEY_SIZE 1024
+#define AUDIO_DEVICE_PAIR_SSID_SIZE 1024
+#define AUDIO_DEVICE_PAIR_PASSWORD_SIZE 1024
 
 
 namespace AudioDeviceOpCode
@@ -61,10 +61,7 @@ namespace AudioDeviceOpCode
         SERVICE_AUDIO_PLAYBACK_DATA = 6,        // Playback data buffer
         SERVICE_AUDIO_PLAYBACK_END = 7,         // Stop playback
         
-        SERVICE_DISABLE_PLAYBACK,               // Disable device playback
-        SERVICE_DISABLE_RECORDING,              // Disable device recording
-        SERVICE_ENABLE_PLAYBACK,                // Enable device playback
-        SERVICE_ENABLE_RECORDING,               // Enable device recording
+        SERVICE_CHANGE_DEVICE_STATE,            // Change device state
         
         // Audio Device
         DEVICE_CONNECT_RESPONSE,                // Connection response of service request
@@ -77,11 +74,10 @@ namespace AudioDeviceOpCode
         DEVICE_AUDIO_RECORDING_DATA,            // Recording data buffer
         DEVICE_AUDIO_RECORDING_END,             // Stop recording
         
-        DEVICE_PLAYBACK_STATE,                  // Return current device playback state
-        DEVICE_RECORDING_STATE,                 // Return current device recording state
+        DEVICE_STATE_CHANGED,                   // Give current device state
         
         // Bounds
-        OPCODE_MAX = DEVICE_RECORDING_STATE,
+        OPCODE_MAX = DEVICE_STATE_CHANGED,
         
         OPCODE_COUNT = OPCODE_MAX + 1
     };
@@ -165,8 +161,8 @@ namespace AudioDeviceOpCode
         // SERVICE_PAIR_CONNECTION_DETAILS
         typedef struct SERVICE_PAIR_CONNECTION_DETAILS_DATA_t
         {
-            char p_SSID[AUDIO_STREAM_PAIR_SSID_SIZE]; // Encrypted with key, slimmed with base64
-            char p_Password[AUDIO_STREAM_PAIR_PASSWORD_SIZE]; // Encrypted with key, slimmed with base64
+            char p_SSID[AUDIO_DEVICE_PAIR_SSID_SIZE]; // Encrypted with key, slimmed with base64
+            char p_Password[AUDIO_DEVICE_PAIR_PASSWORD_SIZE]; // Encrypted with key, slimmed with base64
             MRH_Uint8 u8_NetworkType;
             
         }SERVICE_PAIR_CONNECTION_DETAILS_DATA;
@@ -180,17 +176,14 @@ namespace AudioDeviceOpCode
         // SERVICE_AUDIO_PLAYBACK_END
         // No Data
         
-        // SERVICE_DISABLE_PLAYBACK
-        // No Data
-        
-        // SERVICE_DISABLE_RECORDING
-        // No Data
-        
-        // SERVICE_ENABLE_PLAYBACK
-        // No Data
-        
-        // SERVICE_ENABLE_RECORDING
-        // No Data
+        // SERVICE_CHANGE_DEVICE_STATE
+        typedef struct SERVICE_CHANGE_DEVICE_STATE_DATA_t
+        {
+            // States to use (0 disabled, 1 enabled)
+            MRH_Uint8 u8_Record;
+            MRH_Uint8 u8_Playback;
+            
+        }SERVICE_CHANGE_DEVICE_STATE_DATA;
         
         /**
          *  Audio Device
@@ -201,6 +194,9 @@ namespace AudioDeviceOpCode
         {
             // Connection error (0 if none)
             OpCodeError u32_Error;
+            
+            // Endianess
+            MRH_Uint8 u8_Endianess; // 0 = little, 1 = big
             
             // Device capabilities
             MRH_Uint8 u8_CanRecord;
@@ -220,7 +216,7 @@ namespace AudioDeviceOpCode
         typedef struct DEVICE_PAIR_GIVE_KEY_DATA_t
         {
             // The key to connect to this device
-            char p_Key[AUDIO_STREAM_PAIR_KEY_SIZE];
+            char p_Key[AUDIO_DEVICE_PAIR_KEY_SIZE];
             
         }DEVICE_PAIR_GIVE_KEY_DATA;
         
@@ -231,8 +227,8 @@ namespace AudioDeviceOpCode
             OpCodeError u32_Error;
             
             // Info for pairing
-            char p_Name[AUDIO_STREAM_CONNECT_NAME_SIZE];
-            char p_Address[AUDIO_STREAM_CONNECT_ADDRESS_SIZE];
+            char p_Name[AUDIO_DEVICE_CONNECT_NAME_SIZE];
+            char p_Address[AUDIO_DEVICE_CONNECT_ADDRESS_SIZE];
             int i_Port;
             
         }DEVICE_PAIR_GIVE_CONNECION_DATA;
@@ -246,19 +242,17 @@ namespace AudioDeviceOpCode
         // DEVICE_AUDIO_RECORDING_END
         // No Data
         
-        // DEVICE_PLAYBACK_STATE
-        typedef struct DEVICE_PLAYBACK_STATE_DATA_t
+        // DEVICE_STATE_CHANGED
+        typedef struct DEVICE_STATE_CHANGED_DATA_t
         {
             // State change error (0 if none)
             OpCodeError u32_Error;
             
-            // New State (0 disabled, 1 enabled)
-            MRH_Uint8 u8_State;
+            // States in use (0 disabled, 1 enabled)
+            MRH_Uint8 u8_Recording;
+            MRH_Uint8 u8_Playback;
             
-        }DEVICE_PLAYBACK_STATE_DATA;
-        
-        // DEVICE_RECORDING_STATE
-        typedef DEVICE_PLAYBACK_STATE_DATA DEVICE_RECORDING_STATE_DATA;
+        }DEVICE_STATE_CHANGED_DATA;
     }
 }
 

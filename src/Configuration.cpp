@@ -39,8 +39,8 @@ namespace
     {
         // Block Name
         BLOCK_TRIGGER = 0,
-        BLOCK_PA_MICROPHONE = 1,
-        BLOCK_PA_SPEAKER = 2,
+        BLOCK_RECORDING = 1,
+        BLOCK_PLAYBACK = 2,
         BLOCK_POCKET_SPHINX = 3,
         BLOCK_GOOGLE_API = 4,
         
@@ -49,16 +49,14 @@ namespace
         TRIGGER_TIMEOUT_S = 6,
         TRIGGER_SOUND_PATH = 7,
         
-        // PA Microphone Key
-        PA_MICROPHONE_DEVICE_ID,
-        PA_MICROPHONE_KHZ,
-        PA_MICROPHONE_FRAME_SAMPLES,
-        PA_MICROPHONE_RECORDING_STORAGE_S,
+        // Recording Key
+        RECORDING_KHZ,
+        RECORDING_FRAME_SAMPLES,
+        RECORDING_STORAGE_S,
         
-        // PA Speaker Key
-        PA_SPEAKER_DEVICE_ID,
-        PA_SPEAKER_KHZ,
-        PA_SPEAKER_FRAME_SAMPLES,
+        // Playback Key
+        PLAYBACK_KHZ,
+        PLAYBACK_FRAME_SAMPLES,
         
         // Pocket Sphinx Key
         POCKET_SPHINX_MODEL_DIR_PATH,
@@ -77,8 +75,8 @@ namespace
     {
         // Block Name
         "Trigger",
-        "PAMicrophone",
-        "PASpeaker",
+        "Recording",
+        "Playback",
         "PocketSphinx",
         "GoogleAPI",
         
@@ -87,14 +85,12 @@ namespace
         "TimeoutS",
         "SoundFilePath",
         
-        // PA Microphone Key
-        "DeviceID",
+        // Recording Key
         "KHz",
         "FrameSamples",
         "RecordingStorageS",
         
-        // PA Speaker Key
-        "DeviceID",
+        // Playback Key
         "KHz",
         "FrameSamples",
         
@@ -115,13 +111,11 @@ namespace
 Configuration::Configuration() noexcept : s_TriggerKeyphrase("Hey Mamao"),
                                           u32_TriggerTimeoutS(30),
                                           s_TriggerSoundPath("/var/mrh/mrhpsspeech/Triggered.raw"),
-                                          u32_PAMicDeviceID(0),
-                                          u32_PAMicKHz(16000),
-                                          u32_PAMicFrameSamples(2048),
-                                          u32_PAMicRecordingStorageS(5),
-                                          u32_PASpeakerDeviceID(0),
-                                          u32_PASpeakerKHz(16000),
-                                          u32_PASpeakerFrameSamples(2048),
+                                          u32_RecordingKHz(16000),
+                                          u32_RecordingFrameSamples(2048),
+                                          u32_RecordingStorageS(5),
+                                          u32_PlaybackKHz(16000),
+                                          u32_PlaybackFrameSamples(2048),
                                           s_SphinxModelDirPath("/var/mrh/mrhpsspeech/sphinx/"),
                                           s_GoogleLangCode("en"),
                                           u32_GoogleVoiceGender(0)
@@ -158,18 +152,16 @@ void Configuration::Load()
                 u32_TriggerTimeoutS = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[TRIGGER_TIMEOUT_S])));
                 s_TriggerSoundPath = Block.GetValue(p_Identifier[TRIGGER_SOUND_PATH]);
             }
-            else if (Block.GetName().compare(p_Identifier[BLOCK_PA_MICROPHONE]) == 0)
+            else if (Block.GetName().compare(p_Identifier[BLOCK_RECORDING]) == 0)
             {
-                u32_PAMicDeviceID = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_MICROPHONE_DEVICE_ID])));
-                u32_PAMicKHz = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_MICROPHONE_KHZ])));
-                u32_PAMicFrameSamples = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_MICROPHONE_FRAME_SAMPLES])));
-                u32_PAMicRecordingStorageS = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_MICROPHONE_RECORDING_STORAGE_S])));
+                u32_RecordingKHz = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[RECORDING_KHZ])));
+                u32_RecordingFrameSamples = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[RECORDING_FRAME_SAMPLES])));
+                u32_RecordingStorageS = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[RECORDING_STORAGE_S])));
             }
-            else if (Block.GetName().compare(p_Identifier[BLOCK_PA_SPEAKER]) == 0)
+            else if (Block.GetName().compare(p_Identifier[BLOCK_PLAYBACK]) == 0)
             {
-                u32_PASpeakerDeviceID = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_SPEAKER_DEVICE_ID])));
-                u32_PASpeakerKHz = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_SPEAKER_KHZ])));
-                u32_PASpeakerFrameSamples = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PA_SPEAKER_FRAME_SAMPLES])));
+                u32_PlaybackKHz = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PLAYBACK_KHZ])));
+                u32_PlaybackFrameSamples = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PLAYBACK_FRAME_SAMPLES])));
             }
             else if (Block.GetName().compare(p_Identifier[BLOCK_POCKET_SPHINX]) == 0)
             {
@@ -207,39 +199,29 @@ std::string Configuration::GetTriggerSoundPath() noexcept
     return s_TriggerSoundPath;
 }
 
-MRH_Uint32 Configuration::GetPAMicDeviceID() noexcept
+MRH_Uint32 Configuration::GetRecordingKHz() noexcept
 {
-    return u32_PAMicDeviceID;
+    return u32_RecordingKHz;
 }
 
-MRH_Uint32 Configuration::GetPAMicKHz() noexcept
+MRH_Uint32 Configuration::GetRecordingFrameSamples() noexcept
 {
-    return u32_PAMicKHz;
+    return u32_RecordingFrameSamples;
 }
 
-MRH_Uint32 Configuration::GetPAMicFrameSamples() noexcept
+MRH_Uint32 Configuration::GetRecordingStorageS() noexcept
 {
-    return u32_PAMicFrameSamples;
+    return u32_RecordingStorageS;
 }
 
-MRH_Uint32 Configuration::GetPAMicRecordingStorageS() noexcept
+MRH_Uint32 Configuration::GetPlaybackKHz() noexcept
 {
-    return u32_PAMicRecordingStorageS;
+    return u32_PlaybackKHz;
 }
 
-MRH_Uint32 Configuration::GetPASpeakerDeviceID() noexcept
+MRH_Uint32 Configuration::GetPlaybackFrameSamples() noexcept
 {
-    return u32_PASpeakerDeviceID;
-}
-
-MRH_Uint32 Configuration::GetPASpeakerKHz() noexcept
-{
-    return u32_PASpeakerKHz;
-}
-
-MRH_Uint32 Configuration::GetPASpeakerFrameSamples() noexcept
-{
-    return u32_PASpeakerFrameSamples;
+    return u32_PlaybackFrameSamples;
 }
 
 std::string Configuration::GetSphinxModelDirPath() noexcept

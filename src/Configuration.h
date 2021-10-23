@@ -98,60 +98,44 @@ public:
     std::string GetTriggerSoundPath() noexcept;
     
     /**
-     *  Get the id of the device used for the microhpone.
+     *  Get the recording KHz.
      *
-     *  \return The id of the device used for the microhpone.
+     *  \return The recording KHz.
      */
     
-    MRH_Uint32 GetPAMicDeviceID() noexcept;
+    MRH_Uint32 GetRecordingKHz() noexcept;
     
     /**
-     *  Get the microhpone KHz.
+     *  Get the recording frame samples.
      *
-     *  \return The microhpone KHz.
+     *  \return The recording frame samples.
      */
     
-    MRH_Uint32 GetPAMicKHz() noexcept;
+    MRH_Uint32 GetRecordingFrameSamples() noexcept;
     
     /**
-     *  Get the microhpone frame samples.
+     *  Get the recording sample storage size.
      *
-     *  \return The microhpone frame samples.
+     *  \return The recording sample storage size.
      */
     
-    MRH_Uint32 GetPAMicFrameSamples() noexcept;
+    MRH_Uint32 GetRecordingStorageS() noexcept;
     
     /**
-     *  Get the microhpone recording storage size.
+     *  Get the playback KHz.
      *
-     *  \return The microhpone recording storage size.
+     *  \return The playback KHz.
      */
     
-    MRH_Uint32 GetPAMicRecordingStorageS() noexcept;
+    MRH_Uint32 GetPlaybackKHz() noexcept;
     
     /**
-     *  Get the id of the device used for the speaker.
+     *  Get the playback frame samples.
      *
-     *  \return The id of the device used for the speaker.
+     *  \return The playback frame samples.
      */
     
-    MRH_Uint32 GetPASpeakerDeviceID() noexcept;
-    
-    /**
-     *  Get the speaker KHz.
-     *
-     *  \return The speaker KHz.
-     */
-    
-    MRH_Uint32 GetPASpeakerKHz() noexcept;
-    
-    /**
-     *  Get the speaker frame samples.
-     *
-     *  \return The speaker frame samples.
-     */
-    
-    MRH_Uint32 GetPASpeakerFrameSamples() noexcept;
+    MRH_Uint32 GetPlaybackFrameSamples() noexcept;
     
     /**
      *  Get the directory path to the pocket sphinx model.
@@ -204,16 +188,14 @@ private:
     MRH_Uint32 u32_TriggerTimeoutS;
     std::string s_TriggerSoundPath;
     
-    // PA Microphone
-    MRH_Uint32 u32_PAMicDeviceID;
-    MRH_Uint32 u32_PAMicKHz;
-    MRH_Uint32 u32_PAMicFrameSamples;
-    MRH_Uint32 u32_PAMicRecordingStorageS;
+    // Recording
+    MRH_Uint32 u32_RecordingKHz;
+    MRH_Uint32 u32_RecordingFrameSamples;
+    MRH_Uint32 u32_RecordingStorageS;
     
-    // PA Speaker
-    MRH_Uint32 u32_PASpeakerDeviceID;
-    MRH_Uint32 u32_PASpeakerKHz;
-    MRH_Uint32 u32_PASpeakerFrameSamples;
+    // Playback
+    MRH_Uint32 u32_PlaybackKHz;
+    MRH_Uint32 u32_PlaybackFrameSamples;
     
     // Pocket Sphinx
     std::string s_SphinxModelDirPath;
