@@ -154,9 +154,13 @@ private:
         
         /**
          *  Default constructor.
+         *
+         *  \param b_CanRecord If the device is able to record audio.
+         *  \param b_CanPlay If the device is able to play audio.
          */
         
-        AudioDevice();
+        AudioDevice(bool b_CanRecord,
+                    bool b_CanPlay);
         
         /**
          *  Default destructor.
@@ -208,8 +212,12 @@ private:
         // Data
         //*************************************************************************************
         
-        std::vector<std::pair<float, std::vector<MRH_Sint16>>> v_Recieved; // <Peak Amp, Sound Data>
+        const bool b_CanRecord;
+        const bool b_CanPlay;
+        
+        std::vector<std::pair<float, std::vector<MRH_Sint16>>> v_Recieved; // <Average Amp, Sound Data>
         std::mutex c_RecievedMutex;
+        float f32_LastAmplitude; // Last average amplitude
         
         std::vector<MRH_Sint16> v_Send;
         std::mutex c_SendMutex;
@@ -247,7 +255,6 @@ private:
     //*************************************************************************************
     
     std::list<AudioDevice> l_Device;
-    std::list<AudioDevice>::iterator ActiveDevice;
     
     // Audio Info
     std::pair<MRH_Uint32, MRH_Uint32> c_RecordingFormat; // <KHz, Frame Elements>

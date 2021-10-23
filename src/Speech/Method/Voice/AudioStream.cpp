@@ -20,6 +20,7 @@
  */
 
 // C / C++
+#include <limits.h>
 #include <cmath>
 
 // External
@@ -30,6 +31,9 @@
 #include "./AudioStreamOpCode.h"
 #include "./RateConverter.h"
 #include "../../../Configuration.h"
+
+// Pre-defined
+#define AVG_SAMPLES_MAX_AMOUNT (SIZE_MAX / INT16_MAX)
 
 
 //*************************************************************************************
@@ -47,8 +51,12 @@ AudioStream::AudioStream()
 AudioStream::~AudioStream() noexcept
 {}
 
-AudioStream::AudioDevice::AudioDevice() : e_State(NONE),
-                                          b_StateChanged(false)
+AudioStream::AudioDevice::AudioDevice(bool b_CanRecord,
+                                      bool b_CanPlay) : e_State(NONE),
+                                                        b_StateChanged(false),
+                                                        f32_LastAmplitude(0.f),
+                                                        b_CanPlay(b_CanPlay),
+                                                        b_CanRecord(b_CanRecord)
 {
     // @TODO: Socket connection to device, throw on failed
     
@@ -82,30 +90,68 @@ void AudioStream::AudioDevice::Update(AudioDevice* p_Instance) noexcept
 
 void AudioStream::AudioDevice::Record() noexcept
 {
+    MRH_Sint16 p_Data[2048] = { 0 };
+    size_t testsize = 2048;
+    
     // @TODO: Switch if required and wait for response,
     //        Otherwise recieve
     //
-    //        CALCULATE SAMPLE PEAK AMPLITUDE HERE!
+    //        CALCULATE SAMPLE -> AVERAGE <- AMPLITUDE HERE!
+    //        Also, set last average
     
+    // Do we need to use arrays for the average?
+    size_t us_TotalSamples = 2048; // TODO: Buffer Size
+    size_t us_SampleAverage = 0;
     
-    /*
-    // Calculate peak amplitude
-    us_Elements = v_Buffer.size();
-    float f32_Value;
-
-    for (size_t i = 0; i < us_Elements; ++i)
+    if (us_TotalSamples > AVG_SAMPLES_MAX_AMOUNT)
     {
-        // Get float value first
-        f32_Value = v_Buffer[i] / 32768.f;
-        f32_Value = fabs(f32_Value);
+        // First, store all samples in groups for size constraints
+        size_t us_Iterations = us_TotalSamples / AVG_SAMPLES_MAX_AMOUNT;
+        us_Iterations += (us_TotalSamples % AVG_SAMPLES_MAX_AMOUNT > 0 ? 1 : 0);
         
-        // Check the current peak
-        if (f32_Value > f32_Peak)
+        size_t us_Pos = 0; // Pos in buffer
+        
+        for (size_t i = 0; i < us_Iterations; ++i)
         {
-            f32_Peak = f32_Value;
+            size_t us_GroupTotal = 0;
+            size_t us_End;
+            size_t us_ProcessedSamples;
+            
+            if (us_TotalSamples > (us_Pos + AVG_SAMPLES_MAX_AMOUNT))
+            {
+                us_ProcessedSamples = AVG_SAMPLES_MAX_AMOUNT;
+                us_End = us_Pos + AVG_SAMPLES_MAX_AMOUNT;
+            }
+            else
+            {
+                us_ProcessedSamples = us_TotalSamples - us_Pos;
+                us_End = us_TotalSamples;
+            }
+            
+            for (; us_Pos < us_End; ++us_Pos)
+            {
+                us_GroupTotal += abs(p_Data[us_Pos]); // TODO: Buffer read
+            }
+            
+            us_SampleAverage += (us_GroupTotal / us_ProcessedSamples);
         }
+        
+        // Now, create average for all
+        us_SampleAverage /= us_Iterations;
     }
-    */
+    else
+    {
+        for (size_t i = 0; i < us_TotalSamples; ++i)
+        {
+            us_SampleAverage += abs(p_Data[i]); // TODO: Buffer Read
+        }
+        
+        us_SampleAverage /= us_TotalSamples;
+    }
+    
+    // Create float
+    float f32_Average = static_cast<double>(us_SampleAverage) / 32768.f;
+    
 }
 
 void AudioStream::AudioDevice::Play() noexcept
@@ -134,10 +180,17 @@ void AudioStream::StopAll() noexcept
 
 void AudioStream::Record()
 {
-    // Record on all
+    // Record on all which are able to
     for (auto& Device : l_Device)
     {
-        Device.SetState(RECORDING);
+        if (Device.b_CanRecord == true)
+        {
+            Device.SetState(RECORDING);
+        }
+        else
+        {
+            Device.SetState(NONE);
+        }
     }
 }
 
@@ -147,10 +200,33 @@ void AudioStream::Record()
 
 void AudioStream::Playback()
 {
+    // First, pick the device with the highest last average amp
+    std::list<AudioDevice>::iterator PlaybackDevice = l_Device.end();
+    
+    for (auto It = l_Device.begin(); It != l_Device.end(); ++It)
+    {
+        if (It->b_CanPlay == false) // Skip if not possible to playback
+        {
+            continue;
+        }
+        else if (PlaybackDevice == l_Device.end() || /* No device set yet */
+                 PlaybackDevice->f32_LastAmplitude < It->f32_LastAmplitude) /* Device set, but quiter */
+        {
+            PlaybackDevice = It;
+        }
+    }
+    
+    // No devices for playback, keep recording
+    if (PlaybackDevice == l_Device.end())
+    {
+        return;
+    }
+    
     // Disable recording for all and set the active device for playback
     for (auto It = l_Device.begin(); It != l_Device.end(); ++It)
     {
-        if (It == ActiveDevice)
+        // Playback on the active playback device, stop all others
+        if (It == PlaybackDevice)
         {
             // Copy audio before sending and pad if wierd order
             It->c_SendMutex.lock();
@@ -162,8 +238,6 @@ void AudioStream::Playback()
         }
         else
         {
-            // Expected to be further away, do nothing
-            // We want the speaker closest to the input
             It->SetState(NONE);
         }
     }
@@ -195,7 +269,7 @@ MonoAudio AudioStream::GetRecordedAudio() noexcept
         for (auto It = l_Device.begin(); It != l_Device.end(); ++It)
         {
             // No samples?
-            if (It->v_Recieved.size() >= us_Sample)
+            if (It->b_CanRecord == false || It->v_Recieved.size() >= us_Sample)
             {
                 continue;
             }
@@ -219,14 +293,6 @@ MonoAudio AudioStream::GetRecordedAudio() noexcept
                         Choice->v_Recieved[us_Sample].second.begin(),
                         Choice->v_Recieved[us_Sample].second.end());
         ++us_Sample;
-        
-        // Set the active device
-        // @NOTE: This may look a bit wierd, but it ensures that the
-        //        active device is set way less
-        if (us_Sample + 1 == Choice->v_Recieved.size())
-        {
-            ActiveDevice = Choice;
-        }
     }
     
     return MonoAudio(v_Buffer.data(),
@@ -236,26 +302,28 @@ MonoAudio AudioStream::GetRecordedAudio() noexcept
 
 bool AudioStream::GetPlayback() noexcept
 {
-    // Check the state of the active device, active is always
-    // the device which got the loudest recording
-    if (ActiveDevice == l_Device.end())
+    for (auto& Device : l_Device)
     {
-        return false;
+        if (Device.GetState() == PLAYBACK)
+        {
+            return true;
+        }
     }
     
-    return ActiveDevice->GetState() == PLAYBACK ? true : false;
+    return false;
 }
 
 bool AudioStream::GetRecording() noexcept
 {
-    // Check the state of the active device, active is always
-    // the device which got the loudest recording
-    if (ActiveDevice == l_Device.end())
+    for (auto& Device : l_Device)
     {
-        return false;
+        if (Device.GetState() == RECORDING)
+        {
+            return true;
+        }
     }
     
-    return ActiveDevice->GetState() == RECORDING ? true : false;
+    return false;
 }
 
 //*************************************************************************************
