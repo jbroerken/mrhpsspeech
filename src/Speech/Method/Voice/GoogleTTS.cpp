@@ -95,7 +95,7 @@ void GoogleTTS::Process(GoogleTTS* p_Instance) noexcept
 {
     // Service vars
     MRH_PSBLogger& c_Logger = MRH_PSBLogger::Singleton();
-    MRH_Uint32 u32_KHz = Configuration::Singleton().GetPASpeakerKHz();
+    MRH_Uint32 u32_KHz = Configuration::Singleton().GetPlaybackKHz();
     std::string s_String;
     
     std::mutex& c_StringMutex = p_Instance->c_StringMutex;

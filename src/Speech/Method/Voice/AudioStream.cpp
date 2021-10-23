@@ -77,7 +77,11 @@ namespace
 AudioStream::AudioStream()
 {
     // Set audio format
-    // @TODO: KHz and Sample Count
+    c_RecordingFormat.first = Configuration::Singleton().GetRecordingKHz();
+    c_RecordingFormat.second = Configuration::Singleton().GetRecordingFrameSamples();
+    
+    c_PlaybackFormat.first = Configuration::Singleton().GetPlaybackKHz();
+    c_PlaybackFormat.second = Configuration::Singleton().GetPlaybackFrameSamples();
     
     // Now read devices
     try
@@ -173,6 +177,8 @@ void AudioStream::Playback()
         return;
     }
     
+    static size_t us_FrameSize = Configuration::Singleton().GetPlaybackFrameSamples();
+    
     // Disable recording for all and set the active device for playback
     for (auto It = l_Device.begin(); It != l_Device.end(); ++It)
     {
@@ -181,7 +187,10 @@ void AudioStream::Playback()
         {
             // Copy audio before sending and pad if wierd order
             It->c_SendMutex.lock();
-            It->v_Send = v_Send; // @NOTE: No clearing, expect override
+            
+            TODO: Send Frame Samples richtig schreiben, endianess, write opcode func (send)
+            
+            //It->v_Send = v_Send; // @NOTE: No clearing, expect override
             It->c_SendMutex.unlock();
             
             // Now start playback
@@ -288,7 +297,7 @@ void AudioStream::SetPlaybackAudio(MonoAudio const& c_Audio)
     }
     
     // Copy to buffer
-    if (c_Audio.u32_KHz != c_PlaybackFormat.first)
+    if (c_Audio.u32_KHz != c_RecordingFormat.first)
     {
         // Difference, we need to convert
         try
@@ -310,7 +319,7 @@ void AudioStream::SetPlaybackAudio(MonoAudio const& c_Audio)
     }
     
     // Check if padding is needed
-    size_t us_Padding = v_Send.size() % c_PlaybackFormat.second;
+    size_t us_Padding = v_Send.size() % c_RecordingFormat.second;
     
     if (us_Padding != 0)
     {

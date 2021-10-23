@@ -41,7 +41,7 @@
 
 Voice::Voice() : c_PocketSphinx(Configuration::Singleton().GetSphinxModelDirPath()),
                  c_Converter(POCKET_SPHINX_REQUIRED_KHZ),
-                 c_TriggerSound({}, 0, Configuration::Singleton().GetPASpeakerKHz()),
+                 c_TriggerSound({}, 0, Configuration::Singleton().GetPlaybackKHz()),
                  u64_TriggerValidS(0),
                  b_PlayTriggerSound(false),
                  b_ListenAudioAvailable(false),

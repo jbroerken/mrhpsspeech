@@ -140,6 +140,15 @@ Configuration& Configuration::Singleton() noexcept
 
 void Configuration::Load()
 {
+    static bool b_IsLoaded = false;
+    
+    if (b_IsLoaded == true)
+    {
+        throw Exception("Configuration already loaded! Reloading blocked to prevent issues.");
+    }
+    
+    b_IsLoaded = true;
+    
     try
     {
         MRH_BlockFile c_File(MRH_SPEECH_CONFIGURATION_PATH);

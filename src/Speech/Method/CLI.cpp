@@ -354,7 +354,7 @@ void CLI::Say(OutputStorage& c_OutputStorage)
             u32_Written += ss_Write;
         }
     }
-    while (ss_Write >= 0 && u32_Written < v_Write.size());
+    while (ss_Write > 0 && u32_Written < v_Write.size());
     
     // Fully written?
     if (u32_Written == v_Write.size())

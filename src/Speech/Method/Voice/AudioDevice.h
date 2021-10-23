@@ -35,6 +35,11 @@
 // Project
 #include "../../../Exception.h"
 
+// Pre-defined
+#ifndef MRH_HOST_IS_BIG_ENDIAN // Big endian host, needs conversion
+    #define MRH_HOST_IS_BIG_ENDIAN 0
+#endif
+
 
 class AudioDevice
 {
@@ -121,7 +126,7 @@ public:
     //*************************************************************************************
     
     /**
-     *  Set the current audio state.
+     *  Set the current audio state. Old data for the state is cleared on switching.
      *
      *  \param e_State The new audio state.
      */
@@ -138,7 +143,7 @@ public:
     std::vector<std::pair<float, std::vector<MRH_Sint16>>> v_Recieved; // <Average Amp, Sound Data>
     std::mutex c_RecievedMutex;
     
-    std::vector<MRH_Sint16> v_Send;
+    std::vector<std::vector<MRH_Sint16>> v_Send;
     std::mutex c_SendMutex;
     
 private:
@@ -155,25 +160,88 @@ private:
     
     static void Update(AudioDevice* p_Instance) noexcept;
     
+    /**
+     *  Disconnect from the audio device.
+     */
+    
+    void Disconnect() noexcept;
+    
+    /**
+     *  Recieve device data from the device.
+     */
+    
+    void Recieve();
+    
+    /**
+     *  Send service data to the device.
+     */
+    
+    void Send();
+    
     //*************************************************************************************
-    // Record
+    // I/O
     //*************************************************************************************
     
     /**
-     *  Start recording audio.
+     *  Read bytes from the device connection.
+     *
+     *  \param p_Dst The destination to read to.
+     *  \param us_Length The length to read in bytes.
+     *  \param i_TimeoutMS The poll timeout in milliseconds.
+     *
+     *  \return true if reading succeeded, false if not.
      */
     
-    void Record();
+    bool ReadAll(MRH_Uint8* p_Dst, size_t us_Length, int i_TimeoutMS);
+    
+    /**
+     *  Read bytes from the device connection.
+     *
+     *  \param p_Dst The destination to read to.
+     *  \param us_Length The length to read in bytes.
+     *  \param i_TimeoutMS The poll timeout in milliseconds.
+     *
+     *  \return The amount of bytes read.
+     */
+    
+    ssize_t Read(MRH_Uint8* p_Dst, size_t us_Length, int i_TimeoutMS);
+    
+    /**
+     *  Write bytes to the device connection.
+     *
+     *  \param p_Src The source to write from.
+     *  \param us_Length The length to write in bytes.
+     *
+     *  \return true if writing succeeded, false if not.
+     */
+    
+    bool WriteAll(const MRH_Uint8* p_Src, size_t us_Length);
+    
+    /**
+     *  Write bytes to the device connection.
+     *
+     *  \param p_Src The source to write from.
+     *  \param us_Length The length to write in bytes.
+     *
+     *  \return The amount of bytes written.
+     */
+    
+    ssize_t Write(const MRH_Uint8* p_Src, size_t us_Length);
     
     //*************************************************************************************
-    // Playback
+    // Getters
     //*************************************************************************************
     
     /**
-     *  Play the currently set audio.
+     *  Get the average amplitude for a sample frame.
+     *
+     *  \param p_Buffer The sample buffer.
+     *  \param us_Elements The length of the sample buffer in elements.
+     *
+     *  \return The average amplitude in percent.
      */
     
-    void Play();
+    float GetAverageAmplitude(const MRH_Sint16* p_Buffer, size_t us_Length) noexcept;
     
     //*************************************************************************************
     // Data
@@ -183,10 +251,7 @@ private:
     std::atomic<bool> b_Update;
     
     std::atomic<int> i_SocketFD;
-    MRH_Uint8 u8_Endianess;
-    
-    std::atomic<DeviceState> e_State;
-    std::atomic<bool> b_StateChanged; // To send correct codes
+    std::atomic<DeviceState> e_State; // Active state
     
     bool b_CanRecord;
     bool b_CanPlay;

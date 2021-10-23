@@ -32,6 +32,9 @@
 // Pre-defined
 #define AUDIO_DEVICE_OPCODE_VERSION 1
 
+#define AUDIO_DEVICE_BOOL_TRUE 1
+#define AUDIO_DEVICE_BOOL_FALSE 0
+
 #define AUDIO_DEVICE_CONNECT_NAME_SIZE 1024
 #define AUDIO_DEVICE_CONNECT_ADDRESS_SIZE 512
 #define AUDIO_DEVICE_PAIR_KEY_SIZE 1024
@@ -48,7 +51,7 @@ namespace AudioDeviceOpCode
     enum OpCodeList
     {
         // Shared
-        ALL_HEARTBEAT = 0,                      // Check if partner is still available
+        ALL_HEARTBEAT = 0,                      // Signal availability to partner
         ALL_DISCONNECT = 1,                     // Disconnect from partner
         
         // Speech Service
@@ -57,9 +60,7 @@ namespace AudioDeviceOpCode
         SERVICE_PAIR_REQUEST = 3,               // Request pairing with a audio device
         SERVICE_PAIR_CONNECTION_DETAILS = 4,    // Send connection details (wifi, etc) to device, encrypted
         
-        SERVICE_AUDIO_PLAYBACK_START = 5,       // Start playback
-        SERVICE_AUDIO_PLAYBACK_DATA = 6,        // Playback data buffer
-        SERVICE_AUDIO_PLAYBACK_END = 7,         // Stop playback
+        SERVICE_AUDIO_PLAYBACK_AUDIO = 6,        // Playback data buffer
         
         SERVICE_CHANGE_DEVICE_STATE,            // Change device state
         
@@ -70,9 +71,7 @@ namespace AudioDeviceOpCode
         DEVICE_PAIR_GIVE_KEY,                   // Hand a public key to the service which wants to pair
         DEVICE_PAIR_GIVE_CONNECION,             // Hand the device connection info (name, ip, etc.) to the service wanting to pair
         
-        DEVICE_AUDIO_RECORDING_START,           // Start recording
-        DEVICE_AUDIO_RECORDING_DATA,            // Recording data buffer
-        DEVICE_AUDIO_RECORDING_END,             // Stop recording
+        DEVICE_AUDIO_RECORDING_AUDIO,           // Recording data buffer
         
         DEVICE_STATE_CHANGED,                   // Give current device state
         
@@ -100,13 +99,9 @@ namespace AudioDeviceOpCode
         // Pairing
         ALREADY_PAIRED = 3,
         
-        // Device Playback State
+        // Device State
         NO_SPEAKER = 4,
-        SPEAKER_ALREADY_DISABLED = 5,
-        
-        // Device Recording State
-        NO_MICROPHONE = 6,
-        MICROPHONE_ALREADY_DISABLED = 7,
+        NO_MICROPHONE = 5,
         
         // Bounds
         OPCODE_ERROR_MAX = NO_MICROPHONE,
@@ -119,6 +114,8 @@ namespace AudioDeviceOpCode
     //*************************************************************************************
     // OpCode Data
     //*************************************************************************************
+    
+    // @NOTE: All data uses little endian!
     
     extern "C"
     {
@@ -167,14 +164,8 @@ namespace AudioDeviceOpCode
             
         }SERVICE_PAIR_CONNECTION_DETAILS_DATA;
         
-        // SERVICE_AUDIO_PLAYBACK_START
-        // No Data
-        
         // SERVICE_AUDIO_PLAYBACK_DATA
         // @NOTE: Has data, but is simply the audio buffer
-        
-        // SERVICE_AUDIO_PLAYBACK_END
-        // No Data
         
         // SERVICE_CHANGE_DEVICE_STATE
         typedef struct SERVICE_CHANGE_DEVICE_STATE_DATA_t
@@ -194,9 +185,6 @@ namespace AudioDeviceOpCode
         {
             // Connection error (0 if none)
             OpCodeError u32_Error;
-            
-            // Endianess
-            MRH_Uint8 u8_Endianess; // 0 = little, 1 = big
             
             // Device capabilities
             MRH_Uint8 u8_CanRecord;
@@ -233,24 +221,14 @@ namespace AudioDeviceOpCode
             
         }DEVICE_PAIR_GIVE_CONNECION_DATA;
         
-        // DEVICE_AUDIO_RECORDING_START
-        // No Data
-        
         // DEVICE_AUDIO_RECORDING_DATA
         // @NOTE: Has data, but is simply the audio buffer
-        
-        // DEVICE_AUDIO_RECORDING_END
-        // No Data
         
         // DEVICE_STATE_CHANGED
         typedef struct DEVICE_STATE_CHANGED_DATA_t
         {
             // State change error (0 if none)
             OpCodeError u32_Error;
-            
-            // States in use (0 disabled, 1 enabled)
-            MRH_Uint8 u8_Recording;
-            MRH_Uint8 u8_Playback;
             
         }DEVICE_STATE_CHANGED_DATA;
     }
