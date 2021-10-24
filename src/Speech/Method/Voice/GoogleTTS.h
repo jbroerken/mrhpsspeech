@@ -23,16 +23,12 @@
 #define GoogleTTS_h
 
 // C / C++
-#include <thread>
-#include <mutex>
-#include <atomic>
 #include <string>
-#include <list>
 
 // External
 
 // Project
-#include "./MonoAudio.h"
+#include "./AudioTrack.h"
 
 
 class GoogleTTS
@@ -56,82 +52,24 @@ public:
     ~GoogleTTS() noexcept;
     
     //*************************************************************************************
-    // Reset
+    // Synthesise
     //*************************************************************************************
     
     /**
-     *  Clear text to speech string buffer.
-     */
-    
-    void ResetStrings() noexcept;
-    
-    /**
-     *  Clear text to speech audio results.
-     */
-    
-    void ResetAudio() noexcept;
-    
-    //*************************************************************************************
-    // String
-    //*************************************************************************************
-    
-    /**
-     *  Add string data for text to speech.
+     *  Synthesise a string to audio.
      *
-     *  \param s_String The UTF-8 string to add.
+     *  \param s_String The UTF-8 string to synthesise.
      */
     
-    void AddString(std::string const& s_String);
-    
-    //*************************************************************************************
-    // Audio
-    //*************************************************************************************
-    
-    /**
-     *  Check if a audio buffer for speech if available.
-     *
-     *  \return true if audio is available, false if not.
-     */
-    
-    bool GetAudioAvailable() noexcept;
-    
-    /**
-     *  Get the oldest audio buffer containing speech.
-     *
-     *  \return The speech audio buffer.
-     */
-    
-    MonoAudio GetAudio();
+    AudioTrack const& Synthesise(std::string const& s_String);
     
 private:
-    
-    //*************************************************************************************
-    // Process
-    //*************************************************************************************
-    
-    /**
-     *  Update text to speech processing.
-     *
-     *  \param p_Instance The class instance to use.
-     */
-    
-    static void Process(GoogleTTS* p_Instance) noexcept;
     
     //*************************************************************************************
     // Data
     //*************************************************************************************
     
-    // Thread
-    std::thread c_Thread;
-    std::atomic<bool> b_Update;
-    
-    // String
-    std::mutex c_StringMutex;
-    std::list<std::string> l_String;
-    
-    // Audio
-    std::mutex c_AudioMutex;
-    std::list<MonoAudio> l_Audio;
+    AudioTrack c_Audio; // Result
     
 protected:
     

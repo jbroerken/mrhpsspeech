@@ -31,7 +31,6 @@
 #include <MRH_Typedefs.h>
 
 // Project
-#include "./MonoAudio.h"
 #include "./AudioDevice.h"
 
 
@@ -81,21 +80,23 @@ public:
     
     /**
      *  Play the currently set audio.
+     *
+     *  \param c_Audio The audio for playback.
      */
     
-    void Playback();
+    void Playback(AudioTrack const& c_Audio);
     
     //*************************************************************************************
     // Getters
     //*************************************************************************************
     
     /**
-     *  Grab the currently stored recorded voice audio.
+     *  Grab the currently stored recorded audio.
      *
-     *  \return The current voice audio.
+     *  \return The current recorded audio.
      */
     
-    MonoAudio GetRecordedAudio() noexcept;
+    AudioTrack const& GetRecordedAudio();
     
     /**
      *  Check if audio is currently being played.
@@ -112,18 +113,6 @@ public:
      */
     
     bool GetRecording() noexcept;
-    
-    //*************************************************************************************
-    // Setters
-    //*************************************************************************************
-    
-    /**
-     *  Set the audio for playback.
-     *
-     *  \param c_Audio The audio for playback.
-     */
-    
-    void SetPlaybackAudio(MonoAudio const& c_Audio);
     
 private:
     

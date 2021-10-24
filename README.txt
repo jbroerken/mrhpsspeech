@@ -33,9 +33,7 @@ libmrhev: https://github.com/jbroerken/libmrhev/
 libmrhpsb: https://github.com/jbroerken/libmrhpsb/
 mrhshared: https://github.com/jbroerken/mrhshared/
 Sodium: https://libsodium.gitbook.io/doc/
-PortAudio: http://files.portaudio.com/download.html
 libsamplerate: http://libsndfile.github.io/libsamplerate/index.html
-PocketSphinx: https://cmusphinx.github.io/wiki/download/
 google-cloud-cpp: https://github.com/googleapis/google-cloud-cpp
 
 For more information about the requirements, check the "Building" section found in the documentation.

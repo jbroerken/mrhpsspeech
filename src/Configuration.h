@@ -138,14 +138,6 @@ public:
     MRH_Uint32 GetPlaybackFrameSamples() noexcept;
     
     /**
-     *  Get the directory path to the pocket sphinx model.
-     *
-     *  \return The sphinx model directory path.
-     */
-    
-    std::string GetSphinxModelDirPath() noexcept;
-    
-    /**
      *  Get the google cloud api language code.
      *
      *  \return The google cloud api language code.
@@ -196,9 +188,6 @@ private:
     // Playback
     MRH_Uint32 u32_PlaybackKHz;
     MRH_Uint32 u32_PlaybackFrameSamples;
-    
-    // Pocket Sphinx
-    std::string s_SphinxModelDirPath;
     
     // Google
     std::string s_GoogleLangCode;

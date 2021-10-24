@@ -33,7 +33,7 @@
 #include <MRH_Typedefs.h>
 
 // Project
-#include "../../../Exception.h"
+#include "./AudioTrack.h"
 
 // Pre-defined
 #ifndef MRH_HOST_IS_BIG_ENDIAN // Big endian host, needs conversion
@@ -51,12 +51,11 @@ public:
     
     enum DeviceState
     {
-        NONE = 0,
-        
+        STOPPED = 0,
         RECORDING = 1,
-        PLAYBACK = 2,
+        PLAYING = 2,
         
-        DEVICE_STATE_MAX = PLAYBACK,
+        DEVICE_STATE_MAX = PLAYING,
         
         DEVICE_STATE_COUNT = DEVICE_STATE_MAX + 1
     };
@@ -86,8 +85,46 @@ public:
     ~AudioDevice() noexcept;
     
     //*************************************************************************************
+    // Stop
+    //*************************************************************************************
+    
+    /**
+     *  Stop the device.
+     */
+    
+    void Stop() noexcept;
+    
+    //*************************************************************************************
+    // Record
+    //*************************************************************************************
+    
+    /**
+     *  Record.
+     */
+    
+    void Record();
+    
+    //*************************************************************************************
+    // Playback
+    //*************************************************************************************
+    
+    /**
+     *  Start playback.
+     */
+    
+    void Play();
+    
+    //*************************************************************************************
     // Getters
     //*************************************************************************************
+    
+    /**
+     *  Get the currently recorded audio.
+     *
+     *  \return The currently recorded audio.
+     */
+    
+    AudioTrack const& GetRecordedAudio() noexcept;
     
     /**
      *  Get the current audio state.
@@ -96,14 +133,6 @@ public:
      */
     
     DeviceState GetState() noexcept;
-    
-    /**
-     *  Get the average recording amplitude.
-     *
-     *  \return The average recording amplitude.
-     */
-    
-    float GetRecordingAmplitude() noexcept;
     
     /**
      *  Check if the device can record audio.
@@ -121,17 +150,13 @@ public:
     
     bool GetCanPlay() noexcept;
     
-    //*************************************************************************************
-    // Setters
-    //*************************************************************************************
-    
     /**
-     *  Set the current audio state. Old data for the state is cleared on switching.
+     *  Get the average recording amplitude.
      *
-     *  \param e_State The new audio state.
+     *  \return The average recording amplitude.
      */
     
-    void SetState(DeviceState e_State);
+    float GetAvgRecordingAmplitude() noexcept;
     
     //*************************************************************************************
     // Data
@@ -139,12 +164,6 @@ public:
     
     const MRH_Uint32 u32_ID;
     const std::string s_Name;
-    
-    std::vector<std::pair<float, std::vector<MRH_Sint16>>> v_Recieved; // <Average Amp, Sound Data>
-    std::mutex c_RecievedMutex;
-    
-    std::vector<std::vector<MRH_Sint16>> v_Send;
-    std::mutex c_SendMutex;
     
 private:
     
@@ -160,17 +179,29 @@ private:
     
     static void Update(AudioDevice* p_Instance) noexcept;
     
+    //*************************************************************************************
+    // Stop
+    //*************************************************************************************
+    
     /**
      *  Disconnect from the audio device.
      */
     
     void Disconnect() noexcept;
     
+    //*************************************************************************************
+    // Record
+    //*************************************************************************************
+    
     /**
      *  Recieve device data from the device.
      */
     
     void Recieve();
+    
+    //*************************************************************************************
+    // Playback
+    //*************************************************************************************
     
     /**
      *  Send service data to the device.
@@ -229,21 +260,6 @@ private:
     ssize_t Write(const MRH_Uint8* p_Src, size_t us_Length);
     
     //*************************************************************************************
-    // Getters
-    //*************************************************************************************
-    
-    /**
-     *  Get the average amplitude for a sample frame.
-     *
-     *  \param p_Buffer The sample buffer.
-     *  \param us_Elements The length of the sample buffer in elements.
-     *
-     *  \return The average amplitude in percent.
-     */
-    
-    float GetAverageAmplitude(const MRH_Sint16* p_Buffer, size_t us_Length) noexcept;
-    
-    //*************************************************************************************
     // Data
     //*************************************************************************************
     
@@ -256,7 +272,11 @@ private:
     bool b_CanRecord;
     bool b_CanPlay;
     
-    std::atomic<float> f32_LastAmplitude; // Last average amplitude
+    std::mutex c_RecordingMutex;
+    std::list<AudioTrack> l_Audio;
+    std::list<AudioTrack>::iterator ActiveAudio;
+    
+    std::atomic<float> f32_AvgAmplitude;
     
 protected:
     

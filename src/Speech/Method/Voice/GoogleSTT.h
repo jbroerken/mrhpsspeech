@@ -23,16 +23,14 @@
 #define GoogleSTT_h
 
 // C / C++
-#include <thread>
-#include <mutex>
-#include <atomic>
 #include <string>
-#include <list>
+#include <utility>
+#include <vector>
 
 // External
 
 // Project
-#include "./MonoAudio.h"
+#include "./AudioTrack.h"
 
 
 class GoogleSTT
@@ -47,7 +45,7 @@ public:
      *  Default constructor.
      */
     
-    GoogleSTT();
+    GoogleSTT() noexcept;
     
     /**
      *  Default destructor.
@@ -65,12 +63,6 @@ public:
     
     void ResetAudio() noexcept;
     
-    /**
-     *  Clear speech to text string results.
-     */
-    
-    void ResetStrings() noexcept;
-    
     //*************************************************************************************
     // Audio
     //*************************************************************************************
@@ -78,59 +70,30 @@ public:
     /**
      *  Add mono audio data for speech to text.
      *
-     *  \param c_Audio The audio buffer to add.
+     *  \param c_Audio The audio to add.
      */
     
-    void AddAudio(MonoAudio const& c_Audio) noexcept;
-    
-    /**
-     *  Convert stored audio data for speech to text.
-     */
-    
-    void ProcessAudio() noexcept;
-    
-    //*************************************************************************************
-    // Getters
-    //*************************************************************************************
-    
-    /**
-     *  Recieve all recognized strings.
-     *
-     *  \return All recognized string.
-     */
-    
-    std::list<std::string> GetStrings() noexcept;
-    
-private:
+    void AddAudio(AudioTrack const& c_Audio) noexcept;
     
     //*************************************************************************************
     // Transcribe
     //*************************************************************************************
     
     /**
-     *  Update speech to text processing.
+     *  Transcribe the currently added audio.
      *
-     *  \param p_Instance The class instance to use.
+     *  \return The transcription result string.
      */
     
-    static void Transcribe(GoogleSTT* p_Instance) noexcept;
+    std::string Transcribe();
+    
+private:
     
     //*************************************************************************************
     // Data
     //*************************************************************************************
     
-    // Thread
-    std::thread c_Thread;
-    std::atomic<bool> b_Update;
-    
-    // Audio
-    std::mutex c_AudioMutex;
-    std::list<std::pair<MRH_Uint32, std::vector<MRH_Sint16>>> l_Audio;
-    
-    // String
-    std::mutex c_TranscribeMutex;
-    std::atomic<MRH_Uint64> u64_TranscribeValidAfterMS;
-    std::list<std::string> l_Transcribed;
+    std::pair<MRH_Uint32, std::vector<MRH_Sint16>> c_Audio;
     
 protected:
     

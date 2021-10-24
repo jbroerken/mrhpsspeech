@@ -51,18 +51,18 @@ namespace AudioDeviceOpCode
     enum OpCodeList
     {
         // Shared
-        ALL_HEARTBEAT = 0,                      // Signal availability to partner
-        ALL_DISCONNECT = 1,                     // Disconnect from partner
+        ALL_HEARTBEAT = 0,                     // Signal availability to partner
+        ALL_DISCONNECT = 1,                    // Disconnect from partner
         
         // Speech Service
-        SERVICE_CONNECT_REQUEST = 2,            // Connect to device
+        SERVICE_CONNECT_REQUEST = 2,           // Connect to device
         
-        SERVICE_PAIR_REQUEST = 3,               // Request pairing with a audio device
-        SERVICE_PAIR_CONNECTION_DETAILS = 4,    // Send connection details (wifi, etc) to device, encrypted
+        SERVICE_PAIR_REQUEST = 3,              // Request pairing with a audio device
+        SERVICE_PAIR_CONNECTION_DETAILS = 4,   // Send connection details (wifi, etc) to device, encrypted
         
-        SERVICE_AUDIO_PLAYBACK_AUDIO = 6,        // Playback data buffer
+        SERVICE_AUDIO_PLAYBACK_AUDIO = 6,      // Playback data buffer
         
-        SERVICE_CHANGE_DEVICE_STATE,            // Change device state
+        SERVICE_CHANGE_DEVICE_STATE = 7,       // Change device state
         
         // Audio Device
         DEVICE_CONNECT_RESPONSE,                // Connection response of service request

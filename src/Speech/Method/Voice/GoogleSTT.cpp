@@ -20,7 +20,6 @@
  */
 
 // C / C++
-#include <chrono>
 
 // External
 #include <google/cloud/speech/v1/cloud_speech.grpc.pb.h>
@@ -40,36 +39,16 @@ using google::cloud::speech::v1::RecognizeResponse;
 using google::cloud::speech::v1::RecognitionConfig;
 using google::cloud::speech::v1::StreamingRecognitionResult;
 
-using std::chrono::system_clock;
-using std::chrono::milliseconds;
-using std::chrono::duration_cast;
-
 
 //*************************************************************************************
 // Constructor / Destructor
 //*************************************************************************************
 
-GoogleSTT::GoogleSTT() : b_Update(true),
-                         u64_TranscribeValidAfterMS(0) // Lowest timepoint, always valid
-{
-    try
-    {
-        // Set initial audio to write
-        l_Audio.emplace_back(std::make_pair(0, std::vector<MRH_Sint16>()));
-        
-        c_Thread = std::thread(Transcribe, this);
-    }
-    catch (std::exception& e)
-    {
-        throw Exception("Failed to start Google Cloud STT thread!" + std::string(e.what()));
-    }
-}
+GoogleSTT::GoogleSTT() noexcept
+{}
 
 GoogleSTT::~GoogleSTT() noexcept
-{
-    b_Update = false;
-    c_Thread.join();
-}
+{}
 
 //*************************************************************************************
 // Reset
@@ -77,199 +56,123 @@ GoogleSTT::~GoogleSTT() noexcept
 
 void GoogleSTT::ResetAudio() noexcept
 {
-    std::lock_guard<std::mutex> c_Guard(c_AudioMutex);
-    l_Audio.clear();
-}
-
-void GoogleSTT::ResetStrings() noexcept
-{
-    std::lock_guard<std::mutex> c_Guard(c_TranscribeMutex);
-    l_Transcribed.clear();
-    
-    // For the transcribe thread, in case it is currently running
-    // This now defines that all transcriptions before this time point
-    // should be ignored since a reset happended
-    auto Duration = system_clock::now().time_since_epoch();
-    u64_TranscribeValidAfterMS = duration_cast<milliseconds>(Duration).count();
+    c_Audio.first = 0;
+    c_Audio.second = {};
 }
 
 //*************************************************************************************
 // Audio
 //*************************************************************************************
 
-void GoogleSTT::AddAudio(MonoAudio const& c_Audio) noexcept
+void GoogleSTT::AddAudio(AudioTrack const& c_Audio) noexcept
 {
-    std::lock_guard<std::mutex> c_Guard(c_AudioMutex);
+    // New KHz?
+    if (this->c_Audio.first != c_Audio.u32_KHz)
+    {
+        this->c_Audio.first = c_Audio.u32_KHz;
+        this->c_Audio.second = {};
+    }
     
-    // Reset for changes
-    if (l_Audio.back().first != c_Audio.u32_KHz)
+    // Add chunks
+    std::list<AudioTrack::Chunk> const& Chunks = c_Audio.GetChunksConst();
+    const MRH_Sint16* p_Buffer;
+    size_t us_Elements;
+    
+    for (auto& Chunk : Chunks)
     {
-        l_Audio.back().first = c_Audio.u32_KHz;
-        l_Audio.back().second = c_Audio.v_Buffer;
+        us_Elements = Chunk.GetElementsCurrent();
+        
+        // Found empty chunk, stop here
+        if (Chunk.GetElementsCurrent() == 0)
+        {
+            break;
+        }
+        
+        p_Buffer = Chunk.GetBufferConst();
+        
+        this->c_Audio.second.insert(this->c_Audio.second.end(),
+                                    p_Buffer,
+                                    p_Buffer + us_Elements);
     }
-    else
-    {
-        l_Audio.back().second.insert(l_Audio.back().second.end(),
-                                     c_Audio.v_Buffer.begin(),
-                                     c_Audio.v_Buffer.end());
-    }
-}
-
-void GoogleSTT::ProcessAudio() noexcept
-{
-    std::lock_guard<std::mutex> c_Guard(c_AudioMutex);
-    l_Audio.emplace_back(std::make_pair(0, std::vector<MRH_Sint16>()));
 }
 
 //*************************************************************************************
 // Transcribe
 //*************************************************************************************
 
-void GoogleSTT::Transcribe(GoogleSTT* p_Instance) noexcept
+std::string GoogleSTT::Transcribe()
 {
-    // Service vars
-    MRH_PSBLogger& c_Logger = MRH_PSBLogger::Singleton();
-    std::pair<MRH_Uint32, std::vector<MRH_Sint16>> c_Audio;
-    
-    std::mutex& c_AudioMutex = p_Instance->c_AudioMutex;
-    std::mutex& c_TranscribeMutex = p_Instance->c_TranscribeMutex;
-    std::list<std::pair<MRH_Uint32, std::vector<MRH_Sint16>>>& l_Audio = p_Instance->l_Audio;
-    std::list<std::string>& l_Transcribed = p_Instance->l_Transcribed;
-    std::atomic<MRH_Uint64>& u64_TranscribeValidAfterMS = p_Instance->u64_TranscribeValidAfterMS;
-    
-    // Google vars
     std::string s_LangCode = Configuration::Singleton().GetGoogleLanguageCode();
     
-    while (p_Instance->b_Update == true)
+    /**
+     *  Credentials Setup
+     */
+    
+    // @NOTE: Google speech api is accessed as shown here:
+    //        https://github.com/GoogleCloudPlatform/cpp-samples/blob/main/speech/api/transcribe.cc
+    
+    // Setup google connection with credentials for this request
+    auto c_Credentials = grpc::GoogleDefaultCredentials();
+    auto c_CloudChannel = grpc::CreateChannel("speech.googleapis.com", c_Credentials);
+    std::unique_ptr<Speech::Stub> p_Speech(Speech::NewStub(c_CloudChannel));
+    
+    /**
+     *  Create Request
+     */
+    
+    // Define our request to use for config and audio
+    RecognizeRequest c_RecognizeRequest;
+    
+    // Set recognition configuration
+    auto* p_Config = c_RecognizeRequest.mutable_config();
+    p_Config->set_language_code(s_LangCode);
+    p_Config->set_sample_rate_hertz(c_Audio.first);
+    p_Config->set_encoding(RecognitionConfig::LINEAR16);
+    p_Config->set_profanity_filter(true);
+    p_Config->set_audio_channel_count(1); // Always mono
+    
+    // Now add the audio
+    c_RecognizeRequest.mutable_audio()->set_content(c_Audio.second.data(),
+                                                    c_Audio.second.size() * sizeof(MRH_Sint16)); // Byte len
+    
+    /**
+     *  Transcribe
+     */
+    
+    grpc::ClientContext c_Context;
+    RecognizeResponse c_RecognizeResponse;
+    grpc::Status c_RPCStatus = p_Speech->Recognize(&c_Context,
+                                                   c_RecognizeRequest,
+                                                   &c_RecognizeResponse);
+    
+    if (c_RPCStatus.ok() == false)
     {
-        /**
-         *  Data Grab
-         */
+        throw Exception("Failed to transcribe: GRPC streamer error: " + c_RPCStatus.error_message());
+    }
+    
+    /**
+     *  Select Transcribed
+     */
+    
+    // Check all results and grab highest confidence
+    float f32_Confidence = -1.f;
+    std::string s_Transcipt = "";
+    
+    for (int i = 0; i < c_RecognizeResponse.results_size(); ++i)
+    {
+        const auto& c_Result = c_RecognizeResponse.results(i);
         
-        // Set the starting time point, to check if a reset was requested
-        // which causes the transcription to be discarded.
-        // @NOTE: This is NOT the same as a audio reset, which can't start to
-        //        transcribe until the mutex was freed.
-        auto Duration = system_clock::now().time_since_epoch();
-        MRH_Uint64 u64_StartTimeMS = duration_cast<milliseconds>(Duration).count();
-        
-        // Grab allowed audio buffer
-        c_AudioMutex.lock();
-        
-        if (l_Audio.size() > 1) // (size() - 1) is the audio being added
+        for (int j = 0; j < c_Result.alternatives_size(); ++j)
         {
-            c_Audio = std::move(l_Audio.front());
-            l_Audio.pop_front();
-            c_AudioMutex.unlock();
-        }
-        else
-        {
-            c_AudioMutex.unlock();
-            std::this_thread::sleep_for(milliseconds(100));
-            continue;
-        }
-        
-        /**
-         *  Credentials Setup
-         */
-        
-        // @NOTE: Google speech api is accessed as shown here:
-        //        https://github.com/GoogleCloudPlatform/cpp-samples/blob/main/speech/api/transcribe.cc
-        
-        // Setup google connection with credentials for this request
-        auto c_Credentials = grpc::GoogleDefaultCredentials();
-        auto c_CloudChannel = grpc::CreateChannel("speech.googleapis.com", c_Credentials);
-        std::unique_ptr<Speech::Stub> p_Speech(Speech::NewStub(c_CloudChannel));
-        
-        /**
-         *  Create Request
-         */
-        
-        // Define our request to use for config and audio
-        RecognizeRequest c_RecognizeRequest;
-        
-        // Set recognition configuration
-        auto* p_Config = c_RecognizeRequest.mutable_config();
-        p_Config->set_language_code(s_LangCode);
-        p_Config->set_sample_rate_hertz(c_Audio.first);
-        p_Config->set_encoding(RecognitionConfig::LINEAR16);
-        p_Config->set_profanity_filter(true);
-        p_Config->set_audio_channel_count(1); // Always mono
-        
-        // Now add the audio
-        c_RecognizeRequest.mutable_audio()->set_content(c_Audio.second.data(),
-                                                        c_Audio.second.size() * sizeof(MRH_Sint16)); // Byte len
-        
-        /**
-         *  Transcribe
-         */
-        
-        grpc::ClientContext c_Context;
-        RecognizeResponse c_RecognizeResponse;
-        grpc::Status c_RPCStatus = p_Speech->Recognize(&c_Context,
-                                                       c_RecognizeRequest,
-                                                       &c_RecognizeResponse);
-        
-        if (c_RPCStatus.ok() == false)
-        {
-            c_Logger.Log(MRH_PSBLogger::ERROR, "GRPC Streamer error: " +
-                                               c_RPCStatus.error_message(),
-                         "GoogleSTT.cpp", __LINE__);
-            continue;
-        }
-        
-        /**
-         *  Add Transcribed
-         */
-        
-        // Check all results and grab highest confidence
-        float f32_Confidence = -1.f;
-        std::string s_Transcipt = "";
-        
-        for (int i = 0; i < c_RecognizeResponse.results_size(); ++i)
-        {
-            const auto& c_Result = c_RecognizeResponse.results(i);
+            const auto& c_Alternative = c_Result.alternatives(i);
             
-            for (int j = 0; j < c_Result.alternatives_size(); ++j)
+            if (f32_Confidence < c_Alternative.confidence())
             {
-                const auto& c_Alternative = c_Result.alternatives(i);
-                
-                if (f32_Confidence < c_Alternative.confidence())
-                {
-                    f32_Confidence = c_Alternative.confidence();
-                    s_Transcipt = c_Alternative.transcript();
-                }
+                f32_Confidence = c_Alternative.confidence();
+                s_Transcipt = c_Alternative.transcript();
             }
         }
-        
-        // Should be discarded? (if reset happended during transcribe)
-        if (u64_StartTimeMS < u64_TranscribeValidAfterMS)
-        {
-            continue;
-        }
-        
-        // Add to strings
-        if (s_Transcipt.size() > 0)
-        {
-            c_TranscribeMutex.lock();
-            l_Transcribed.emplace_back(s_Transcipt);
-            c_TranscribeMutex.unlock();
-        }
     }
-}
-
-//*************************************************************************************
-// Getters
-//*************************************************************************************
-
-std::list<std::string> GoogleSTT::GetStrings() noexcept
-{
-    c_TranscribeMutex.lock();
     
-    std::list<std::string> l_Result = std::move(l_Transcribed);
-    l_Transcribed = {};
-    
-    c_TranscribeMutex.unlock();
-    
-    return l_Result;
+    return s_Transcipt;
 }

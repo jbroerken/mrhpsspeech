@@ -29,7 +29,6 @@
 
 // Project
 #include "./AudioStream.h"
-#include "./RateConverter.h"
 #include "../../../Configuration.h"
 
 // Pre-defined
@@ -125,7 +124,7 @@ void AudioStream::StopAll() noexcept
     // Stop all for everything
     for (auto& Device : l_Device)
     {
-        Device.SetState(AudioDevice::NONE);
+        Device.Stop();
     }
 }
 
@@ -140,11 +139,11 @@ void AudioStream::Record()
     {
         if (Device.GetCanRecord() == true)
         {
-            Device.SetState(AudioDevice::RECORDING);
+            Device.Record();
         }
-        else
+        else if (Device.GetState() != AudioDevice::STOPPED)
         {
-            Device.SetState(AudioDevice::NONE);
+            Device.Stop();
         }
     }
 }
@@ -153,8 +152,34 @@ void AudioStream::Record()
 // Output
 //*************************************************************************************
 
-void AudioStream::Playback()
+void AudioStream::Playback(AudioTrack const& c_Audio)
 {
+    /*
+     
+     
+     if (GetPlayback() == true)
+     {
+         throw Exception("Playback in progress!");
+     }
+     else if (c_Audio.v_Buffer.size() == 0)
+     {
+         throw Exception("Recieved empty playback buffer!");
+     }
+     
+     // Copy to buffer
+     v_Send = c_Audio.v_Buffer;
+     
+     // Check if padding is needed
+     size_t us_Padding = v_Send.size() % c_RecordingFormat.second;
+     
+     if (us_Padding != 0)
+     {
+         v_Send.insert(v_Send.end(), us_Padding, 0);
+     }
+     
+     
+     
+     
     // First, pick the device with the highest last average amp
     std::list<AudioDevice>::iterator PlaybackDevice = l_Device.end();
     
@@ -164,8 +189,8 @@ void AudioStream::Playback()
         {
             continue;
         }
-        else if (PlaybackDevice == l_Device.end() || /* No device set yet */
-                 PlaybackDevice->GetRecordingAmplitude() < It->GetRecordingAmplitude()) /* Device set, but quiter */
+        else if (PlaybackDevice == l_Device.end() ||
+                 PlaybackDevice->GetRecordingAmplitude() < It->GetRecordingAmplitude())
         {
             PlaybackDevice = It;
         }
@@ -188,78 +213,76 @@ void AudioStream::Playback()
             // Copy audio before sending and pad if wierd order
             It->c_SendMutex.lock();
             
-            TODO: Send Frame Samples richtig schreiben, endianess, write opcode func (send)
+            //TODO: Send Frame Samples richtig schreiben, endianess, write opcode func (send)
             
             //It->v_Send = v_Send; // @NOTE: No clearing, expect override
             It->c_SendMutex.unlock();
             
             // Now start playback
-            It->SetState(AudioDevice::PLAYBACK);
+            It->Play();
         }
-        else
+        else if (It->GetState() != AudioDevice::STOPPED)
         {
-            It->SetState(AudioDevice::NONE);
+            It->Stop();
         }
     }
+    */
 }
 
 //*************************************************************************************
 // Getters
 //*************************************************************************************
 
-MonoAudio AudioStream::GetRecordedAudio() noexcept
+AudioTrack const& AudioStream::GetRecordedAudio()
 {
-    // We have to check all samples on which to use
-    std::list<AudioDevice>::iterator Choice;
-    std::vector<MRH_Sint16> v_Buffer;
-    size_t us_Sample = 0;
+    // Select the device which has audio and the highest avg amplitude
+    // @NOTE: The first device in the list might not be able to record,
+    //        so we have to check all devices!
+    std::list<AudioDevice>::iterator Device = l_Device.end();
     
-    while (true)
+    for (auto It = l_Device.begin(); It != l_Device.end(); ++It)
     {
-        float f32_PeakAmplitude = -1.f;
-        Choice = l_Device.end();
-        
-        // We need to check each device for the highest sample amplitude
-        // We then add the loudest one
-        for (auto It = l_Device.begin(); It != l_Device.end(); ++It)
+        if (It->GetState() != AudioDevice::RECORDING)
         {
-            // No samples?
-            if (It->GetCanRecord() == false || It->v_Recieved.size() >= us_Sample)
-            {
-                continue;
-            }
-            
-            // Is this louder than the other one?
-            if (f32_PeakAmplitude < It->v_Recieved[us_Sample].first)
-            {
-                f32_PeakAmplitude = It->v_Recieved[us_Sample].first;
-                Choice = It;
-            }
+            // Skip devices which to not record -> No audio
+            continue;
         }
         
-        // Any choice to add?
-        if (Choice == l_Device.end())
+        // Check if this device has actual audio
+        if (It->GetAvgRecordingAmplitude() > 0.f)
         {
-            break;
+            continue;
         }
         
-        // Found, add
-        v_Buffer.insert(v_Buffer.end(),
-                        Choice->v_Recieved[us_Sample].second.begin(),
-                        Choice->v_Recieved[us_Sample].second.end());
-        ++us_Sample;
+        if (Device == l_Device.end())
+        {
+            // No comparison possible yet
+            Device = It;
+        }
+        else if (Device->GetAvgRecordingAmplitude() < It->GetAvgRecordingAmplitude())
+        {
+            // Disable old recording device (we now have one target) and
+            // swap the current audio holder
+            Device->Stop();
+            Device = It;
+        }
     }
     
-    return MonoAudio(v_Buffer.data(),
-                     v_Buffer.size(),
-                     c_RecordingFormat.first);
+    // No devices for recording, so no audio!
+    if (Device == l_Device.end())
+    {
+        throw Exception("No recordings available!");
+    }
+    
+    // Found our device, return its audio
+    return Device->GetRecordedAudio();
 }
 
 bool AudioStream::GetPlayback() noexcept
 {
     for (auto& Device : l_Device)
     {
-        if (Device.GetState() == AudioDevice::PLAYBACK)
+        if (Device.GetState() == AudioDevice::PLAYING)
         {
             return true;
         }
@@ -279,50 +302,4 @@ bool AudioStream::GetRecording() noexcept
     }
     
     return false;
-}
-
-//*************************************************************************************
-// Setters
-//*************************************************************************************
-
-void AudioStream::SetPlaybackAudio(MonoAudio const& c_Audio)
-{
-    if (GetPlayback() == true)
-    {
-        throw Exception("Playback in progress!");
-    }
-    else if (c_Audio.v_Buffer.size() == 0)
-    {
-        throw Exception("Recieved empty playback buffer!");
-    }
-    
-    // Copy to buffer
-    if (c_Audio.u32_KHz != c_RecordingFormat.first)
-    {
-        // Difference, we need to convert
-        try
-        {
-            v_Send = RateConverter(c_Audio.u32_KHz).Convert(c_Audio.v_Buffer,
-                                                            c_Audio.u32_KHz);
-        }
-        catch (Exception& e)
-        {
-            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, e.what(),
-                                           "AudioStream.cpp", __LINE__);
-            return;
-        }
-    }
-    else
-    {
-        // Same KHz, simply copy
-        v_Send = c_Audio.v_Buffer;
-    }
-    
-    // Check if padding is needed
-    size_t us_Padding = v_Send.size() % c_RecordingFormat.second;
-    
-    if (us_Padding != 0)
-    {
-        v_Send.insert(v_Send.end(), us_Padding, 0);
-    }
 }

@@ -20,7 +20,7 @@
  */
 
 // C / C++
-#include <ctime>
+#include <chrono>
 
 // External
 #include <libmrhpsb/MRH_PSBLogger.h>
@@ -32,44 +32,19 @@
 
 // Pre-defined
 #define LISTEN_CHECK_WAIT_MS 250 // Wait before checking again
-#define LISTEN_PAUSE_ACCEPT_TIME_S 3 // 3 Second pauses count as speech
+#define LISTEN_PAUSE_TIMEOUT_S 3 // Time until audio is processed
+
+using std::chrono::system_clock;
+using std::chrono::seconds;
+using std::chrono::duration_cast;
 
 
 //*************************************************************************************
 // Constructor / Destructor
 //*************************************************************************************
 
-Voice::Voice() : c_PocketSphinx(Configuration::Singleton().GetSphinxModelDirPath()),
-                 c_Converter(POCKET_SPHINX_REQUIRED_KHZ),
-                 c_TriggerSound({}, 0, Configuration::Singleton().GetPlaybackKHz()),
-                 u64_TriggerValidS(0),
-                 b_PlayTriggerSound(false),
-                 b_ListenAudioAvailable(false),
-                 us_ListenWaitSamples(0),
-                 b_StringSet(false)
+Voice::Voice()
 {
-    // Load trigger sound
-    std::FILE* p_File = std::fopen(Configuration::Singleton().GetTriggerSoundPath().c_str(), "rb");
-    
-    if (p_File != NULL)
-    {
-        // @NOTE: Raw Data, has to match otherwise unpleasant sounds happen
-        char p_Buffer[256];
-        
-        while (std::feof(p_File) == 0)
-        {
-            std::fread(p_Buffer, 256, 1, p_File);
-            c_TriggerSound.v_Buffer.insert(c_TriggerSound.v_Buffer.end(),
-                                           (MRH_Sint16*)p_Buffer,
-                                           (MRH_Sint16*)&(p_Buffer[255]));
-        }
-    }
-    else
-    {
-        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "Failed to read trigger sound file!",
-                                       "PocketSphinx.cpp", __LINE__);
-    }
-    
     MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, "Voice speech now available.",
                                    "PocketSphinx.cpp", __LINE__);
 }
@@ -83,10 +58,6 @@ Voice::~Voice() noexcept
 
 void Voice::Resume()
 {
-    // Reset Google conversions
-    c_GoogleSTT.ResetStrings();
-    c_GoogleTTS.ResetAudio();
-    
     // Just start recording
     c_AudioStream.Record();
 }
@@ -94,34 +65,14 @@ void Voice::Resume()
 void Voice::Reset()
 {
     // Reset current audio but keep listening
-    c_PocketSphinx.ResetDecoder();
-    c_GoogleSTT.ResetStrings();
     c_GoogleSTT.ResetAudio();
-    c_Converter.ResetConverter();
-    
-    // Reset trigger and audio info
-    u64_TriggerValidS = 0;
-    b_ListenAudioAvailable = false;
-    us_ListenWaitSamples = 0;
 }
 
 void Voice::Pause()
 {
     // Reset Components
     c_AudioStream.StopAll(); // Stop both playback and recording
-    c_PocketSphinx.ResetDecoder(); // Reset decoder, new recognition next time
     c_GoogleSTT.ResetAudio(); // Reset audio
-    c_GoogleTTS.ResetStrings(); // Reset passed strings
-    c_Converter.ResetConverter(); // State based, reset for new convert
-    
-    // Reset listen flags
-    u64_TriggerValidS = 0;
-    b_ListenAudioAvailable = false;
-    us_ListenWaitSamples = 0;
-    
-    // Reset say flags
-    b_StringSet = false;
-    b_PlayTriggerSound = false;
 }
 
 //*************************************************************************************
@@ -131,26 +82,6 @@ void Voice::Pause()
 void Voice::Listen()
 {
     /**
-     *  Events
-     */
-    
-    // Grab google api speech results
-    std::list<std::string> l_Processed = c_GoogleSTT.GetStrings();
-    
-    for (auto& String : l_Processed)
-    {
-        try
-        {
-            SendInput(String);
-        }
-        catch (Exception& e)
-        {
-            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, e.what(),
-                                           "Voice.cpp", __LINE__);
-        }
-    }
-    
-    /**
      *  Wait
      */
     
@@ -158,7 +89,7 @@ void Voice::Listen()
     //       for playback to continue
     std::this_thread::sleep_for(std::chrono::milliseconds(LISTEN_CHECK_WAIT_MS));
     
-    // Can we even record?
+    // Are we event recording right now?
     if (c_AudioStream.GetRecording() == false)
     {
         return;
@@ -168,119 +99,42 @@ void Voice::Listen()
      *  Process
      */
     
-    // Grab sample
-    MonoAudio c_Audio = c_AudioStream.GetRecordedAudio();
+    auto CurrentTime = system_clock::now().time_since_epoch();
+    static auto ProccessTime = CurrentTime;
     
-    if (c_Audio.v_Buffer.size() == 0)
+    try
     {
-        return;
-    }
-    
-    // Is the sample data valid for sphinx?
-    if (c_Audio.u32_KHz == POCKET_SPHINX_REQUIRED_KHZ)
-    {
-        // Same, simply add
-        c_PocketSphinx.AddAudio(c_Audio.v_Buffer);
-    }
-    else
-    {
-        try
+        // Grab sample
+        AudioTrack const& c_Audio = c_AudioStream.GetRecordedAudio();
+        
+        if (c_Audio.GetAudioExists() == 0)
         {
-            // Not the same, convert then add
-            c_PocketSphinx.AddAudio(c_Converter.Convert(c_Audio.v_Buffer,
-                                                        c_Audio.u32_KHz));
+            // Wait before we start to process audio
+            if (CurrentTime >= ProccessTime)
+            {
+                // Transcribe and send as input
+                try
+                {
+                    SendInput(c_GoogleSTT.Transcribe());
+                }
+                catch (Exception& e)
+                {
+                    MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, e.what(),
+                                                   "Voice.cpp", __LINE__);
+                }
+            }
         }
-        catch (Exception& e)
+        else
         {
-            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, e.what(),
-                                           "Voice.cpp", __LINE__);
-            return;
-        }
-    }
-    
-    /**
-     *  Grab Speech
-     */
-    
-    // Set current time for trigger validity
-    MRH_Uint64 u64_CurrentTimeS = time(NULL);
-    Configuration& c_Config = Configuration::Singleton();
-    
-    // Was this speech?
-    if (c_PocketSphinx.AudioContainsSpeech() == true)
-    {
-        // Audio valid, add to speech to text api
-        if (u64_TriggerValidS >= u64_CurrentTimeS)
-        {
-            // Trigger was valid, now keep valid during speech
-            u64_TriggerValidS = u64_CurrentTimeS + c_Config.GetTriggerTimeoutS();
+            // Add existing audio to speech to text
             c_GoogleSTT.AddAudio(c_Audio);
-        }
-        
-        // Grab next
-        b_ListenAudioAvailable = true;
-        return; // Always return, more audio might come
-    }
-    else
-    {
-        if (b_ListenAudioAvailable == false)
-        {
-            // No usable audio stored, return directly
-            return;
-        }
-        else if (us_ListenWaitSamples < (c_Audio.u32_KHz * LISTEN_PAUSE_ACCEPT_TIME_S))
-        {
-            // Add the pause for the first sample
-            if (us_ListenWaitSamples == 0 && u64_TriggerValidS >= u64_CurrentTimeS)
-            {
-                c_GoogleSTT.AddAudio(c_Audio);
-            }
             
-            // Trigger was valid, now keep valid during speech pause
-            u64_TriggerValidS = u64_CurrentTimeS + c_Config.GetTriggerTimeoutS();
-            
-            // Stil in "pause" phase, wait
-            us_ListenWaitSamples += c_Audio.v_Buffer.size();
-            return;
+            // Set last time audio was gotten
+            ProccessTime = duration_cast<seconds>(CurrentTime + seconds(LISTEN_PAUSE_TIMEOUT_S));
         }
     }
-    
-    // Reset, available will now be processed
-    b_ListenAudioAvailable = false;
-    us_ListenWaitSamples = 0;
-    c_Converter.ResetConverter(); // Reset for next audio (state based)
-    
-    /**
-     *  Process
-     */
-    
-    // Do we need to check for the trigger
-    if (u64_TriggerValidS < u64_CurrentTimeS)
-    {
-        // Check, was the trigger recognized?
-        if (c_PocketSphinx.Recognize() == true)
-        {
-            // Trigger recognized, valid
-            u64_TriggerValidS = u64_CurrentTimeS + c_Config.GetTriggerTimeoutS();
-            
-            // Reset decoder for audio recognition
-            c_PocketSphinx.ResetDecoder();
-            
-            // Play signal sound next
-            if (c_TriggerSound.v_Buffer.size() > 0)
-            {
-                b_PlayTriggerSound = true;
-            }
-        }
-    }
-    else
-    {
-        // Run speech recognition with google api
-        c_GoogleSTT.ProcessAudio();
-        
-        // Reset decoder for audio recognition
-        c_PocketSphinx.ResetDecoder();
-    }
+    catch (...)
+    {}
 }
 
 //*************************************************************************************
@@ -290,34 +144,7 @@ void Voice::Listen()
 void Voice::Say(OutputStorage& c_OutputStorage)
 {
     /**
-     *  Set String
-     */
-    
-    if (b_StringSet == false && c_OutputStorage.GetFinishedAvailable() == true)
-    {
-        OutputStorage::String c_String = c_OutputStorage.GetFinishedString();
-        
-        // NOTE: This should never throw - Playback happens after full conversion, which
-        //       causes the currently given TTS string to be reset. New strings can't be
-        //       grabbed during playback or conversion because of b_StringSet.
-        try
-        {
-            c_GoogleTTS.AddString(c_String.s_String);
-            
-            u32_SayStringID = c_String.u32_StringID;
-            u32_SayGroupID = c_String.u32_GroupID;
-        
-            b_StringSet = true;
-        }
-        catch (Exception& e)
-        {
-            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Dropped say string: " + std::string(e.what()),
-                                           "Voice.cpp", __LINE__);
-        }
-    }
-    
-    /**
-     *  Playback
+     *  Playback Check
      */
     
     // Do nothing during output playback
@@ -326,43 +153,38 @@ void Voice::Say(OutputStorage& c_OutputStorage)
         return;
     }
     
-    // Remember playback time for trigger timeout
-    static MRH_Uint64 u64_PlaybackStartS;
+    /**
+     *  Synthesise String
+     */
     
-    // Should we start speaking or resume listening?
-    if (b_PlayTriggerSound == true || c_GoogleTTS.GetAudioAvailable() == true)
+    if (b_StringSet == false && c_OutputStorage.GetFinishedAvailable() == true)
     {
+        OutputStorage::String c_String = c_OutputStorage.GetFinishedString();
+        
         try
         {
-            // Add sound as output data and play
-            if (b_PlayTriggerSound == true)
-            {
-                c_AudioStream.SetPlaybackAudio(c_TriggerSound);
-                b_PlayTriggerSound = false; // Reset request
-            }
-            else
-            {
-                c_AudioStream.SetPlaybackAudio(c_GoogleTTS.GetAudio());
-            }
+            c_AudioStream.Playback(c_GoogleTTS.Synthesise(c_String.s_String));
             
-            c_AudioStream.Playback();
-            
-            // Set start
-            u64_PlaybackStartS = time(NULL);
+            u32_SayStringID = c_String.u32_StringID;
+            u32_SayGroupID = c_String.u32_GroupID;
+        
+            b_StringSet = true;
         }
         catch (Exception& e)
         {
-            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Failed to add audio: " + std::string(e.what()),
+            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, e.what(),
                                            "Voice.cpp", __LINE__);
         }
     }
-    else if (c_AudioStream.GetRecording() == false)
+    
+    /**
+     *  Restart Recording
+     */
+    
+    if (c_AudioStream.GetRecording() == false)
     {
         // Nothing to play, start listening again
         c_AudioStream.Record();
-        
-        // Add time passed in seconds to trigger timeout
-        u64_TriggerValidS += (time(NULL) - u64_PlaybackStartS);
         
         // Send info about performed output
         b_StringSet = false;

@@ -30,11 +30,7 @@
 
 // Project
 #include "../SpeechMethod.h"
-#include "./Voice/MonoAudio.h"
-#include "./Voice/RateConverter.h"
-//#include "./Voice/PADevice.h"
 #include "./Voice/AudioStream.h"
-#include "./Voice/PocketSphinx.h"
 #include "./Voice/GoogleSTT.h"
 #include "./Voice/GoogleTTS.h"
 
@@ -123,26 +119,13 @@ private:
     
     // Components
     AudioStream c_AudioStream;
-    PocketSphinx c_PocketSphinx;
     GoogleSTT c_GoogleSTT;
     GoogleTTS c_GoogleTTS;
-    
-    // Trigger
-    MonoAudio c_TriggerSound;
-    MRH_Uint64 u64_TriggerValidS;
-    bool b_PlayTriggerSound;
-    
-    // Listen Input
-    bool b_ListenAudioAvailable;
-    size_t us_ListenWaitSamples;
     
     // Speech output
     bool b_StringSet;
     MRH_Uint32 u32_SayStringID;
     MRH_Uint32 u32_SayGroupID;
-    
-    // Convert
-    RateConverter c_Converter;
     
 protected:
 

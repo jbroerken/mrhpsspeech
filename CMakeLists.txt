@@ -93,21 +93,17 @@ if(USE_METHOD_SERVER)
 endif(USE_METHOD_SERVER)
 
 if(USE_METHOD_VOICE)
-    set(SRC_LIST_SPEECH_METHOD "${SRC_DIR_PATH}/Speech/Method/Voice/VoiceAudio.cpp"
-                               "${SRC_DIR_PATH}/Speech/Method/Voice/VoiceAudio.h"
-                               "${SRC_DIR_PATH}/Speech/Method/Voice/RateConverter.cpp"
-                               "${SRC_DIR_PATH}/Speech/Method/Voice/RateConverter.h"
-                               "${SRC_DIR_PATH}/Speech/Method/Voice/PocketSphinx.cpp"
-                               "${SRC_DIR_PATH}/Speech/Method/Voice/PocketSphinx.h"
-                               "${SRC_DIR_PATH}/Speech/Method/Voice/GoogleSTT.cpp"
-                               "${SRC_DIR_PATH}/Speech/Method/Voice/GoogleSTT.h"
-                               "${SRC_DIR_PATH}/Speech/Method/Voice/GoogleTTS.cpp"
-                               "${SRC_DIR_PATH}/Speech/Method/Voice/GoogleTTS.h"
+    set(SRC_LIST_SPEECH_METHOD "${SRC_DIR_PATH}/Speech/Method/Voice/AudioTrack.cpp"
+                               "${SRC_DIR_PATH}/Speech/Method/Voice/AudioTrack.h"
                                "${SRC_DIR_PATH}/Speech/Method/Voice/AudioStream.cpp"
                                "${SRC_DIR_PATH}/Speech/Method/Voice/AudioStream.h"
                                "${SRC_DIR_PATH}/Speech/Method/Voice/AudioDevice.cpp"
                                "${SRC_DIR_PATH}/Speech/Method/Voice/AudioDevice.h"
                                "${SRC_DIR_PATH}/Speech/Method/Voice/AudioDeviceOpCode.h"
+                               "${SRC_DIR_PATH}/Speech/Method/Voice/GoogleSTT.cpp"
+                               "${SRC_DIR_PATH}/Speech/Method/Voice/GoogleSTT.h"
+                               "${SRC_DIR_PATH}/Speech/Method/Voice/GoogleTTS.cpp"
+                               "${SRC_DIR_PATH}/Speech/Method/Voice/GoogleTTS.h"
                                "${SRC_DIR_PATH}/Speech/Method/Voice.cpp"
                                "${SRC_DIR_PATH}/Speech/Method/Voice.h")
 endif(USE_METHOD_VOICE)
@@ -156,14 +152,11 @@ find_library(libmrhcevs NAMES mrhcevs REQUIRED)
 find_library(libmrhpsb NAMES mrhpsb REQUIRED)
 find_library(libmrhvt NAMES mrhvt REQUIRED)
 
-if(USE_METHOD_SERVER)
+if(USE_METHOD_SERVER OR USE_METHOD_VOICE)
     find_library(libsodium NAMES sodium REQUIRED)
-endif(USE_METHOD_SERVER)
+endif(USE_METHOD_SERVER OR USE_METHOD_VOICE)
 
 if(USE_METHOD_VOICE)
-    find_library(libsamplerate NAMES samplerate REQUIRED)
-    find_library(libsphinxbase NAMES sphinxbase REQUIRED)
-    find_library(libpocketsphinx NAMES pocketsphinx REQUIRED)
     find_package(google-cloud-cpp REQUIRED)
 endif(USE_METHOD_VOICE)
 
@@ -174,14 +167,11 @@ target_link_libraries(mrhpsspeech PUBLIC mrhcevs)
 target_link_libraries(mrhpsspeech PUBLIC mrhpsb)
 target_link_libraries(mrhpsspeech PUBLIC mrhvt)
 
-if(USE_METHOD_SERVER)
+if(USE_METHOD_SERVER OR USE_METHOD_VOICE)
     target_link_libraries(mrhpsspeech PUBLIC sodium)
-endif(USE_METHOD_SERVER)
+endif(USE_METHOD_SERVER OR USE_METHOD_VOICE)
 
 if(USE_METHOD_VOICE)
-    target_link_libraries(mrhpsspeech PUBLIC samplerate)
-    target_link_libraries(mrhpsspeech PUBLIC sphinxbase)
-    target_link_libraries(mrhpsspeech PUBLIC pocketsphinx)
     target_link_libraries(mrhpsspeech PUBLIC google-cloud-cpp::speech)
     target_link_libraries(mrhpsspeech PUBLIC google-cloud-cpp::texttospeech)
 endif(USE_METHOD_VOICE)

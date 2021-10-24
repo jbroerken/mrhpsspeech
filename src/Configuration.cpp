@@ -58,9 +58,6 @@ namespace
         PLAYBACK_KHZ,
         PLAYBACK_FRAME_SAMPLES,
         
-        // Pocket Sphinx Key
-        POCKET_SPHINX_MODEL_DIR_PATH,
-        
         // Google API Key
         GOOGLE_API_LANGUAGE_CODE,
         GOOGLE_API_VOICE_GENDER,
@@ -94,9 +91,6 @@ namespace
         "KHz",
         "FrameSamples",
         
-        // Sphinx Key
-        "ModelDirPath",
-        
         // Google API Key
         "LanguageCode",
         "VoiceGender"
@@ -116,7 +110,6 @@ Configuration::Configuration() noexcept : s_TriggerKeyphrase("Hey Mamao"),
                                           u32_RecordingStorageS(5),
                                           u32_PlaybackKHz(16000),
                                           u32_PlaybackFrameSamples(2048),
-                                          s_SphinxModelDirPath("/var/mrh/mrhpsspeech/sphinx/"),
                                           s_GoogleLangCode("en"),
                                           u32_GoogleVoiceGender(0)
 {}
@@ -171,10 +164,6 @@ void Configuration::Load()
             {
                 u32_PlaybackKHz = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PLAYBACK_KHZ])));
                 u32_PlaybackFrameSamples = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PLAYBACK_FRAME_SAMPLES])));
-            }
-            else if (Block.GetName().compare(p_Identifier[BLOCK_POCKET_SPHINX]) == 0)
-            {
-                s_SphinxModelDirPath = Block.GetValue(p_Identifier[POCKET_SPHINX_MODEL_DIR_PATH]);
             }
             else if (Block.GetName().compare(p_Identifier[BLOCK_GOOGLE_API]) == 0)
             {
@@ -231,11 +220,6 @@ MRH_Uint32 Configuration::GetPlaybackKHz() noexcept
 MRH_Uint32 Configuration::GetPlaybackFrameSamples() noexcept
 {
     return u32_PlaybackFrameSamples;
-}
-
-std::string Configuration::GetSphinxModelDirPath() noexcept
-{
-    return s_SphinxModelDirPath;
 }
 
 std::string Configuration::GetGoogleLanguageCode() noexcept

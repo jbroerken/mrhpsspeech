@@ -55,11 +55,31 @@ AudioDevice::AudioDevice(MRH_Uint32 u32_ID,
                                        s_Name(s_Name),
                                        u32_ID(u32_ID),
                                        i_SocketFD(-1),
-                                       e_State(NONE),
+                                       e_State(STOPPED),
                                        b_CanPlay(false),
                                        b_CanRecord(false),
-                                       f32_LastAmplitude(0.f)
+                                       f32_AvgAmplitude(-1.f)
 {
+    // Create buffer list
+    Configuration& c_Configuration = Configuration::Singleton();
+    
+    try
+    {
+        for (size_t i = 0; i < 2; ++i)
+        {
+            l_Audio.emplace_back(c_Configuration.GetRecordingKHz(),
+                                 c_Configuration.GetRecordingFrameSamples(),
+                                 c_Configuration.GetRecordingStorageS(),
+                                 false);
+        }
+    }
+    catch (...)
+    {
+        throw;
+    }
+    
+    ActiveAudio = l_Audio.begin();
+    
     // Create a file descriptor first
     if ((i_SocketFD = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
@@ -89,8 +109,6 @@ AudioDevice::AudioDevice(MRH_Uint32 u32_ID,
     }
     
     // We are connected, send auth request to device
-    Configuration& c_Configuration = Configuration::Singleton();
-    
     AudioDeviceOpCode::OpCode u32_RequestOpCode = AudioDeviceOpCode::OpCodeList::SERVICE_CONNECT_REQUEST;
     AudioDeviceOpCode::SERVICE_CONNECT_REQUEST_DATA c_Request;
     c_Request.u32_OpCodeVersion = AUDIO_DEVICE_OPCODE_VERSION;
@@ -162,16 +180,27 @@ AudioDevice::~AudioDevice() noexcept
 }
 
 //*************************************************************************************
-// Update
+// Stop
 //*************************************************************************************
 
-void AudioDevice::Update(AudioDevice* p_Instance) noexcept
+void AudioDevice::Stop() noexcept
 {
-    while (p_Instance->b_Update == true)
+    if (e_State == STOPPED)
     {
-        // @TODO: Run depending on state
+        return;
     }
+    
+    /*
+    c_SendMutex.lock();
+    v_Send.clear();
+    c_SendMutex.unlock();
+    */
+    
+    f32_AvgAmplitude = -1.f;
+    
+    e_State = STOPPED;
 }
+
 
 void AudioDevice::Disconnect() noexcept
 {
@@ -184,6 +213,32 @@ void AudioDevice::Disconnect() noexcept
     i_SocketFD = -1;
 }
 
+//*************************************************************************************
+// Record
+//*************************************************************************************
+
+void AudioDevice::Record()
+{
+    if (b_CanRecord == false)
+    {
+        throw Exception("This audio device cannot record audio!");
+    }
+    else if (e_State == RECORDING)
+    {
+        return;
+    }
+    
+    // Recording resets the inner buffer
+    c_RecordingMutex.lock();
+    ActiveAudio->Clear();
+    c_RecordingMutex.unlock();
+    
+    // Reset amplitude, new recording
+    f32_AvgAmplitude = -1.f;
+    
+    e_State = RECORDING;
+}
+
 void AudioDevice::Recieve()
 {
     /**
@@ -192,7 +247,7 @@ void AudioDevice::Recieve()
     
     static AudioDeviceOpCode::OpCode u32_OpCode;
     static bool b_OpCodeRead = false;
-    int i_TimeoutMS = (e_State == PLAYBACK ? 0 : 100); // Do not wait on active playback
+    int i_TimeoutMS = (e_State == PLAYING ? 0 : 100); // Do not wait on active playback
     ssize_t ss_Result;
     
     if (b_OpCodeRead == false)
@@ -212,7 +267,7 @@ void AudioDevice::Recieve()
         }
         
 #if MRH_HOST_IS_BIG_ENDIAN > 0
-            // @TODO: Flip opcode if needed
+        // @TODO: Flip opcode if needed
 #endif
     }
     
@@ -227,21 +282,40 @@ void AudioDevice::Recieve()
     // Select the current position to read
     if (u32_OpCode == AudioDeviceOpCode::DEVICE_AUDIO_RECORDING_AUDIO)
     {
-        static std::vector<MRH_Sint16> v_Audio(Configuration::Singleton().GetRecordingFrameSamples(), 0);
+        Configuration& c_Config = Configuration::Singleton();
+        static std::vector<MRH_Sint16> v_Audio(c_Config.GetRecordingFrameSamples(), 0);
         
-        size_t us_AudioBytes = Configuration::Singleton().GetRecordingFrameSamples() * sizeof(MRH_Sint16);
+        size_t us_AudioBytes = c_Config.GetRecordingFrameSamples() * sizeof(MRH_Sint16);
         
         if (us_Read == us_AudioBytes)
         {
+            std::lock_guard<std::mutex> c_Guard(c_RecordingMutex);
+            
 #if MRH_HOST_IS_BIG_ENDIAN > 0
             // @TODO: Loop over array flip all samples to big endian if needed
 #endif
             
-            c_RecievedMutex.lock();
-            v_Recieved.emplace_back(std::make_pair(GetAverageAmplitude(&(v_Audio[0]),
-                                                                       v_Audio.size()),
-                                                   v_Audio));
-            c_RecievedMutex.unlock();
+            // Grab avg amplitude
+            size_t us_SampleAverage = 0;
+            
+            for (size_t i = 0; i < v_Audio.size(); ++i)
+            {
+                us_SampleAverage += abs(v_Audio[i]);
+            }
+            
+            us_SampleAverage /= v_Audio.size();
+            f32_AvgAmplitude = static_cast<float>(static_cast<double>(us_SampleAverage) / 32768.f);
+            
+            // Add written audio
+            try
+            {
+                ActiveAudio->AddChunk(v_Audio.data(), v_Audio.size());
+            }
+            catch (...)
+            {
+                MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "Device recording buffer full!",
+                                               "AudioDevice.cpp", __LINE__);
+            }
         }
         else
         {
@@ -266,7 +340,6 @@ void AudioDevice::Recieve()
 #if MRH_HOST_IS_BIG_ENDIAN > 0
             // @TODO: Flip to big endian if needed, and set state
 #endif
-            
             // All data read, set current device state if it differs
             if (c_OpCode.u32_Error != AudioDeviceOpCode::OpCodeErrorList::NONE)
             {
@@ -313,11 +386,47 @@ void AudioDevice::Recieve()
     }
 }
 
+//*************************************************************************************
+// Playback
+//*************************************************************************************
+
+void AudioDevice::Play()
+{
+    if (b_CanPlay == false)
+    {
+        throw Exception("This audio device cannot play audio!");
+    }
+    else if (e_State == PLAYING)
+    {
+        return;
+    }
+    
+    // @NOTE: Audio set before
+    //        Also, keep last amplitude for recording!
+    
+    e_State = PLAYING;
+}
+
 void AudioDevice::Send()
 {
-    // @TODO: Switch if required and wait for response,
-    //        Otherwise send
-    //        -> Data is correct here, no checking needed!
+    @TODO: Switch if required and wait for response,
+           Otherwise send
+            -> Data is correct here, no checking needed!
+            -> Copy Audio to static var to protect against resets (for
+               last opcode with audio data to be sent correctly)
+            -> Remove Playback State if all audio was sent
+}
+
+//*************************************************************************************
+// Update
+//*************************************************************************************
+
+void AudioDevice::Update(AudioDevice* p_Instance) noexcept
+{
+    while (p_Instance->b_Update == true)
+    {
+        // @TODO: Run depending on state
+    }
 }
 
 //*************************************************************************************
@@ -440,68 +549,22 @@ ssize_t AudioDevice::Write(const MRH_Uint8* p_Src, size_t us_Length)
 // Getters
 //*************************************************************************************
 
-float AudioDevice::GetAverageAmplitude(const MRH_Sint16* p_Buffer, size_t us_Elements) noexcept
+AudioTrack const& AudioDevice::GetRecordedAudio() noexcept
 {
-    // Do we need to use arrays for the average?
-    size_t us_SampleAverage = 0;
+    // Flip buffer for recording
+    std::lock_guard<std::mutex> c_Guard(c_RecordingMutex);
     
-    if (us_Elements > AVG_SAMPLES_MAX_AMOUNT)
+    if ((++ActiveAudio) == l_Audio.end())
     {
-        // First, store all sample averages in groups for size constraints
-        size_t us_Iterations = us_Elements / AVG_SAMPLES_MAX_AMOUNT;
-        us_Iterations += (us_Elements % AVG_SAMPLES_MAX_AMOUNT > 0 ? 1 : 0);
-        
-        size_t us_Pos = 0; // Pos in buffer
-        
-        for (size_t i = 0; i < us_Iterations; ++i)
-        {
-            size_t us_GroupTotal = 0;
-            size_t us_End;
-            size_t us_ProcessedSamples;
-            
-            if (us_Elements > (us_Pos + AVG_SAMPLES_MAX_AMOUNT))
-            {
-                us_ProcessedSamples = AVG_SAMPLES_MAX_AMOUNT;
-                us_End = us_Pos + AVG_SAMPLES_MAX_AMOUNT;
-            }
-            else
-            {
-                us_ProcessedSamples = us_Elements - us_Pos;
-                us_End = us_Elements;
-            }
-            
-            for (; us_Pos < us_End; ++us_Pos)
-            {
-                us_GroupTotal += abs(p_Buffer[us_Pos]);
-            }
-            
-            us_SampleAverage += (us_GroupTotal / us_ProcessedSamples);
-        }
-        
-        // Now, create average for all
-        us_SampleAverage /= us_Iterations;
-    }
-    else
-    {
-        for (size_t i = 0; i < us_Elements; ++i)
-        {
-            us_SampleAverage += abs(p_Buffer[i]);
-        }
-        
-        us_SampleAverage /= us_Elements;
+        ActiveAudio = l_Audio.begin();
     }
     
-    return static_cast<float>(static_cast<double>(us_SampleAverage) / 32768.f);
+    return *ActiveAudio;
 }
 
 AudioDevice::DeviceState AudioDevice::GetState() noexcept
 {
     return e_State;
-}
-
-float AudioDevice::GetRecordingAmplitude() noexcept
-{
-    return f32_LastAmplitude;
 }
 
 bool AudioDevice::GetCanRecord() noexcept
@@ -514,30 +577,7 @@ bool AudioDevice::GetCanPlay() noexcept
     return b_CanPlay;
 }
 
-//*************************************************************************************
-// Setters
-//*************************************************************************************
-
-void AudioDevice::SetState(DeviceState e_State)
+float AudioDevice::GetAvgRecordingAmplitude() noexcept
 {
-    if (e_State == RECORDING && b_CanRecord == false)
-    {
-        throw Exception("This audio device cannot record audio!");
-    }
-    else if (e_State == PLAYBACK && b_CanPlay == false)
-    {
-        throw Exception("This audio device cannot play audio!");
-    }
-    
-    // Clear data on state change
-    c_SendMutex.lock();
-    v_Send.clear();
-    c_SendMutex.unlock();
-    
-    c_RecievedMutex.lock();
-    v_Recieved.clear();
-    c_RecievedMutex.unlock();
-    
-    // Cleared, set new state
-    this->e_State = e_State;
+    return f32_AvgAmplitude;
 }
