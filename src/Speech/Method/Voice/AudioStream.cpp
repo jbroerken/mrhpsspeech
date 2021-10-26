@@ -110,6 +110,9 @@ AudioStream::AudioStream()
     {
         throw Exception("Could not read device configuration: " + std::string(e.what()));
     }
+    
+    // No selected recording device
+    PrimaryRecordingDevice = l_Device.end();
 }
 
 AudioStream::~AudioStream() noexcept
@@ -145,6 +148,41 @@ void AudioStream::Record()
         {
             Device.Stop();
         }
+    }
+}
+
+void AudioStream::SelectPrimaryRecordingDevice()
+{
+    // Reset old
+    PrimaryRecordingDevice = l_Device.end();
+    
+    for (auto It = l_Device.begin(); It != l_Device.end(); ++It)
+    {
+        // Skip devices not used for recording
+        size_t us_AvailableSamples = It->GetAvailableSamples();
+        
+        if (It->GetCanRecord() == false ||
+            It->GetState() == AudioDevice::STOPPED ||
+            us_AvailableSamples == 0) /* Gives us no audio, so not important */
+        {
+            continue;
+        }
+        
+        // Set the recording device to use
+        if (PrimaryRecordingDevice == l_Device.end())
+        {
+            PrimaryRecordingDevice = It;
+        }
+        else if (PrimaryRecordingDevice->GetAvailableSamples() < us_AvailableSamples)
+        {
+            PrimaryRecordingDevice->Stop();
+            PrimaryRecordingDevice = It;
+        }
+    }
+    
+    if (PrimaryRecordingDevice == l_Device.end())
+    {
+        throw Exception("Failed to select a primary recording device!");
     }
 }
 
@@ -235,47 +273,13 @@ void AudioStream::Playback(AudioTrack const& c_Audio)
 
 AudioTrack const& AudioStream::GetRecordedAudio()
 {
-    // Select the device which has audio and the highest avg amplitude
-    // @NOTE: The first device in the list might not be able to record,
-    //        so we have to check all devices!
-    std::list<AudioDevice>::iterator Device = l_Device.end();
-    
-    for (auto It = l_Device.begin(); It != l_Device.end(); ++It)
+    // No device selected?
+    if (PrimaryRecordingDevice == l_Device.end())
     {
-        if (It->GetState() != AudioDevice::RECORDING)
-        {
-            // Skip devices which to not record -> No audio
-            continue;
-        }
-        
-        // Check if this device has actual audio
-        if (It->GetAvgRecordingAmplitude() > 0.f)
-        {
-            continue;
-        }
-        
-        if (Device == l_Device.end())
-        {
-            // No comparison possible yet
-            Device = It;
-        }
-        else if (Device->GetAvgRecordingAmplitude() < It->GetAvgRecordingAmplitude())
-        {
-            // Disable old recording device (we now have one target) and
-            // swap the current audio holder
-            Device->Stop();
-            Device = It;
-        }
+        throw Exception("No recording device selected!");
     }
     
-    // No devices for recording, so no audio!
-    if (Device == l_Device.end())
-    {
-        throw Exception("No recordings available!");
-    }
-    
-    // Found our device, return its audio
-    return Device->GetRecordedAudio();
+    return PrimaryRecordingDevice->GetRecordedAudio();
 }
 
 bool AudioStream::GetPlayback() noexcept
@@ -302,4 +306,9 @@ bool AudioStream::GetRecording() noexcept
     }
     
     return false;
+}
+
+bool AudioStream::GetPrimaryRecordingDeviceSet() noexcept
+{
+    return PrimaryRecordingDevice != l_Device.end() ? true : false;
 }

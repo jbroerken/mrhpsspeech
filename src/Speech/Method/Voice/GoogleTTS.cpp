@@ -127,7 +127,7 @@ AudioTrack const& GoogleTTS::Synthesise(std::string const& s_String)
     try
     {
         c_Audio.Clear();
-        c_Audio.AddChunk(p_Buffer, us_Elements);
+        c_Audio.AddAudio(p_Buffer, us_Elements);
     
         return c_Audio;
     }

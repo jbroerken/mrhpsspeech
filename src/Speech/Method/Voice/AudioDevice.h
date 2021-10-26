@@ -35,11 +35,6 @@
 // Project
 #include "./AudioTrack.h"
 
-// Pre-defined
-#ifndef MRH_HOST_IS_BIG_ENDIAN // Big endian host, needs conversion
-    #define MRH_HOST_IS_BIG_ENDIAN 0
-#endif
-
 
 class AudioDevice
 {
@@ -151,12 +146,12 @@ public:
     bool GetCanPlay() noexcept;
     
     /**
-     *  Get the average recording amplitude.
+     *  Get the amount of available samples.
      *
-     *  \return The average recording amplitude.
+     *  \return The available samples.
      */
     
-    float GetAvgRecordingAmplitude() noexcept;
+    size_t GetAvailableSamples() noexcept;
     
     //*************************************************************************************
     // Data
@@ -164,6 +159,8 @@ public:
     
     const MRH_Uint32 u32_ID;
     const std::string s_Name;
+    const std::string s_Address;
+    const int i_Port;
     
 private:
     
@@ -179,9 +176,21 @@ private:
     
     static void Update(AudioDevice* p_Instance) noexcept;
     
+    /**
+     *  Switch the recording buffer.
+     */
+    
+    void SwitchRecordingBuffer() noexcept;
+    
     //*************************************************************************************
-    // Stop
+    // Connection
     //*************************************************************************************
+    
+    /**
+     *  Connect to the audio device.
+     */
+    
+    void Connect();
     
     /**
      *  Disconnect from the audio device.
@@ -194,10 +203,26 @@ private:
     //*************************************************************************************
     
     /**
-     *  Recieve device data from the device.
+     *  Recieve data from the device.
      */
     
     void Recieve();
+    
+    /**
+     *  Recieve device recording audio buffer data.
+     *
+     *  \return true if all data was recieved, false if not.
+     */
+    
+    bool RecieveAudio();
+    
+    /**
+     *  Recieve device state changed opcode data.
+     *
+     *  \return true if all data was recieved, false if not.
+     */
+    
+    bool RecieveStateChanged();
     
     //*************************************************************************************
     // Playback
@@ -269,6 +294,9 @@ private:
     std::atomic<int> i_SocketFD;
     std::atomic<DeviceState> e_State; // Active state
     
+    std::pair<bool, size_t> c_ReadInfo; // <OpCode Read, Read Size B>
+    std::pair<bool, size_t> c_WriteInfo; // <OpCode Written, Write Size B>
+    
     bool b_CanRecord;
     bool b_CanPlay;
     
@@ -276,7 +304,9 @@ private:
     std::list<AudioTrack> l_Audio;
     std::list<AudioTrack>::iterator ActiveAudio;
     
-    std::atomic<float> f32_AvgAmplitude;
+    std::atomic<size_t> us_AvailableSamples;
+    
+    MRH_Uint64 u64_HeartbeatTimeoutS;
     
 protected:
     

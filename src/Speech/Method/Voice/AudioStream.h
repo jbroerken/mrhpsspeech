@@ -69,10 +69,17 @@ public:
     //*************************************************************************************
     
     /**
-     *  Start recording audio.
+     *  Start recording audio. All devices unable to record will be stopped.
      */
     
     void Record();
+    
+    /**
+     *  Select the input device to set as the primary recording device. This device will
+     *  then be used to retrieve audio. All other recording devices will be stopped.
+     */
+    
+    void SelectPrimaryRecordingDevice();
     
     //*************************************************************************************
     // Output
@@ -114,6 +121,14 @@ public:
     
     bool GetRecording() noexcept;
     
+    /**
+     *  Check if the primary recording device was set.
+     *
+     *  \return true if a device was set, false if not.
+     */
+    
+    bool GetPrimaryRecordingDeviceSet() noexcept;
+    
 private:
     
     //*************************************************************************************
@@ -121,6 +136,9 @@ private:
     //*************************************************************************************
     
     std::list<AudioDevice> l_Device;
+    
+    // Selected recording device.
+    std::list<AudioDevice>::iterator PrimaryRecordingDevice;
     
     // Audio Info
     std::pair<MRH_Uint32, MRH_Uint32> c_RecordingFormat; // <KHz, Frame Elements>

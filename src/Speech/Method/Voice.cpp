@@ -104,6 +104,12 @@ void Voice::Listen()
     
     try
     {
+        // Do we need to set a primary device?
+        if (c_AudioStream.GetPrimaryRecordingDeviceSet() == false)
+        {
+            c_AudioStream.SelectPrimaryRecordingDevice();
+        }
+        
         // Grab sample
         AudioTrack const& c_Audio = c_AudioStream.GetRecordedAudio();
         

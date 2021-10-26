@@ -156,13 +156,13 @@ public:
     void Clear() noexcept;
     
     /**
-     *  Add a new audio chunk.
+     *  Add new audio to the track.
      *
      *  \param p_Buffer The audio buffer.
      *  \param us_Elements The elements in the audio buffer.
      */
     
-    void AddChunk(const MRH_Sint16* p_Buffer, size_t us_Elements);
+    void AddAudio(const MRH_Sint16* p_Buffer, size_t us_Elements);
     
     //*************************************************************************************
     // Getters

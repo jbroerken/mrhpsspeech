@@ -98,7 +98,7 @@ void AudioTrack::Clear() noexcept
     FreeChunk = l_Chunk.begin();
 }
 
-void AudioTrack::AddChunk(const MRH_Sint16* p_Buffer, size_t us_Elements)
+void AudioTrack::AddAudio(const MRH_Sint16* p_Buffer, size_t us_Elements)
 {
     size_t us_WriteSize;
     size_t us_ExistingElements;

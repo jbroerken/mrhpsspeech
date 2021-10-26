@@ -60,7 +60,7 @@ namespace AudioDeviceOpCode
         SERVICE_PAIR_REQUEST = 3,              // Request pairing with a audio device
         SERVICE_PAIR_CONNECTION_DETAILS = 4,   // Send connection details (wifi, etc) to device, encrypted
         
-        SERVICE_AUDIO_PLAYBACK_AUDIO = 6,      // Playback data buffer
+        SERVICE_PLAYBACK_AUDIO = 6,            // Playback data buffer
         
         SERVICE_CHANGE_DEVICE_STATE = 7,       // Change device state
         
@@ -71,7 +71,7 @@ namespace AudioDeviceOpCode
         DEVICE_PAIR_GIVE_KEY,                   // Hand a public key to the service which wants to pair
         DEVICE_PAIR_GIVE_CONNECION,             // Hand the device connection info (name, ip, etc.) to the service wanting to pair
         
-        DEVICE_AUDIO_RECORDING_AUDIO,           // Recording data buffer
+        DEVICE_RECORDED_AUDIO,                  // Recording data buffer
         
         DEVICE_STATE_CHANGED,                   // Give current device state
         
@@ -164,7 +164,7 @@ namespace AudioDeviceOpCode
             
         }SERVICE_PAIR_CONNECTION_DETAILS_DATA;
         
-        // SERVICE_AUDIO_PLAYBACK_DATA
+        // SERVICE_PLAYBACK_AUDIO_DATA
         // @NOTE: Has data, but is simply the audio buffer
         
         // SERVICE_CHANGE_DEVICE_STATE
@@ -221,7 +221,7 @@ namespace AudioDeviceOpCode
             
         }DEVICE_PAIR_GIVE_CONNECION_DATA;
         
-        // DEVICE_AUDIO_RECORDING_DATA
+        // DEVICE_RECORDED_AUDIO_DATA
         // @NOTE: Has data, but is simply the audio buffer
         
         // DEVICE_STATE_CHANGED
