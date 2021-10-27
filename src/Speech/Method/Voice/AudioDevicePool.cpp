@@ -20,6 +20,20 @@
  */
 
 // C / C++
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <fcntl.h>
+#include <poll.h>
+#include <errno.h>
+#include <limits.h>
+#include <cstring>
+#include <cmath>
+#include <ctime>
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+    #include <byteswap.h>
+#endif
 
 // External
 #include <libmrhpsb/MRH_PSBLogger.h>
@@ -28,6 +42,10 @@
 // Project
 #include "./AudioDevicePool.h"
 #include "../../../Configuration.h"
+
+// Pre-defined
+#define AUDIO_DEVICE_INVALID -1
+#define AUDIO_DEVICE_CONNECTION_BACKLOG 255 // Uint8, Device Count Max
 
 
 //*************************************************************************************
@@ -43,40 +61,9 @@ AudioDevicePool::AudioDevicePool()
     c_PlaybackFormat.first = Configuration::Singleton().GetPlaybackKHz();
     c_PlaybackFormat.second = Configuration::Singleton().GetPlaybackFrameSamples();
     
-    // Now read devices
-    /*
-    try
-    {
-        MRH_BlockFile c_File(MRH_SPEECH_DEVICE_CONFIG_PATH);
-        
-        for (auto& Block : c_File.l_Block)
-        {
-            try
-            {
-                if (Block.GetName().compare(p_Identifier[BLOCK_DEVICE]) == 0)
-                {
-                    l_Device.emplace_back(static_cast<MRH_Uint32>(std::stoi(Block.GetValue(p_Identifier[DEVICE_ID]))),
-                                          Block.GetValue(p_Identifier[DEVICE_NAME]),
-                                          Block.GetValue(p_Identifier[DEVICE_ADDRESS]),
-                                          std::stoi(Block.GetValue(p_Identifier[DEVICE_PORT])));
-                }
-            }
-            catch (std::exception& e)
-            {
-                MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "Failed to add device! " + std::string(e.what()),
-                                               "AudioStream.cpp", __LINE__);
-            }
-        }
-    }
-    catch (std::exception& e)
-    {
-        throw Exception("Could not read device configuration: " + std::string(e.what()));
-    }
-    */
-    
     // No selected devices in the beginning
-    RecordingDevice = l_Device.end();
-    
+    i_RecordingDevice = AUDIO_DEVICE_INVALID;
+    i_PlaybackDevice = AUDIO_DEVICE_INVALID;
 }
 
 AudioDevicePool::~AudioDevicePool() noexcept
@@ -88,24 +75,117 @@ AudioDevicePool::~AudioDevicePool() noexcept
 
 void AudioDevicePool::StartDevices() noexcept
 {
-    // Reset recording device
-    RecordingDevice = l_Device.end();
+    MRH_PSBLogger& c_Logger = MRH_PSBLogger::Singleton();
     
-    // @TODO: Load list and connect
+    // Reset recording device
+    i_RecordingDevice = AUDIO_DEVICE_INVALID;
+    i_PlaybackDevice = AUDIO_DEVICE_INVALID;
+    
+    // Create a file descriptor first
+    if ((i_SocketFD = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+    {
+        c_Logger.Log(MRH_PSBLogger::ERROR, "Failed to create audio device pool connection socket: " +
+                                           std::string(std::strerror(errno)) +
+                                           " (" +
+                                           std::to_string(errno) +
+                                           ")!",
+                     "AudioDevicePool.cpp", __LINE__);
+    }
+    
+    // Setup socket for connections
+    struct sockaddr_in c_Address;
+    memset(&c_Address, '\0', sizeof(c_Address));
+    
+    c_Address.sin_family = AF_INET;
+    c_Address.sin_addr.s_addr = INADDR_ANY;
+    c_Address.sin_port = htons(Configuration::Singleton().GetDeviceConnectionPort());
+    
+    if (bind(i_SocketFD, (struct sockaddr*)&c_Address, sizeof(c_Address)) < 0 ||
+        fcntl(i_SocketFD, F_SETFL, fcntl(i_SocketFD, F_GETFL, 0) | O_NONBLOCK) < 0 || /* Non blocking for update */
+        listen(i_SocketFD, AUDIO_DEVICE_CONNECTION_BACKLOG) < 0)
+    {
+        close(i_SocketFD);
+        i_SocketFD = AUDIO_DEVICE_SOCKET_DISCONNECTED;
+        
+        c_Logger.Log(MRH_PSBLogger::ERROR, "Failed to setup audio device pool connection socket: " +
+                                           std::string(std::strerror(errno)) +
+                                           " (" +
+                                           std::to_string(errno) +
+                                           ")!",
+                     "AudioDevicePool.cpp", __LINE__);
+    }
+    
+    // Update devices for connections
+    UpdateDevices();
 }
 
 void AudioDevicePool::StopDevices() noexcept
 {
     // Reset recording device
-    RecordingDevice = l_Device.end();
+    i_RecordingDevice = AUDIO_DEVICE_INVALID;
+    i_PlaybackDevice = AUDIO_DEVICE_INVALID;
     
     // Disconnect all devices
-    l_Device.clear();
+    m_Device.clear();
+    
+    // Disable connection socket
+    if (i_SocketFD != AUDIO_DEVICE_SOCKET_DISCONNECTED)
+    {
+        close(i_SocketFD);
+        i_SocketFD = AUDIO_DEVICE_SOCKET_DISCONNECTED;
+    }
 }
 
 void AudioDevicePool::UpdateDevices() noexcept
 {
+    // Check which devices are disconnected first
+    // Some disconnected devices might attempt to
+    // reconnect
+    for (auto It = m_Device.begin(); It != m_Device.end();)
+    {
+        if (It->second.GetConnected() == false)
+        {
+            It = m_Device.erase(It);
+        }
+        else
+        {
+            ++It;
+        }
+    }
     
+    // Now connect waiting devices
+    while (i_SocketFD != AUDIO_DEVICE_SOCKET_DISCONNECTED)
+    {
+        struct sockaddr_in c_Adress;
+        socklen_t us_ClientLen;
+        int i_ClientFD;
+        
+        if ((i_ClientFD = accept(i_SocketFD, (struct sockaddr*)&c_Adress, &us_ClientLen)) < 0)
+        {
+            if (errno != EAGAIN && errno != EWOULDBLOCK)
+            {
+                MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "Audio device connection failed: " +
+                                                                       std::string(std::strerror(errno)) +
+                                                                       " (" +
+                                                                       std::to_string(errno) +
+                                                                       ")!",
+                                               "AudioDevicePool.cpp", __LINE__);
+            }
+            
+            // Nothing left to do
+            return;
+        }
+        else
+        {
+            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, "Audio device connection accepted.",
+                                           "AudioDevicePool.cpp", __LINE__);
+        }
+        
+        // Now perform authentication
+        // @TODO: Auth, Read Request Opcode and Send Response Opcode
+        //        Then add device to map with recieved device id
+        //        -> Disconnect on duplicate ID or no capabilities
+    }
 }
 
 //*************************************************************************************
@@ -114,51 +194,62 @@ void AudioDevicePool::UpdateDevices() noexcept
 
 void AudioDevicePool::SelectRecordingDevice()
 {
-    // Reset old
-    RecordingDevice = l_Device.end();
+    // Update devices before selecting a recording source
+    UpdateDevices();
     
-    for (auto It = l_Device.begin(); It != l_Device.end(); ++It)
+    // Reset old
+    i_RecordingDevice = AUDIO_DEVICE_INVALID;
+    
+    for (auto It = m_Device.begin(); It != m_Device.end(); ++It)
     {
         // Skip devices not used for recording
-        size_t us_RecievedSamples = It->GetRecievedSamples();
+        size_t us_RecievedSamples = It->second.GetRecievedSamples();
         
-        if (It->GetCanRecord() == false || us_RecievedSamples == 0)
+        if (It->second.GetCanRecord() == false || us_RecievedSamples == 0)
         {
             continue;
         }
         
-        // Set the recording device to use
-        if (RecordingDevice == l_Device.end() ||
-            RecordingDevice->GetRecievedSamples() < us_RecievedSamples)
+        // Compare devices
+        auto Device = m_Device.find(i_RecordingDevice);
+        
+        if (Device == m_Device.end() ||
+            Device->second.GetRecievedSamples() < us_RecievedSamples)
         {
-            RecordingDevice = It;
+            i_RecordingDevice = It->first;
         }
     }
     
-    if (RecordingDevice == l_Device.end())
+    if (i_RecordingDevice == AUDIO_DEVICE_INVALID)
     {
         throw Exception("Failed to select a recording device!");
     }
     
     // Selected, stop all others
-    for (auto It = l_Device.begin(); It != l_Device.end(); ++It)
+    for (auto It = m_Device.begin(); It != m_Device.end(); ++It)
     {
-        if (It->GetCanRecord() == true && It != RecordingDevice)
+        if (It->second.GetCanRecord() == true && It->first != i_RecordingDevice)
         {
-            It->StopRecording();
+            It->second.StopRecording();
         }
     }
+    
+    // Set next playback device, most likely the recording device
+    i_PlaybackDevice = i_RecordingDevice;
 }
 
 void AudioDevicePool::ResetRecordingDevice() noexcept
 {
+    // Update to get current devices
+    UpdateDevices();
+    
     // Reset old
-    RecordingDevice = l_Device.end();
+    i_RecordingDevice = AUDIO_DEVICE_INVALID;
     
     // Allow recording for all
-    for (auto& Device : l_Device)
+    for (auto& Device : m_Device)
     {
-        Device.StartRecording();
+        Device.second.StartRecording();
     }
 }
 
@@ -174,30 +265,36 @@ void AudioDevicePool::Playback(AudioTrack const& c_Audio)
         throw Exception("No audio to play!");
     }
     
-    // Can we use the device for the recording as playback?
-    // This would make sure the device closest to the user
-    // is the playback source
-    if (RecordingDevice != l_Device.end() &&
-        RecordingDevice->GetCanPlay() == true)
+    // Update devices for playback sources
+    UpdateDevices();
+    
+    // Attempt to find a playback device
+    auto Device = m_Device.find(i_PlaybackDevice);
+    
+    if (Device != m_Device.end() && Device->second.GetCanPlay() == true)
     {
-        RecordingDevice->Play(c_Audio);
+        Device->second.Play(c_Audio);
     }
     else
     {
         // Select a device capable of playback
-        for (auto It = l_Device.begin(); It != l_Device.end(); ++It)
+        for (auto It = m_Device.begin(); It != m_Device.end(); ++It)
         {
-            if (It->GetCanPlay() == false)
+            if (It->second.GetCanPlay() == false)
             {
                 continue;
             }
             
-            It->Play(c_Audio);
+            i_PlaybackDevice = It->first;
+            It->second.Play(c_Audio);
+            
             return;
         }
     }
     
     // No device usable?
+    i_PlaybackDevice = AUDIO_DEVICE_INVALID;
+    
     throw Exception("Failed to select a playback device!");
 }
 
@@ -208,25 +305,30 @@ void AudioDevicePool::Playback(AudioTrack const& c_Audio)
 AudioTrack const& AudioDevicePool::GetRecordedAudio()
 {
     // No device selected?
-    if (RecordingDevice == l_Device.end())
+    auto Device = m_Device.find(i_RecordingDevice);
+    
+    if (Device == m_Device.end())
     {
         throw Exception("No recording device selected!");
     }
     
-    return RecordingDevice->GetRecordedAudio();
+    return Device->second.GetRecordedAudio();
 }
 
 bool AudioDevicePool::GetRecordingDeviceSelected() noexcept
 {
-    return RecordingDevice != l_Device.end() ? true : false;
+    return m_Device.find(i_RecordingDevice) != m_Device.end() ? true : false;
 }
 
 bool AudioDevicePool::GetPlaybackActive() noexcept
 {
-    if (PlaybackDevice == l_Device.end())
+    auto Device = m_Device.find(i_PlaybackDevice);
+    
+    if (Device == m_Device.end())
     {
         return false;
     }
     
-    return true;
+    // The selected playback device is the only one sending audio
+    return Device->second.GetSendingActive();
 }

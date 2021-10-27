@@ -35,12 +35,13 @@
 #define AUDIO_DEVICE_BOOL_TRUE 1
 #define AUDIO_DEVICE_BOOL_FALSE 0
 
-#define AUDIO_DEVICE_CONNECT_KEYPHRASE_SIZE 1024
-#define AUDIO_DEVICE_CONNECT_NAME_SIZE 1024
-#define AUDIO_DEVICE_CONNECT_ADDRESS_SIZE 512
-#define AUDIO_DEVICE_PAIR_KEY_SIZE 1024
-#define AUDIO_DEVICE_PAIR_SSID_SIZE 1024
-#define AUDIO_DEVICE_PAIR_PASSWORD_SIZE 1024
+#define AUDIO_DEVICE_KEYPHRASE_SIZE 1024
+#define AUDIO_DEVICE_DEVICE_NAME_SIZE 1024
+#define AUDIO_DEVICE_SERVICE_ADDRESS_SIZE 512
+#define AUDIO_DEVICE_SERVICE_KEY_SIZE 1024
+#define AUDIO_DEVICE_PUBLIC_KEY_SIZE 1024
+#define AUDIO_DEVICE_NETWORK_SSID_SIZE 1024
+#define AUDIO_DEVICE_NETWORK_PASSWORD_SIZE 1024
 
 
 namespace AudioDeviceOpCode
@@ -57,20 +58,17 @@ namespace AudioDeviceOpCode
         // Speech Service
         SERVICE_CONNECT_RESPONSE = 1,           // Connect to device
         
-        SERVICE_PAIR_REQUEST = 2,               // Request pairing with a audio device
-        SERVICE_PAIR_CONNECTION_DETAILS = 3,    // Send connection details (wifi, etc) to device, encrypted
+        SERVICE_PAIR_RESPONSE = 2,              // Responst to a device pairing request with connection data, encrypted
         
-        SERVICE_PLAYBACK_AUDIO = 4,             // Playback data buffer
+        SERVICE_PLAYBACK_AUDIO = 3,             // Playback data buffer
         
-        SERVICE_START_RECORDING = 5,            // Signal recording start to device
-        SERVICE_STOP_RECORDING = 6,             // Signal recording stop to device.
+        SERVICE_START_RECORDING = 4,            // Signal recording start to device
+        SERVICE_STOP_RECORDING = 5,             // Signal recording stop to device.
         
         // Audio Device
-        DEVICE_CONNECT_REQUEST = 7,             // Connection response of service request
+        DEVICE_CONNECT_REQUEST = 6,             // Connection response of service request
         
-        DEVICE_PAIR_RESPONSE,                   // Response to pair request
-        DEVICE_PAIR_GIVE_KEY,                   // Hand a public key to the service which wants to pair
-        DEVICE_PAIR_GIVE_CONNECION,             // Hand the device connection info (name, ip, etc.) to the service wanting to pair
+        DEVICE_PAIR_REQUEST = 7,                // Request pairing with the service (Hand key and info)
         
         DEVICE_RECORDED_AUDIO,                  // Recording data buffer
         
@@ -138,29 +136,27 @@ namespace AudioDeviceOpCode
             
         }SERVICE_CONNECT_REQUEST_DATA;
         
-        // SERVICE_PAIR_REQUEST
-        typedef struct SERVICE_PAIR_REQUEST_DATA_t
-        {
-            MRH_Uint32 u32_OpCodeVersion;
-            
-        }SERVICE_PAIR_REQUEST_DATA;
-        
-        // SERVICE_PAIR_CONNECTION_DETAILS
-        typedef struct SERVICE_PAIR_CONNECTION_DETAILS_DATA_t
+        // SERVICE_PAIR_RESPONSE
+        typedef struct SERVICE_PAIR_RESPONSE_DATA_t
         {
             // Trigger Info
-            char p_TriggerKeyphrase[AUDIO_DEVICE_CONNECT_KEYPHRASE_SIZE];
+            char p_TriggerKeyphrase[AUDIO_DEVICE_KEYPHRASE_SIZE];
             MRH_Uint32 u32_TriggerTimeoutS;
             
+            // Service Info
+            char p_Address[AUDIO_DEVICE_SERVICE_ADDRESS_SIZE];
+            int i_Port;
+            char p_ServiceKey[AUDIO_DEVICE_SERVICE_KEY_SIZE];
+            
             // Network Info
-            char p_SSID[AUDIO_DEVICE_PAIR_SSID_SIZE]; // Encrypted with key, slimmed with base64
-            char p_Password[AUDIO_DEVICE_PAIR_PASSWORD_SIZE]; // Encrypted with key, slimmed with base64
+            char p_SSID[AUDIO_DEVICE_NETWORK_SSID_SIZE]; // Encrypted with key, slimmed with base64
+            char p_Password[AUDIO_DEVICE_NETWORK_PASSWORD_SIZE]; // Encrypted with key, slimmed with base64
             MRH_Uint8 u8_NetworkType;
             
             // Device Info
             MRH_Uint8 u8_DeviceID; // Used for recognition
             
-        }SERVICE_PAIR_CONNECTION_DETAILS_DATA;
+        }SERVICE_PAIR_RESPONSE_DATA;
         
         // SERVICE_PLAYBACK_AUDIO_DATA
         // @NOTE: Has data, but is simply the audio buffer
@@ -175,48 +171,35 @@ namespace AudioDeviceOpCode
          *  Audio Device
          */
         
-        // DEVICE_CONNECT_RESPONSE
+        // DEVICE_CONNECT_REQUEST
         typedef struct DEVICE_CONNECT_REQUEST_DATA_t
         {
             MRH_Uint32 u32_OpCodeVersion;
             
-            // Device ID
+            // Device Info
+            char p_DeviceName[AUDIO_DEVICE_DEVICE_NAME_SIZE];
+            char p_ServiceKey[AUDIO_DEVICE_SERVICE_KEY_SIZE];
             MRH_Uint8 u8_DeviceID;
             
             // Device capabilities
             MRH_Uint8 u8_CanRecord;
             MRH_Uint8 u8_CanPlay;
             
-        }DEVICE_CONNECT_RESPONSE_DATA;
+        }DEVICE_CONNECT_REQUEST_DATA;
         
-        // DEVICE_PAIR_RESPONSE
-        typedef struct DEVICE_PAIR_RESPONSE_DATA_t
+        // DEVICE_PAIR_REQUEST
+        typedef struct DEVICE_PAIR_REQUEST_DATA_t
         {
-            // Pairing error (0 if none)
-            OpCodeError u32_Error;
+            // OpCode version in use
+            MRH_Uint32 u32_OpCodeVersion;
+
+            // The key to encrypt data with
+            char p_PublicKey[AUDIO_DEVICE_PUBLIC_KEY_SIZE];
             
-        }DEVICE_PAIR_RESPONSE_DATA;
-        
-        // DEVICE_PAIR_GIVE_KEY
-        typedef struct DEVICE_PAIR_GIVE_KEY_DATA_t
-        {
-            // The key to connect to this device
-            char p_Key[AUDIO_DEVICE_PAIR_KEY_SIZE];
+            // Device Info
+            char p_DeviceName[AUDIO_DEVICE_DEVICE_NAME_SIZE];
             
-        }DEVICE_PAIR_GIVE_KEY_DATA;
-        
-        // DEVICE_PAIR_GIVE_CONNECION
-        typedef struct DEVICE_PAIR_GIVE_CONNECION_DATA_t
-        {
-            // Pairing error (0 if none)
-            OpCodeError u32_Error;
-            
-            // Info for pairing
-            char p_Name[AUDIO_DEVICE_CONNECT_NAME_SIZE];
-            char p_Address[AUDIO_DEVICE_CONNECT_ADDRESS_SIZE];
-            int i_Port;
-            
-        }DEVICE_PAIR_GIVE_CONNECION_DATA;
+        }DEVICE_PAIR_REQUEST_DATA;
         
         // DEVICE_RECORDED_AUDIO_DATA
         // @NOTE: Has data, but is simply the audio buffer

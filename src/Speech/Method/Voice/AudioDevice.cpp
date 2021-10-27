@@ -20,17 +20,10 @@
  */
 
 // C / C++
-#include <stdio.h>
-#include <string.h>
 #include <unistd.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <fcntl.h>
 #include <poll.h>
 #include <errno.h>
-#include <limits.h>
 #include <cstring>
-#include <cmath>
 #include <ctime>
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
     #include <byteswap.h>
@@ -61,8 +54,9 @@
 //*************************************************************************************
 
 AudioDevice::AudioDevice(std::string const& s_Name,
+                         int i_SocketFD,
                          bool b_CanPlay,
-                         bool b_CanRecord) : i_SocketFD(-1),
+                         bool b_CanRecord) : i_SocketFD(i_SocketFD),
                                              s_Name(s_Name),
                                              b_CanPlay(b_CanPlay),
                                              b_CanRecord(b_CanRecord),
@@ -114,10 +108,10 @@ AudioDevice::AudioDevice(std::string const& s_Name,
 
 AudioDevice::~AudioDevice() noexcept
 {
-    if (i_SocketFD != -1)
+    if (i_SocketFD != AUDIO_DEVICE_SOCKET_DISCONNECTED)
     {
         close(i_SocketFD);
-        i_SocketFD = -1;
+        i_SocketFD = AUDIO_DEVICE_SOCKET_DISCONNECTED;
     }
     
     c_Thread.join();
@@ -131,7 +125,7 @@ void AudioDevice::Update(AudioDevice* p_Instance) noexcept
 {
     MRH_PSBLogger& c_Logger = MRH_PSBLogger::Singleton();
     
-    while (p_Instance->i_SocketFD != -1)
+    while (p_Instance->i_SocketFD != AUDIO_DEVICE_SOCKET_DISCONNECTED)
     {
         try
         {
@@ -526,7 +520,7 @@ ssize_t AudioDevice::Write(const MRH_Uint8* p_Src, size_t us_Length)
 
 bool AudioDevice::GetConnected() noexcept
 {
-    return i_SocketFD != -1 ? true : false;
+    return i_SocketFD != AUDIO_DEVICE_SOCKET_DISCONNECTED ? true : false;
 }
 
 AudioTrack const& AudioDevice::GetRecordedAudio() noexcept

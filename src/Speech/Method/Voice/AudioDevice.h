@@ -35,6 +35,9 @@
 // Project
 #include "./AudioTrack.h"
 
+// Pre-defined
+#define AUDIO_DEVICE_SOCKET_DISCONNECTED -1
+
 
 class AudioDevice
 {
@@ -48,11 +51,13 @@ public:
      *  Default constructor.
      *
      *  \param s_Name The device name.
+     *  \param i_SocketFD The device connection socket.
      *  \param b_CanPlay If the device can play audio.
      *  \param b_CanRecord If the device can record audio.
      */
     
     AudioDevice(std::string const& s_Name,
+                int i_SocketFD,
                 bool b_CanPlay,
                 bool b_CanRecord);
     
@@ -214,6 +219,7 @@ private:
     //*************************************************************************************
     
     std::thread c_Thread;
+    
     std::atomic<int> i_SocketFD;
     std::string s_Name;
     

@@ -39,17 +39,21 @@ namespace
     {
         // Block Name
         BLOCK_TRIGGER = 0,
-        BLOCK_RECORDING = 1,
-        BLOCK_PLAYBACK = 2,
-        BLOCK_POCKET_SPHINX = 3,
+        BLOCK_DEVICE_CONNECTION = 1,
+        BLOCK_RECORDING = 2,
+        BLOCK_PLAYBACK = 3,
         BLOCK_GOOGLE_API = 4,
         
         // Trigger Key
         TRIGGER_KEYPHRASE = 5,
         TRIGGER_TIMEOUT_S = 6,
         
+        // Device Connection Key
+        DEVICE_CONNECTION_PORT = 7,
+        DEVICE_CONNECTION_SERVICE_KEY,
+        
         // Recording Key
-        RECORDING_KHZ = 7,
+        RECORDING_KHZ,
         RECORDING_FRAME_SAMPLES,
         RECORDING_STORAGE_S,
         
@@ -71,10 +75,14 @@ namespace
     {
         // Block Name
         "Trigger",
+        "DeviceConnection",
         "Recording",
         "Playback",
-        "PocketSphinx",
         "GoogleAPI",
+        
+        // Device Connection Key
+        "Port",
+        "ServiceKey",
         
         // Trigger Key
         "Keyphrase",
@@ -102,6 +110,8 @@ namespace
 
 Configuration::Configuration() noexcept : s_TriggerKeyphrase("Hey Mamao"),
                                           u32_TriggerTimeoutS(30),
+                                          i_DeviceConnectionPort(16099),
+                                          s_DeviceConnectionServiceKey("Hab99Z-Ty11g-RPOkk"),
                                           u32_RecordingKHz(16000),
                                           u32_RecordingFrameSamples(2048),
                                           u32_RecordingStorageS(5),
@@ -150,6 +160,11 @@ void Configuration::Load()
                 s_TriggerKeyphrase = Block.GetValue(p_Identifier[TRIGGER_KEYPHRASE]);
                 u32_TriggerTimeoutS = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[TRIGGER_TIMEOUT_S])));
             }
+            else if (Block.GetName().compare(p_Identifier[BLOCK_DEVICE_CONNECTION]) == 0)
+            {
+                i_DeviceConnectionPort = std::stoi(Block.GetValue(p_Identifier[DEVICE_CONNECTION_PORT]));
+                s_DeviceConnectionServiceKey = Block.GetValue(p_Identifier[DEVICE_CONNECTION_SERVICE_KEY]);
+            }
             else if (Block.GetName().compare(p_Identifier[BLOCK_RECORDING]) == 0)
             {
                 u32_RecordingKHz = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[RECORDING_KHZ])));
@@ -186,6 +201,16 @@ std::string Configuration::GetTriggerKeyphrase() noexcept
 MRH_Uint32 Configuration::GetTriggerTimeoutS() noexcept
 {
     return u32_TriggerTimeoutS;
+}
+
+int Configuration::GetDeviceConnectionPort() noexcept
+{
+    return i_DeviceConnectionPort;
+}
+
+std::string Configuration::GetDeviceConnectionServiceKey() noexcept
+{
+    return s_DeviceConnectionServiceKey;
 }
 
 MRH_Uint32 Configuration::GetRecordingKHz() noexcept
