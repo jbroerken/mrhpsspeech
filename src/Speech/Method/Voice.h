@@ -30,7 +30,7 @@
 
 // Project
 #include "../SpeechMethod.h"
-#include "./Voice/AudioStream.h"
+#include "./Voice/AudioDevicePool.h"
 #include "./Voice/GoogleSTT.h"
 #include "./Voice/GoogleTTS.h"
 
@@ -118,7 +118,7 @@ private:
     //*************************************************************************************
     
     // Components
-    AudioStream c_AudioStream;
+    AudioDevicePool c_DevicePool;
     GoogleSTT c_GoogleSTT;
     GoogleTTS c_GoogleTTS;
     

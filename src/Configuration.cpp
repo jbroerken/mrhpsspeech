@@ -188,11 +188,6 @@ MRH_Uint32 Configuration::GetTriggerTimeoutS() noexcept
     return u32_TriggerTimeoutS;
 }
 
-std::string Configuration::GetTriggerSoundPath() noexcept
-{
-    return s_TriggerSoundPath;
-}
-
 MRH_Uint32 Configuration::GetRecordingKHz() noexcept
 {
     return u32_RecordingKHz;

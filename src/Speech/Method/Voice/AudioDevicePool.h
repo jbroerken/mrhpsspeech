@@ -1,5 +1,5 @@
 /**
- *  AudioStream.h
+ *  AudioDevicePool.h
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -19,8 +19,8 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef AudioStream_h
-#define AudioStream_h
+#ifndef AudioDevicePool_h
+#define AudioDevicePool_h
 
 // C / C++
 #include <utility>
@@ -34,7 +34,7 @@
 #include "./AudioDevice.h"
 
 
-class AudioStream
+class AudioDevicePool
 {
 public:
     
@@ -46,47 +46,54 @@ public:
      *  Default constructor.
      */
     
-    AudioStream();
+    AudioDevicePool();
     
     /**
      *  Default destructor.
      */
     
-    ~AudioStream() noexcept;
+    ~AudioDevicePool() noexcept;
     
     //*************************************************************************************
-    // Stream
+    // Devices
     //*************************************************************************************
     
     /**
-     *  Stop all audio streams.
+     *  Start all audio devices.
      */
     
-    void StopAll() noexcept;
-    
-    //*************************************************************************************
-    // Input
-    //*************************************************************************************
+    void StartDevices() noexcept;
     
     /**
-     *  Start recording audio. All devices unable to record will be stopped.
+     *  Stop all audio devices.
      */
     
-    void Record();
+    void StopDevices() noexcept;
+    
+    //*************************************************************************************
+    // Record
+    //*************************************************************************************
     
     /**
-     *  Select the input device to set as the primary recording device. This device will
-     *  then be used to retrieve audio. All other recording devices will be stopped.
+     *  Select the audio device to use as a source for recordings. Only this device will
+     *  then be used to retrieve audio. All other recording devices will be ignored.
      */
     
-    void SelectPrimaryRecordingDevice();
+    void SelectRecordingDevice();
+    
+    /**
+     *  Reset the current recording device, allowing all devices to record again for
+     *  selection.
+     */
+    
+    void ResetRecordingDevice() noexcept;
     
     //*************************************************************************************
-    // Output
+    // Playback
     //*************************************************************************************
     
     /**
-     *  Play the currently set audio.
+     *  Start audio playback with a given audio track.
      *
      *  \param c_Audio The audio for playback.
      */
@@ -108,36 +115,30 @@ public:
     /**
      *  Check if audio is currently being played.
      *
-     *  \return true if audio is playing, false if not.
+     *  \return true if audio is being played, false if not.
      */
     
-    bool GetPlayback() noexcept;
+    bool GetPlaybackActive() noexcept;
     
     /**
-     *  Check if audio input is currently being recorded.
-     *
-     *  \return true if audio is being recorded, false if not.
-     */
-    
-    bool GetRecording() noexcept;
-    
-    /**
-     *  Check if the primary recording device was set.
+     *  Check if a recording device was set.
      *
      *  \return true if a device was set, false if not.
      */
     
-    bool GetPrimaryRecordingDeviceSet() noexcept;
-    
-    /**
-     *  Check if the primary playback device was set.
-     *
-     *  \return true if a device was set, false if not.
-     */
-    
-    bool GetPrimaryPlaybackDeviceSet() noexcept;
+    bool GetRecordingDeviceSelected() noexcept;
     
 private:
+    
+    //*************************************************************************************
+    // Devices
+    //*************************************************************************************
+    
+    /**
+     *  Update the decives in the device pool.
+     */
+    
+    void UpdateDevices() noexcept;
     
     //*************************************************************************************
     // Data
@@ -146,8 +147,8 @@ private:
     std::list<AudioDevice> l_Device;
     
     // Selected devices
-    std::list<AudioDevice>::iterator PrimaryRecordingDevice;
-    std::list<AudioDevice>::iterator PrimaryPlaybackDevice;
+    std::list<AudioDevice>::iterator RecordingDevice;
+    std::list<AudioDevice>::iterator PlaybackDevice;
     
     // Audio Info
     std::pair<MRH_Uint32, MRH_Uint32> c_RecordingFormat; // <KHz, Frame Elements>
@@ -160,4 +161,4 @@ protected:
     
 };
 
-#endif /* AudioStream_h */
+#endif /* AudioDevicePool_h */

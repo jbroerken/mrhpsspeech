@@ -41,54 +41,56 @@
 
 // Project
 #include "./AudioDevice.h"
+#include "./AudioDeviceOpCode.h"
 #include "../../../Configuration.h"
 
 // Pre-defined
-#define HANDLE_OPCODE_ID false
-#define HANDLE_OPCODE_DATA true
-
 #define AUDIO_SAMPLE_SIZE_B sizeof(MRH_Sint16)
 
 #define AUDIO_READ_BUFFER_SIZE_U8 1024
 #define AUDIO_READ_BUFFER_SIZE_S16 AUDIO_READ_BUFFER_SIZE_U8 / AUDIO_SAMPLE_SIZE_B
 
 #define DEVICE_CONNECTION_SLEEP_WAIT_S 15
-#define DEVICE_CONNECTION_HEARTBEAT_S 60
+#define DEVICE_CONNECTION_HEARTBEAT_S 30
+
+#define RECORDING_AUDIO_TRACK_COUNT 2
 
 
 //*************************************************************************************
 // Constructor / Destructor
 //*************************************************************************************
 
-AudioDevice::AudioDevice(MRH_Uint32 u32_ID,
-                         std::string const& s_Name,
-                         std::string const& s_Address,
-                         int i_Port) : b_Update(true),
-                                       s_Name(s_Name),
-                                       u32_ID(u32_ID),
-                                       s_Address(s_Address),
-                                       i_Port(i_Port),
-                                       i_SocketFD(-1),
-                                       e_State(STOPPED),
-                                       c_ReadInfo(HANDLE_OPCODE_ID, 0),
-                                       c_WriteInfo(HANDLE_OPCODE_ID, 0),
-                                       b_CanPlay(false),
-                                       b_CanRecord(false),
-                                       us_AvailableSamples(0),
-                                       u64_HeartbeatReadS(0),
-                                       u64_HeartbeatWriteS(0)
+AudioDevice::AudioDevice(std::string const& s_Name,
+                         bool b_CanPlay,
+                         bool b_CanRecord) : i_SocketFD(-1),
+                                             s_Name(s_Name),
+                                             b_CanPlay(b_CanPlay),
+                                             b_CanRecord(b_CanRecord),
+                                             us_RecievedSamples(0),
+                                             us_PlaybackFrameSamples(0)
 {
     // Create buffer list
     Configuration& c_Configuration = Configuration::Singleton();
     
+    // Make sure samples are a multiple of the storage buffer
+    us_PlaybackFrameSamples = c_Configuration.GetPlaybackFrameSamples();
+    size_t us_RecordingFrameSamples = c_Configuration.GetRecordingFrameSamples();
+    
+    if (us_RecordingFrameSamples % AUDIO_READ_BUFFER_SIZE_S16 != 0)
+    {
+        throw Exception("Recording frame samples must be a multiple of " +
+                        std::to_string(AUDIO_READ_BUFFER_SIZE_S16) +
+                        "!");
+    }
+    
     try
     {
-        for (size_t i = 0; i < 2; ++i)
+        for (size_t i = 0; i < RECORDING_AUDIO_TRACK_COUNT; ++i)
         {
-            l_Audio.emplace_back(c_Configuration.GetRecordingKHz(),
-                                 c_Configuration.GetRecordingFrameSamples(),
-                                 c_Configuration.GetRecordingStorageS(),
-                                 false);
+            l_RecordingAudio.emplace_back(c_Configuration.GetRecordingKHz(),
+                                          us_RecordingFrameSamples,
+                                          c_Configuration.GetRecordingStorageS(),
+                                          false);
         }
     }
     catch (...)
@@ -97,9 +99,9 @@ AudioDevice::AudioDevice(MRH_Uint32 u32_ID,
     }
     
     // Set the initial active buffer
-    ActiveAudio = l_Audio.begin();
+    ActiveAudio = l_RecordingAudio.begin();
     
-    // Response OK, start updating
+    // All set, start updating
     try
     {
         c_Thread = std::thread(AudioDevice::Update, this);
@@ -112,94 +114,99 @@ AudioDevice::AudioDevice(MRH_Uint32 u32_ID,
 
 AudioDevice::~AudioDevice() noexcept
 {
-    b_Update = false;
-    c_Thread.join();
+    if (i_SocketFD != -1)
+    {
+        close(i_SocketFD);
+        i_SocketFD = -1;
+    }
     
-    Disconnect();
+    c_Thread.join();
 }
 
 //*************************************************************************************
-// Stop
+// Update
 //*************************************************************************************
 
-void AudioDevice::Stop() noexcept
+void AudioDevice::Update(AudioDevice* p_Instance) noexcept
 {
-    if (e_State == STOPPED)
+    MRH_PSBLogger& c_Logger = MRH_PSBLogger::Singleton();
+    
+    while (p_Instance->i_SocketFD != -1)
     {
-        return;
+        try
+        {
+            p_Instance->Recieve();
+            p_Instance->Send();
+        }
+        catch (Exception& e)
+        {
+            c_Logger.Log(MRH_PSBLogger::ERROR, e.what(),
+                         "AudioDevice.cpp", __LINE__);
+            break;
+        }
     }
     
-    /*
-    c_SendMutex.lock();
-    v_Send.clear();
-    c_SendMutex.unlock();
-    */
+    close(p_Instance->i_SocketFD);
+    p_Instance->i_SocketFD = -1;
+}
+
+void AudioDevice::SwitchRecordingBuffer() noexcept
+{
+    std::lock_guard<std::mutex> c_Guard(c_RecordingMutex);
     
-    // Recording resets the inner buffer
-    c_RecordingMutex.lock();
-    ActiveAudio->Clear();
-    c_RecordingMutex.unlock();
-    
-    // Reset amplitude, new recording
-    us_AvailableSamples = 0;
-    
-    // Set write info for state change
-    AudioDeviceOpCode::SERVICE_CHANGE_DEVICE_STATE_DATA c_OpCode;
-    c_OpCode.u8_Record = AUDIO_DEVICE_BOOL_FALSE;
-    c_OpCode.u8_Playback = AUDIO_DEVICE_BOOL_FALSE;
-    
-    AddSwitchStateOpCode(c_OpCode);
-    
-    // And finally, set state
-    e_State = STOPPED;
+    if ((++ActiveAudio) == l_RecordingAudio.end())
+    {
+        ActiveAudio = l_RecordingAudio.begin();
+        
+        ActiveAudio->Clear();
+        us_RecievedSamples = 0;
+    }
 }
 
 //*************************************************************************************
 // Record
 //*************************************************************************************
 
-void AudioDevice::Record()
+void AudioDevice::StartRecording() noexcept
 {
-    if (b_CanRecord == false)
-    {
-        throw Exception("This audio device cannot record audio!");
-    }
-    else if (e_State == RECORDING)
-    {
-        return;
-    }
+    // Signal recording start
+    c_WriteMutex.lock();
+    l_WriteData.emplace_front(1, AudioDeviceOpCode::SERVICE_START_RECORDING);
+    c_WriteMutex.unlock();
     
-    // Recording resets the inner buffer
-    c_RecordingMutex.lock();
+    // Reset the current recording
+    std::lock_guard<std::mutex> c_Guard(c_RecordingMutex);
     ActiveAudio->Clear();
-    c_RecordingMutex.unlock();
-    
-    // Reset amplitude, new recording
-    us_AvailableSamples = 0;
-    
-    // Set write info for state change
-    AudioDeviceOpCode::SERVICE_CHANGE_DEVICE_STATE_DATA c_OpCode;
-    c_OpCode.u8_Record = AUDIO_DEVICE_BOOL_TRUE;
-    c_OpCode.u8_Playback = AUDIO_DEVICE_BOOL_FALSE;
-    
-    AddSwitchStateOpCode(c_OpCode);
-    
-    // All done, set the next state
-    e_State = RECORDING;
+    us_RecievedSamples = 0;
+}
+
+void AudioDevice::StopRecording() noexcept
+{
+    // Signal recording stop
+    std::lock_guard<std::mutex> c_Guard(c_WriteMutex);
+    l_WriteData.emplace_front(1, AudioDeviceOpCode::SERVICE_STOP_RECORDING);
 }
 
 void AudioDevice::Recieve()
 {
-    static AudioDeviceOpCode::OpCode u32_OpCode;
+    /**
+     *  OpCode
+     */
+    
+    static AudioDeviceOpCode::OpCode u8_OpCode;
+    static bool b_OpCodeRead = false;
+    static size_t us_ReadBytes = 0;
+    ssize_t ss_Result;
+    size_t us_Length;
     
     // Read opcode if needed
-    if (c_ReadInfo.first == HANDLE_OPCODE_ID)
+    if (b_OpCodeRead == false)
     {
-        ssize_t ss_Result = Read((MRH_Uint8*)&u32_OpCode,
-                                 sizeof(u32_OpCode),
-                                 (e_State == PLAYING ? 0 : 100));
+        ss_Result = Read(&u8_OpCode,
+                         1,
+                         (l_WriteData.size() > 0 ? 0 : 100));
         
-        if (ss_Result != sizeof(u32_OpCode))
+        if (ss_Result != 1)
         {
             // Read failed, connection is now invalid
             if (ss_Result < 0)
@@ -208,78 +215,54 @@ void AudioDevice::Recieve()
             }
             else
             {
-                c_ReadInfo.second += ss_Result;
+                us_ReadBytes += ss_Result;
             }
             
             // Not enough data
             return;
         }
         
-#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-        u32_OpCode = bswap_32(u32_OpCode);
-#endif
-        
         // Set as read
-        c_ReadInfo.first = HANDLE_OPCODE_DATA;
+        b_OpCodeRead = true;
     }
     
-    // We read our opcode (or know it already), now perform reading of data
-    // @NOTE: If read successfully, switch back read data to opcode and size to 0!
-    try
-    {
-        switch (u32_OpCode)
-        {
-            case AudioDeviceOpCode::ALL_HEARTBEAT:
-                u64_HeartbeatReadS = time(NULL) + DEVICE_CONNECTION_HEARTBEAT_S;
-                c_ReadInfo.first = HANDLE_OPCODE_ID;
-                c_ReadInfo.second = 0;
-                break;
-                
-            case AudioDeviceOpCode::DEVICE_RECORDED_AUDIO:
-                if ((c_ReadInfo.first = RecieveAudio()) == HANDLE_OPCODE_ID)
-                {
-                    c_ReadInfo.second = 0;
-                }
-                break;
-                
-            case AudioDeviceOpCode::DEVICE_STATE_CHANGED:
-                if ((c_ReadInfo.first = RecieveStateChanged()) == HANDLE_OPCODE_ID)
-                {
-                    c_ReadInfo.second = 0;
-                }
-                break;
-                
-            default:
-                break;
-        }
-    }
-    catch (...)
-    {
-        throw;
-    }
+    /**
+     *  Heartbeat
+     */
     
-    // Heartbeat issue?
-    if (time(NULL) > u64_HeartbeatReadS)
+    static MRH_Uint64 u64_HeartbeatTimerS = time(NULL) + DEVICE_CONNECTION_HEARTBEAT_S;
+    
+    // Did we read a heartbeat opcode?
+    if (u8_OpCode == AudioDeviceOpCode::ALL_HEARTBEAT)
+    {
+        u64_HeartbeatTimerS = time(NULL) + DEVICE_CONNECTION_HEARTBEAT_S;
+        
+        b_OpCodeRead = false;
+        us_ReadBytes = 0;
+        
+        return;
+    }
+    else if (time(NULL) > u64_HeartbeatTimerS)
     {
         throw Exception("Heartbeat timeout!");
     }
-}
-
-bool AudioDevice::RecieveAudio()
-{
+    
+    /**
+     *  Audio
+     */
+    
+    // OpCode Data is audio
     static MRH_Uint8 p_AudioBuffer[AUDIO_READ_BUFFER_SIZE_U8]; // 512 elements / pass
     
     size_t us_FrameSize = Configuration::Singleton().GetRecordingFrameSamples() * AUDIO_SAMPLE_SIZE_B;
-    size_t us_Length;
-    ssize_t ss_Result;
     
     do
     {
         // Get read size first
-        us_Length = AUDIO_READ_BUFFER_SIZE_U8 - (c_ReadInfo.second % AUDIO_READ_BUFFER_SIZE_U8);
+        us_Length = AUDIO_READ_BUFFER_SIZE_U8 - (us_ReadBytes % AUDIO_READ_BUFFER_SIZE_U8);
         ss_Result = Read(&(p_AudioBuffer[AUDIO_READ_BUFFER_SIZE_U8 - us_Length]),
                          us_Length,
-                         (e_State == PLAYING ? 0 : 100));
+                         (l_WriteData.size() > 0 ? 0 : 100));
         
         if (ss_Result != us_Length)
         {
@@ -289,22 +272,23 @@ bool AudioDevice::RecieveAudio()
             }
             else
             {
-                c_ReadInfo.second += ss_Result;
+                us_ReadBytes += ss_Result;
             }
             
-            return HANDLE_OPCODE_DATA;
+            return;
         }
         
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+        MRH_Sint16* p_Result = (MRH_Sint16*)p_AudioBuffer;
+        
         for (size_t i = 0; i < AUDIO_READ_BUFFER_SIZE_S16; ++i)
         {
-            MRH_Sint16 s16_Val = ((MRH_Sint16*)p_AudioBuffer)[i];
-            ((MRH_Sint16*)p_AudioBuffer)[i] = (MRH_Sint16)((s16_Val << 8) + (s16_Val >> 8));
+            p_Result[i] = (MRH_Sint16)((p_Result[i] << 8) + (p_Result[i] >> 8));
         }
 #endif
         
         // Remember added read size
-        c_ReadInfo.second += ss_Result;
+        us_ReadBytes += ss_Result;
         
         // Add this fully read buffer as audio!
         try
@@ -312,7 +296,7 @@ bool AudioDevice::RecieveAudio()
             std::lock_guard<std::mutex> c_Guard(c_RecordingMutex);
             ActiveAudio->AddAudio((const MRH_Sint16*)p_AudioBuffer,
                                   AUDIO_READ_BUFFER_SIZE_S16);
-            us_AvailableSamples += AUDIO_READ_BUFFER_SIZE_S16; // Outside info
+            us_RecievedSamples += AUDIO_READ_BUFFER_SIZE_S16; // Outside info
         }
         catch (...)
         {
@@ -321,48 +305,10 @@ bool AudioDevice::RecieveAudio()
         }
         
     }
-    while (c_ReadInfo.second < us_FrameSize); // Framesize = Full OpCode Data
+    while (us_ReadBytes < us_FrameSize); // Framesize = Full OpCode Data
     
-    return HANDLE_OPCODE_ID;
-}
-
-bool AudioDevice::RecieveStateChanged()
-{
-    static AudioDeviceOpCode::DEVICE_STATE_CHANGED_DATA c_OpCode;
-    static size_t us_ErrorSize = sizeof(c_OpCode.u32_Error);
-    
-    size_t us_Length = us_ErrorSize - c_ReadInfo.second;
-    ssize_t ss_Result = Read(&(((MRH_Uint8*)&(c_OpCode.u32_Error))[us_ErrorSize - us_Length]),
-                             us_Length,
-                             (e_State == PLAYING ? 0 : 100));
-    
-    if (ss_Result != us_Length)
-    {
-        if (ss_Result < 0)
-        {
-            throw Exception("Device state changed read returned -1!");
-        }
-        else
-        {
-            c_ReadInfo.second += ss_Result;
-        }
-        
-        return HANDLE_OPCODE_DATA;
-    }
-    
-#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-    c_OpCode.u32_Error = bswap_32(c_OpCode.u32_Error);
-#endif
-    
-    // All data read, set current device state if it differs
-    if (c_OpCode.u32_Error != AudioDeviceOpCode::OpCodeErrorList::NONE)
-    {
-        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "Device state OpCode error: " +
-                                                               std::to_string(c_OpCode.u32_Error),
-                                       "AudioDevice.cpp", __LINE__);
-    }
-    
-    return HANDLE_OPCODE_ID;
+    // Fully read, next is opcode
+    b_OpCodeRead = false;
 }
 
 //*************************************************************************************
@@ -375,225 +321,112 @@ void AudioDevice::Play(AudioTrack const& c_Audio)
     {
         throw Exception("This audio device cannot play audio!");
     }
-    else if (e_State == PLAYING)
+    else if (GetSendingActive() == true)
     {
-        return;
+        throw Exception("Already playing audio!");
+    }
+    else if (c_Audio.us_ChunkElements != us_PlaybackFrameSamples)
+    {
+        throw Exception("Invalid chunk size for given audio track!");
     }
     
-    // Set write info for state change
-    AudioDeviceOpCode::SERVICE_CHANGE_DEVICE_STATE_DATA c_OpCode;
-    c_OpCode.u8_Record = AUDIO_DEVICE_BOOL_FALSE;
-    c_OpCode.u8_Playback = AUDIO_DEVICE_BOOL_TRUE;
+    // Set the audio to write
+    std::lock_guard<std::mutex> c_Guard(c_WriteMutex);
+    std::list<AudioTrack::Chunk> const& l_Chunk = c_Audio.GetChunksConst();
     
-    AddSwitchStateOpCode(c_OpCode);
-    
-    // Now set the audio to write
-    // @TODO:
-    
-    // Now signal playing to stream
-    e_State = PLAYING;
+    for (auto& Chunk : l_Chunk)
+    {
+        l_WriteData.emplace_back(1, AudioDeviceOpCode::SERVICE_PLAYBACK_AUDIO);
+        
+        // @NOTE: No checking for padding, audio track chunks are always padded!
+        const MRH_Uint8* p_BufferStart = (const MRH_Uint8*)(Chunk.GetBufferConst());
+        const MRH_Uint8* p_BufferEnd = p_BufferStart + (Chunk.GetElementsCurrent() * AUDIO_SAMPLE_SIZE_B);
+        
+        l_WriteData.emplace_back(p_BufferStart,
+                                 p_BufferEnd);
+        
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+        MRH_Sint16* p_Samples = (MRH_Sint16*)(l_WriteData.back().data());
+        size_t us_Elements = l_WriteData.back().size() / AUDIO_SAMPLE_SIZE_B;
+        
+        for (size_t i = 0; i < us_Elements; ++i)
+        {
+            p_Samples[i] = (MRH_Sint16)((p_Samples[i] << 8) + (p_Samples[i] >> 8));
+        }
+#endif
+    }
 }
 
 void AudioDevice::Send()
 {
-
-}
-
-void AudioDevice::AddSwitchStateOpCode(AudioDeviceOpCode::SERVICE_CHANGE_DEVICE_STATE_DATA& c_OpCode)
-{
+    /**
+     *  Heartbeat
+     */
     
-    MRH_Uint8 p_OpCode[sizeof(MRH_Uint32) + (sizeof(MRH_Uint8) * 2)]; // See AudioDeviceOpCode::SERVICE_CHANGE_DEVICE_STATE_DATA
-    ((MRH_Uint32*)p_OpCode)[0] = AudioDeviceOpCode::SERVICE_CHANGE_DEVICE_STATE;
-    p_OpCode[sizeof(MRH_Uint32)] = AUDIO_DEVICE_BOOL_TRUE;
-    p_OpCode[sizeof(MRH_Uint8)] = AUDIO_DEVICE_BOOL_FALSE;
-    l_WriteBytes.emplace_back(v_OpCode);
-}
-
-//*************************************************************************************
-// Update
-//*************************************************************************************
-
-void AudioDevice::Update(AudioDevice* p_Instance) noexcept
-{
-    MRH_PSBLogger& c_Logger = MRH_PSBLogger::Singleton();
+    static MRH_Uint64 u64_HeartbeatTimerS = time(NULL) + (DEVICE_CONNECTION_HEARTBEAT_S / 2);
     
-    while (p_Instance->b_Update == true)
+    // Is a heartbeat required?
+    if (u64_HeartbeatTimerS <= time(NULL))
     {
-        // Are we connected? try if not
-        if (p_Instance->i_SocketFD < 0)
+        // Simply add into write queue
+        std::lock_guard<std::mutex> c_Guard(c_WriteMutex);
+        l_WriteData.emplace_front(1, AudioDeviceOpCode::SERVICE_PLAYBACK_AUDIO);
+        
+        u64_HeartbeatTimerS = time(NULL) + DEVICE_CONNECTION_HEARTBEAT_S;
+    }
+    
+    /**
+     *  Write Buffer
+     */
+    
+    static std::vector<MRH_Uint8> v_OpCode;
+    static size_t us_WrittenBytes = 0;
+    ssize_t ss_Result;
+    size_t us_Length;
+    
+    // Do we need to grab new send data?
+    if (us_WrittenBytes == 0)
+    {
+        std::lock_guard<std::mutex> c_Guard(c_WriteMutex);
+        
+        // No data needed to be written?
+        if (l_WriteData.size() > 0)
         {
-            try
-            {
-                p_Instance->Connect();
-            }
-            catch (Exception& e)
-            {
-                c_Logger.Log(MRH_PSBLogger::INFO, e.what(),
-                             "AudioDevice.cpp", __LINE__);
-                
-                p_Instance->Disconnect();
-                std::this_thread::sleep_for(std::chrono::seconds(DEVICE_CONNECTION_SLEEP_WAIT_S));
-                continue;
-            }
+            return;
         }
         
-        // We are connected, RW
-        try
+        // Set
+        // @NOTE: Byte swap happened on adding into the queue!
+        v_OpCode = std::move(l_WriteData.front());
+        l_WriteData.pop_front();
+    }
+    
+    // Got data, write
+    us_Length = v_OpCode.size() - us_WrittenBytes;
+    ss_Result = Write(&(v_OpCode[us_WrittenBytes]),
+                      us_Length);
+    
+    if (ss_Result != us_Length)
+    {
+        if (ss_Result < 0)
         {
-            p_Instance->Recieve();
-            p_Instance->Send();
+            throw Exception("Write buffer write returned -1!");
         }
-        catch (Exception& e)
+        else
         {
-            c_Logger.Log(MRH_PSBLogger::ERROR, e.what(),
-                         "AudioDevice.cpp", __LINE__);
-            
-            p_Instance->Disconnect();
+            us_WrittenBytes += ss_Result;
         }
     }
-}
-
-void AudioDevice::SwitchRecordingBuffer() noexcept
-{
-    std::lock_guard<std::mutex> c_Guard(c_RecordingMutex);
-    
-    if ((++ActiveAudio) == l_Audio.end())
+    else
     {
-        ActiveAudio = l_Audio.begin();
+        // Reset written on finish
+        us_WrittenBytes = 0;
     }
-}
-
-//*************************************************************************************
-// Connection
-//*************************************************************************************
-
-void AudioDevice::Connect()
-{
-    // Create a file descriptor first
-    if ((i_SocketFD = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-    {
-        throw Exception("Failed to create audio device socket: " +
-                        std::string(std::strerror(errno)) +
-                        " (" +
-                        std::to_string(errno) +
-                        ")!");
-    }
-    
-    // Setup socket for connection
-    struct sockaddr_in c_Address;
-    memset(&c_Address, '\0', sizeof(c_Address));
-    c_Address.sin_family = AF_INET;
-    c_Address.sin_port = htons(i_Port);
-    c_Address.sin_addr.s_addr = inet_addr(s_Address.c_str());
-    
-    // Now connect
-    if (connect(i_SocketFD, (struct sockaddr*)&c_Address, sizeof(c_Address)))
-    {
-        Disconnect();
-        throw Exception("Failed to connect to audio device: " +
-                        std::string(std::strerror(errno)) +
-                        " (" +
-                        std::to_string(errno) +
-                        ")!");
-    }
-    
-    // We are connected, send auth request to device
-    Configuration& c_Config = Configuration::Singleton();
-    
-    AudioDeviceOpCode::OpCode u32_RequestOpCode = AudioDeviceOpCode::OpCodeList::SERVICE_CONNECT_REQUEST;
-    AudioDeviceOpCode::SERVICE_CONNECT_REQUEST_DATA c_Request;
-    c_Request.u32_OpCodeVersion = AUDIO_DEVICE_OPCODE_VERSION;
-    c_Request.u32_RecordingKHz = c_Config.GetRecordingKHz();
-    c_Request.u32_RecordingFrameElements = c_Config.GetRecordingFrameSamples();
-    c_Request.u32_PlaybackKHz = c_Config.GetPlaybackKHz();
-    c_Request.u32_PlaybackFrameElements = c_Config.GetPlaybackFrameSamples();
-    
-#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-    u32_RequestOpCode = bswap_32(u32_RequestOpCode);
-    c_Request.u32_OpCodeVersion = bswap_32(c_Request.u32_OpCodeVersion);
-    c_Request.u32_RecordingKHz = bswap_32(c_Request.u32_RecordingKHz);
-    c_Request.u32_RecordingFrameElements = bswap_32(c_Request.u32_RecordingFrameElements);
-    c_Request.u32_PlaybackKHz = bswap_32(c_Request.u32_PlaybackKHz);
-    c_Request.u32_PlaybackFrameElements = bswap_32(c_Request.u32_PlaybackFrameElements);
-#endif
-    
-    if (WriteAll((const MRH_Uint8*)&u32_RequestOpCode, sizeof(u32_RequestOpCode)) == false ||
-        WriteAll((const MRH_Uint8*)&(c_Request.u32_OpCodeVersion), sizeof(c_Request.u32_OpCodeVersion)) == false ||
-        WriteAll((const MRH_Uint8*)&(c_Request.u32_RecordingKHz), sizeof(c_Request.u32_RecordingKHz)) == false ||
-        WriteAll((const MRH_Uint8*)&(c_Request.u32_RecordingFrameElements), sizeof(c_Request.u32_RecordingFrameElements)) == false ||
-        WriteAll((const MRH_Uint8*)&(c_Request.u32_PlaybackKHz), sizeof(c_Request.u32_PlaybackKHz)) == false ||
-        WriteAll((const MRH_Uint8*)&(c_Request.u32_PlaybackFrameElements), sizeof(c_Request.u32_PlaybackFrameElements)) == false)
-    {
-        throw Exception("Audio device authentication failed (Write)!");
-    }
-    
-    // Sent, now read response and perform setup
-    AudioDeviceOpCode::OpCode u32_ResponseOpCode = AudioDeviceOpCode::OpCodeList::SERVICE_CONNECT_REQUEST;
-    AudioDeviceOpCode::DEVICE_CONNECT_RESPONSE_DATA c_Response;
-    
-    if (ReadAll((MRH_Uint8*)&u32_ResponseOpCode, sizeof(u32_ResponseOpCode), 5000) == false ||
-        ReadAll((MRH_Uint8*)&(c_Response.u32_Error), sizeof(c_Response.u32_Error), 5000) == false ||
-        ReadAll((MRH_Uint8*)&(c_Response.u8_CanRecord), sizeof(c_Response.u8_CanRecord), 5000) == false ||
-        ReadAll((MRH_Uint8*)&(c_Response.u8_CanPlay), sizeof(c_Response.u8_CanPlay), 5000) == false)
-    {
-        throw Exception("Audio device authentication failed (Read)!");
-    }
-    
-#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-    u32_ResponseOpCode = bswap_32(u32_ResponseOpCode);
-    c_Response.u32_Error = bswap_32(c_Request.u32_Error);
-#endif
-    
-    if (u32_ResponseOpCode != AudioDeviceOpCode::OpCodeList::DEVICE_CONNECT_RESPONSE ||
-        c_Response.u32_Error != AudioDeviceOpCode::OpCodeErrorList::NONE)
-    {
-        throw Exception("Audio device authentication failed (Response)! Error: " + std::to_string(c_Response.u32_Error));
-    }
-    
-    b_CanRecord = (c_Response.u8_CanRecord == AUDIO_DEVICE_BOOL_TRUE ? true : false);
-    b_CanPlay = (c_Response.u8_CanPlay == AUDIO_DEVICE_BOOL_TRUE ? true : false);
-    
-    // Flip buffer for recording in case the current
-    // buffer is in use
-    SwitchRecordingBuffer();
-    
-    // Set next heartbeat timeout for connection
-    u64_HeartbeatReadS = time(NULL) + DEVICE_CONNECTION_HEARTBEAT_S;
-    u64_HeartbeatWriteS = time(NULL) + DEVICE_CONNECTION_HEARTBEAT_S / 2; // / 2 = send before timeout
-}
-
-void AudioDevice::Disconnect() noexcept
-{
-    if (i_SocketFD < 0)
-    {
-        return;
-    }
-    
-    c_ReadInfo.first = HANDLE_OPCODE_ID;
-    c_ReadInfo.second = 0;
-    
-    c_WriteInfo.first = HANDLE_OPCODE_ID;
-    c_WriteInfo.second = 0;
-    
-    e_State = STOPPED;
-    
-    close(i_SocketFD);
-    i_SocketFD = -1;
 }
 
 //*************************************************************************************
 // I/O
 //*************************************************************************************
-
-bool AudioDevice::ReadAll(MRH_Uint8* p_Dst, size_t us_Length, int i_TimeoutMS)
-{
-    if (Read(p_Dst, us_Length, i_TimeoutMS) != us_Length)
-    {
-        return false;
-    }
-    
-    return true;
-}
 
 ssize_t AudioDevice::Read(MRH_Uint8* p_Dst, size_t us_Length, int i_TimeoutMS)
 {
@@ -655,16 +488,6 @@ ssize_t AudioDevice::Read(MRH_Uint8* p_Dst, size_t us_Length, int i_TimeoutMS)
     return us_Pos;
 }
 
-bool AudioDevice::WriteAll(const MRH_Uint8* p_Src, size_t us_Length)
-{
-    if (Write(p_Src, us_Length) != us_Length)
-    {
-        return false;
-    }
-    
-    return true;
-}
-
 ssize_t AudioDevice::Write(const MRH_Uint8* p_Src, size_t us_Length)
 {
     // Write as much as possible
@@ -701,17 +524,18 @@ ssize_t AudioDevice::Write(const MRH_Uint8* p_Src, size_t us_Length)
 // Getters
 //*************************************************************************************
 
+bool AudioDevice::GetConnected() noexcept
+{
+    return i_SocketFD != -1 ? true : false;
+}
+
 AudioTrack const& AudioDevice::GetRecordedAudio() noexcept
 {
     // Flip buffer for recording
+    auto Result = ActiveAudio;
     SwitchRecordingBuffer();
     
-    return *ActiveAudio;
-}
-
-AudioDevice::DeviceState AudioDevice::GetState() noexcept
-{
-    return e_State;
+    return *Result;
 }
 
 bool AudioDevice::GetCanRecord() noexcept
@@ -724,7 +548,13 @@ bool AudioDevice::GetCanPlay() noexcept
     return b_CanPlay;
 }
 
-size_t AudioDevice::GetAvailableSamples() noexcept
+size_t AudioDevice::GetRecievedSamples() noexcept
 {
-    return us_AvailableSamples;
+    return us_RecievedSamples;
+}
+
+bool AudioDevice::GetSendingActive() noexcept
+{
+    std::lock_guard<std::mutex> c_Guard(c_WriteMutex);
+    return l_WriteData.size() > 0 ? true : false;
 }

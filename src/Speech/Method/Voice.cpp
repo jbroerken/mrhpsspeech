@@ -20,7 +20,7 @@
  */
 
 // C / C++
-#include <chrono>
+#include <ctime>
 
 // External
 #include <libmrhpsb/MRH_PSBLogger.h>
@@ -33,10 +33,6 @@
 // Pre-defined
 #define LISTEN_CHECK_WAIT_MS 250 // Wait before checking again
 #define LISTEN_PAUSE_TIMEOUT_S 3 // Time until audio is processed
-
-using std::chrono::system_clock;
-using std::chrono::seconds;
-using std::chrono::duration_cast;
 
 
 //*************************************************************************************
@@ -58,8 +54,7 @@ Voice::~Voice() noexcept
 
 void Voice::Resume()
 {
-    // Just start recording
-    c_AudioStream.Record();
+    c_DevicePool.StartDevices();
 }
 
 void Voice::Reset()
@@ -71,8 +66,8 @@ void Voice::Reset()
 void Voice::Pause()
 {
     // Reset Components
-    c_AudioStream.StopAll(); // Stop both playback and recording
-    c_GoogleSTT.ResetAudio(); // Reset audio
+    c_DevicePool.StopDevices();
+    c_GoogleSTT.ResetAudio(); // Reset audio already added
 }
 
 //*************************************************************************************
@@ -81,42 +76,27 @@ void Voice::Pause()
 
 void Voice::Listen()
 {
-    /**
-     *  Wait
-     */
-    
-    // NOTE: We ALWAYS wait - either for input recording to not rapid fire or
-    //       for playback to continue
+    // @NOTE: We ALWAYS wait - give the devices some time to fill the recording
+    //        buffer to retrieve
     std::this_thread::sleep_for(std::chrono::milliseconds(LISTEN_CHECK_WAIT_MS));
     
-    // Are we event recording right now?
-    if (c_AudioStream.GetRecording() == false)
-    {
-        return;
-    }
-    
-    /**
-     *  Process
-     */
-    
-    auto CurrentTime = system_clock::now().time_since_epoch();
-    static auto ProccessTime = CurrentTime;
+    static MRH_Uint64 u64_ProccessTimeS = time(NULL) + LISTEN_PAUSE_TIMEOUT_S;
     
     try
     {
-        // Do we need to set a primary device?
-        if (c_AudioStream.GetPrimaryRecordingDeviceSet() == false)
+        // Do we need to set a recording device?
+        if (c_DevicePool.GetRecordingDeviceSelected() == false)
         {
-            c_AudioStream.SelectPrimaryRecordingDevice();
+            c_DevicePool.SelectRecordingDevice();
         }
         
         // Grab sample
-        AudioTrack const& c_Audio = c_AudioStream.GetRecordedAudio();
+        AudioTrack const& c_Audio = c_DevicePool.GetRecordedAudio();
         
-        if (c_Audio.GetAudioExists() == 0)
+        if (c_Audio.GetAudioExists() == false)
         {
             // Wait before we start to process audio
-            if (CurrentTime >= ProccessTime)
+            if (time(NULL) > u64_ProccessTimeS)
             {
                 // Transcribe and send as input
                 try
@@ -125,9 +105,13 @@ void Voice::Listen()
                 }
                 catch (Exception& e)
                 {
-                    MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, e.what(),
+                    MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Failed to send input: " +
+                                                                         std::string(e.what()),
                                                    "Voice.cpp", __LINE__);
                 }
+                
+                // Reset the used recording device to choose a new one
+                c_DevicePool.ResetRecordingDevice();
             }
         }
         else
@@ -135,8 +119,8 @@ void Voice::Listen()
             // Add existing audio to speech to text
             c_GoogleSTT.AddAudio(c_Audio);
             
-            // Set last time audio was gotten
-            ProccessTime = duration_cast<seconds>(CurrentTime + seconds(LISTEN_PAUSE_TIMEOUT_S));
+            // Set next timeout for processing
+            u64_ProccessTimeS = time(NULL) + LISTEN_PAUSE_TIMEOUT_S;
         }
     }
     catch (...)
@@ -149,49 +133,9 @@ void Voice::Listen()
 
 void Voice::Say(OutputStorage& c_OutputStorage)
 {
-    /**
-     *  Playback Check
-     */
-    
-    // Do nothing during output playback
-    if (c_AudioStream.GetPlayback() == true)
+    // Is playback currently active?
+    if (b_StringSet == true && c_DevicePool.GetPlaybackActive() == false)
     {
-        return;
-    }
-    
-    /**
-     *  Playback Synthesised String
-     */
-    
-    if (b_StringSet == false && c_OutputStorage.GetFinishedAvailable() == true)
-    {
-        OutputStorage::String c_String = c_OutputStorage.GetFinishedString();
-        
-        try
-        {
-            c_AudioStream.Playback(c_GoogleTTS.Synthesise(c_String.s_String));
-            
-            u32_SayStringID = c_String.u32_StringID;
-            u32_SayGroupID = c_String.u32_GroupID;
-        
-            b_StringSet = true;
-        }
-        catch (Exception& e)
-        {
-            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, e.what(),
-                                           "Voice.cpp", __LINE__);
-        }
-    }
-    
-    /**
-     *  Restart Recording
-     */
-    
-    if (c_AudioStream.GetRecording() == false)
-    {
-        // Nothing to play, start listening again
-        c_AudioStream.Record();
-        
         // Send info about performed output
         b_StringSet = false;
         
@@ -201,7 +145,30 @@ void Voice::Say(OutputStorage& c_OutputStorage)
         }
         catch (Exception& e)
         {
-            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Failed to set performed: " + std::string(e.what()),
+            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Failed to set performed: " +
+                                                                 std::string(e.what()),
+                                           "Voice.cpp", __LINE__);
+        }
+    }
+    
+    // Do we need to set a string?
+    if (b_StringSet == false && c_OutputStorage.GetFinishedAvailable() == true)
+    {
+        OutputStorage::String c_String = c_OutputStorage.GetFinishedString();
+        
+        try
+        {
+            c_DevicePool.Playback(c_GoogleTTS.Synthesise(c_String.s_String));
+            
+            u32_SayStringID = c_String.u32_StringID;
+            u32_SayGroupID = c_String.u32_GroupID;
+        
+            b_StringSet = true;
+        }
+        catch (Exception& e)
+        {
+            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Failed to start playback: " +
+                                                                 std::string(e.what()),
                                            "Voice.cpp", __LINE__);
         }
     }

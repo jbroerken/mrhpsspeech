@@ -34,27 +34,11 @@
 
 // Project
 #include "./AudioTrack.h"
-#include "AudioDeviceOpCode.h"
 
 
 class AudioDevice
 {
 public:
-    
-    //*************************************************************************************
-    // Types
-    //*************************************************************************************
-    
-    enum DeviceState
-    {
-        STOPPED = 0,
-        RECORDING = 1,
-        PLAYING = 2,
-        
-        DEVICE_STATE_MAX = PLAYING,
-        
-        DEVICE_STATE_COUNT = DEVICE_STATE_MAX + 1
-    };
     
     //*************************************************************************************
     // Constructor / Destructor
@@ -63,16 +47,14 @@ public:
     /**
      *  Default constructor.
      *
-     *  \param u32_ID The unique device id.
      *  \param s_Name The device name.
-     *  \param s_Address The device connection address.
-     *  \param i_Port The device connection port.
+     *  \param b_CanPlay If the device can play audio.
+     *  \param b_CanRecord If the device can record audio.
      */
     
-    AudioDevice(MRH_Uint32 u32_ID,
-                std::string const& s_Name,
-                std::string const& s_Address,
-                int i_Port);
+    AudioDevice(std::string const& s_Name,
+                bool b_CanPlay,
+                bool b_CanRecord);
     
     /**
      *  Default destructor.
@@ -81,24 +63,20 @@ public:
     ~AudioDevice() noexcept;
     
     //*************************************************************************************
-    // Stop
+    // Recording
     //*************************************************************************************
     
     /**
-     *  Stop the device.
+     *  Start recording.
      */
     
-    void Stop() noexcept;
-    
-    //*************************************************************************************
-    // Record
-    //*************************************************************************************
+    void StartRecording() noexcept;
     
     /**
-     *  Record.
+     *  Stop recording.
      */
     
-    void Record();
+    void StopRecording() noexcept;
     
     //*************************************************************************************
     // Playback
@@ -117,20 +95,20 @@ public:
     //*************************************************************************************
     
     /**
+     *  Get the device connection status.
+     *
+     *  \return true if connected, false if not.
+     */
+    
+    bool GetConnected() noexcept;
+    
+    /**
      *  Get the currently recorded audio.
      *
      *  \return The currently recorded audio.
      */
     
     AudioTrack const& GetRecordedAudio() noexcept;
-    
-    /**
-     *  Get the current audio state.
-     *
-     *  \return The current audio state.
-     */
-    
-    DeviceState GetState() noexcept;
     
     /**
      *  Check if the device can record audio.
@@ -149,21 +127,20 @@ public:
     bool GetCanPlay() noexcept;
     
     /**
-     *  Get the amount of available samples.
+     *  Get the amount of available recorded samples.
      *
-     *  \return The available samples.
+     *  \return The available recorded samples.
      */
     
-    size_t GetAvailableSamples() noexcept;
+    size_t GetRecievedSamples() noexcept;
     
-    //*************************************************************************************
-    // Data
-    //*************************************************************************************
+    /**
+     *  Check if data is currently being sent.
+     *
+     *  \return true if data is being sent, false if not.
+     */
     
-    const MRH_Uint32 u32_ID;
-    const std::string s_Name;
-    const std::string s_Address;
-    const int i_Port;
+    bool GetSendingActive() noexcept;
     
 private:
     
@@ -186,22 +163,6 @@ private:
     void SwitchRecordingBuffer() noexcept;
     
     //*************************************************************************************
-    // Connection
-    //*************************************************************************************
-    
-    /**
-     *  Connect to the audio device.
-     */
-    
-    void Connect();
-    
-    /**
-     *  Disconnect from the audio device.
-     */
-    
-    void Disconnect() noexcept;
-    
-    //*************************************************************************************
     // Record
     //*************************************************************************************
     
@@ -210,22 +171,6 @@ private:
      */
     
     void Recieve();
-    
-    /**
-     *  Recieve device recording audio buffer data.
-     *
-     *  \return true if all data was recieved, false if not.
-     */
-    
-    bool RecieveAudio();
-    
-    /**
-     *  Recieve device state changed opcode data.
-     *
-     *  \return true if all data was recieved, false if not.
-     */
-    
-    bool RecieveStateChanged();
     
     //*************************************************************************************
     // Playback
@@ -237,29 +182,9 @@ private:
     
     void Send();
     
-    /**
-     *  Add the device state switch opcode.
-     *
-     *  \param c_OpCode The OpCode data.
-     */
-    
-    void AddSwitchStateOpCode(AudioDeviceOpCode::SERVICE_CHANGE_DEVICE_STATE_DATA& c_OpCode);
-    
     //*************************************************************************************
     // I/O
     //*************************************************************************************
-    
-    /**
-     *  Read bytes from the device connection.
-     *
-     *  \param p_Dst The destination to read to.
-     *  \param us_Length The length to read in bytes.
-     *  \param i_TimeoutMS The poll timeout in milliseconds.
-     *
-     *  \return true if reading succeeded, false if not.
-     */
-    
-    bool ReadAll(MRH_Uint8* p_Dst, size_t us_Length, int i_TimeoutMS);
     
     /**
      *  Read bytes from the device connection.
@@ -279,17 +204,6 @@ private:
      *  \param p_Src The source to write from.
      *  \param us_Length The length to write in bytes.
      *
-     *  \return true if writing succeeded, false if not.
-     */
-    
-    bool WriteAll(const MRH_Uint8* p_Src, size_t us_Length);
-    
-    /**
-     *  Write bytes to the device connection.
-     *
-     *  \param p_Src The source to write from.
-     *  \param us_Length The length to write in bytes.
-     *
      *  \return The amount of bytes written.
      */
     
@@ -300,27 +214,20 @@ private:
     //*************************************************************************************
     
     std::thread c_Thread;
-    std::atomic<bool> b_Update;
-    
     std::atomic<int> i_SocketFD;
-    std::atomic<DeviceState> e_State; // Active state
-    
-    std::pair<bool, size_t> c_ReadInfo; // <OpCode Read, Read Size B>
-    std::pair<bool, size_t> c_WriteInfo; // <OpCode Written, Write Size B>
+    std::string s_Name;
     
     bool b_CanRecord;
     bool b_CanPlay;
+    size_t us_PlaybackFrameSamples;
     
     std::mutex c_RecordingMutex;
-    std::list<AudioTrack> l_Audio;
+    std::list<AudioTrack> l_RecordingAudio;
     std::list<AudioTrack>::iterator ActiveAudio;
-    std::atomic<size_t> us_AvailableSamples;
+    std::atomic<size_t> us_RecievedSamples;
     
     std::mutex c_WriteMutex;
-    std::list<std::vector<MRH_Uint8>> l_WriteBytes;
-    
-    MRH_Uint64 u64_HeartbeatReadS;
-    MRH_Uint64 u64_HeartbeatWriteS;
+    std::list<std::vector<MRH_Uint8>> l_WriteData;
     
 protected:
     

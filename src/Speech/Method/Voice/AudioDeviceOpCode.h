@@ -52,21 +52,21 @@ namespace AudioDeviceOpCode
     enum OpCodeList
     {
         // Shared
-        ALL_HEARTBEAT = 0,                     // Signal availability to partner
-        ALL_DISCONNECT = 1,                    // Disconnect from partner
+        ALL_HEARTBEAT = 0,                      // Signal availability to partner
         
         // Speech Service
-        SERVICE_CONNECT_REQUEST = 2,           // Connect to device
+        SERVICE_CONNECT_RESPONSE = 1,           // Connect to device
         
-        SERVICE_PAIR_REQUEST = 3,              // Request pairing with a audio device
-        SERVICE_PAIR_CONNECTION_DETAILS = 4,   // Send connection details (wifi, etc) to device, encrypted
+        SERVICE_PAIR_REQUEST = 2,               // Request pairing with a audio device
+        SERVICE_PAIR_CONNECTION_DETAILS = 3,    // Send connection details (wifi, etc) to device, encrypted
         
-        SERVICE_PLAYBACK_AUDIO = 6,            // Playback data buffer
+        SERVICE_PLAYBACK_AUDIO = 4,             // Playback data buffer
         
-        SERVICE_CHANGE_DEVICE_STATE = 7,       // Change device state
+        SERVICE_START_RECORDING = 5,            // Signal recording start to device
+        SERVICE_STOP_RECORDING = 6,             // Signal recording stop to device.
         
         // Audio Device
-        DEVICE_CONNECT_RESPONSE,                // Connection response of service request
+        DEVICE_CONNECT_REQUEST = 7,             // Connection response of service request
         
         DEVICE_PAIR_RESPONSE,                   // Response to pair request
         DEVICE_PAIR_GIVE_KEY,                   // Hand a public key to the service which wants to pair
@@ -74,15 +74,13 @@ namespace AudioDeviceOpCode
         
         DEVICE_RECORDED_AUDIO,                  // Recording data buffer
         
-        DEVICE_STATE_CHANGED,                   // Give current device state
-        
         // Bounds
-        OPCODE_MAX = DEVICE_STATE_CHANGED,
+        OPCODE_MAX = DEVICE_RECORDED_AUDIO,
         
         OPCODE_COUNT = OPCODE_MAX + 1
     };
     
-    typedef MRH_Uint32 OpCode; // OpCodeList, set size for sending
+    typedef MRH_Uint8 OpCode; // OpCodeList, set size for sending
     
     //*************************************************************************************
     // OpCode Error
@@ -100,12 +98,8 @@ namespace AudioDeviceOpCode
         // Pairing
         ALREADY_PAIRED = 3,
         
-        // Device State
-        NO_SPEAKER = 4,
-        NO_MICROPHONE = 5,
-        
         // Bounds
-        OPCODE_ERROR_MAX = NO_MICROPHONE,
+        OPCODE_ERROR_MAX = ALREADY_PAIRED,
         
         OPCODE_ERROR_COUNT = OPCODE_ERROR_MAX + 1
     };
@@ -127,9 +121,6 @@ namespace AudioDeviceOpCode
         // ALL_HEARTBEAT
         // No Data
         
-        // ALL_DISCONNECT
-        // No Data
-        
         /**
          *  Speech Service
          */
@@ -137,17 +128,11 @@ namespace AudioDeviceOpCode
         // SERVICE_CONNECT_REQUEST
         typedef struct SERVICE_CONNECT_REQUEST_DATA_t
         {
-            MRH_Uint32 u32_OpCodeVersion;
-            
-            // Trigger info
-            char p_TriggerKeyphrase[AUDIO_DEVICE_CONNECT_KEYPHRASE_SIZE];
-            MRH_Uint32 u32_TriggerTimeoutS;
-            
-            // Recording data format to request
+            // Recording data format to use
             MRH_Uint32 u32_RecordingKHz;
             MRH_Uint32 u32_RecordingFrameElements;
             
-            // Playback data format to request
+            // Playback data format to use
             MRH_Uint32 u32_PlaybackKHz;
             MRH_Uint32 u32_PlaybackFrameElements;
             
@@ -163,33 +148,40 @@ namespace AudioDeviceOpCode
         // SERVICE_PAIR_CONNECTION_DETAILS
         typedef struct SERVICE_PAIR_CONNECTION_DETAILS_DATA_t
         {
+            // Trigger Info
+            char p_TriggerKeyphrase[AUDIO_DEVICE_CONNECT_KEYPHRASE_SIZE];
+            MRH_Uint32 u32_TriggerTimeoutS;
+            
+            // Network Info
             char p_SSID[AUDIO_DEVICE_PAIR_SSID_SIZE]; // Encrypted with key, slimmed with base64
             char p_Password[AUDIO_DEVICE_PAIR_PASSWORD_SIZE]; // Encrypted with key, slimmed with base64
             MRH_Uint8 u8_NetworkType;
+            
+            // Device Info
+            MRH_Uint8 u8_DeviceID; // Used for recognition
             
         }SERVICE_PAIR_CONNECTION_DETAILS_DATA;
         
         // SERVICE_PLAYBACK_AUDIO_DATA
         // @NOTE: Has data, but is simply the audio buffer
         
-        // SERVICE_CHANGE_DEVICE_STATE
-        typedef struct SERVICE_CHANGE_DEVICE_STATE_DATA_t
-        {
-            // States to use (0 disabled, 1 enabled)
-            MRH_Uint8 u8_Record;
-            MRH_Uint8 u8_Playback;
-            
-        }SERVICE_CHANGE_DEVICE_STATE_DATA;
+        // SERVICE_START_RECORDING
+        // No Data
+        
+        // SERVICE_STOP_RECORDING
+        // No Data
         
         /**
          *  Audio Device
          */
         
         // DEVICE_CONNECT_RESPONSE
-        typedef struct DEVICE_CONNECT_RESPONSE_DATA_t
+        typedef struct DEVICE_CONNECT_REQUEST_DATA_t
         {
-            // Connection error (0 if none)
-            OpCodeError u32_Error;
+            MRH_Uint32 u32_OpCodeVersion;
+            
+            // Device ID
+            MRH_Uint8 u8_DeviceID;
             
             // Device capabilities
             MRH_Uint8 u8_CanRecord;
@@ -228,14 +220,6 @@ namespace AudioDeviceOpCode
         
         // DEVICE_RECORDED_AUDIO_DATA
         // @NOTE: Has data, but is simply the audio buffer
-        
-        // DEVICE_STATE_CHANGED
-        typedef struct DEVICE_STATE_CHANGED_DATA_t
-        {
-            // State change error (0 if none)
-            OpCodeError u32_Error;
-            
-        }DEVICE_STATE_CHANGED_DATA;
     }
 }
 
