@@ -34,6 +34,7 @@
 
 // Project
 #include "./AudioTrack.h"
+#include "AudioDeviceOpCode.h"
 
 
 class AudioDevice
@@ -105,9 +106,11 @@ public:
     
     /**
      *  Start playback.
+     *
+     *  \param c_Audio The audio to play.
      */
     
-    void Play();
+    void Play(AudioTrack const& c_Audio);
     
     //*************************************************************************************
     // Getters
@@ -234,6 +237,14 @@ private:
     
     void Send();
     
+    /**
+     *  Add the device state switch opcode.
+     *
+     *  \param c_OpCode The OpCode data.
+     */
+    
+    void AddSwitchStateOpCode(AudioDeviceOpCode::SERVICE_CHANGE_DEVICE_STATE_DATA& c_OpCode);
+    
     //*************************************************************************************
     // I/O
     //*************************************************************************************
@@ -303,10 +314,13 @@ private:
     std::mutex c_RecordingMutex;
     std::list<AudioTrack> l_Audio;
     std::list<AudioTrack>::iterator ActiveAudio;
-    
     std::atomic<size_t> us_AvailableSamples;
     
-    MRH_Uint64 u64_HeartbeatTimeoutS;
+    std::mutex c_WriteMutex;
+    std::list<std::vector<MRH_Uint8>> l_WriteBytes;
+    
+    MRH_Uint64 u64_HeartbeatReadS;
+    MRH_Uint64 u64_HeartbeatWriteS;
     
 protected:
     

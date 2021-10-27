@@ -47,10 +47,9 @@ namespace
         // Trigger Key
         TRIGGER_KEYPHRASE = 5,
         TRIGGER_TIMEOUT_S = 6,
-        TRIGGER_SOUND_PATH = 7,
         
         // Recording Key
-        RECORDING_KHZ,
+        RECORDING_KHZ = 7,
         RECORDING_FRAME_SAMPLES,
         RECORDING_STORAGE_S,
         
@@ -80,7 +79,6 @@ namespace
         // Trigger Key
         "Keyphrase",
         "TimeoutS",
-        "SoundFilePath",
         
         // Recording Key
         "KHz",
@@ -104,7 +102,6 @@ namespace
 
 Configuration::Configuration() noexcept : s_TriggerKeyphrase("Hey Mamao"),
                                           u32_TriggerTimeoutS(30),
-                                          s_TriggerSoundPath("/var/mrh/mrhpsspeech/Triggered.raw"),
                                           u32_RecordingKHz(16000),
                                           u32_RecordingFrameSamples(2048),
                                           u32_RecordingStorageS(5),
@@ -152,7 +149,6 @@ void Configuration::Load()
             {
                 s_TriggerKeyphrase = Block.GetValue(p_Identifier[TRIGGER_KEYPHRASE]);
                 u32_TriggerTimeoutS = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[TRIGGER_TIMEOUT_S])));
-                s_TriggerSoundPath = Block.GetValue(p_Identifier[TRIGGER_SOUND_PATH]);
             }
             else if (Block.GetName().compare(p_Identifier[BLOCK_RECORDING]) == 0)
             {

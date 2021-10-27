@@ -113,6 +113,7 @@ AudioStream::AudioStream()
     
     // No selected recording device
     PrimaryRecordingDevice = l_Device.end();
+    PrimaryPlaybackDevice = l_Device.end();
 }
 
 AudioStream::~AudioStream() noexcept
@@ -124,6 +125,10 @@ AudioStream::~AudioStream() noexcept
 
 void AudioStream::StopAll() noexcept
 {
+    // Reset primary devices
+    PrimaryRecordingDevice = l_Device.end();
+    PrimaryPlaybackDevice = l_Device.end();
+    
     // Stop all for everything
     for (auto& Device : l_Device)
     {
@@ -192,79 +197,51 @@ void AudioStream::SelectPrimaryRecordingDevice()
 
 void AudioStream::Playback(AudioTrack const& c_Audio)
 {
-    /*
-     
-     
-     if (GetPlayback() == true)
-     {
-         throw Exception("Playback in progress!");
-     }
-     else if (c_Audio.v_Buffer.size() == 0)
-     {
-         throw Exception("Recieved empty playback buffer!");
-     }
-     
-     // Copy to buffer
-     v_Send = c_Audio.v_Buffer;
-     
-     // Check if padding is needed
-     size_t us_Padding = v_Send.size() % c_RecordingFormat.second;
-     
-     if (us_Padding != 0)
-     {
-         v_Send.insert(v_Send.end(), us_Padding, 0);
-     }
-     
-     
-     
-     
-    // First, pick the device with the highest last average amp
-    std::list<AudioDevice>::iterator PlaybackDevice = l_Device.end();
+    // Audio?
+    if (c_Audio.GetAudioExists() == false)
+    {
+        throw Exception("No audio to play!");
+    }
     
+    // Reset old first
+    PrimaryPlaybackDevice = l_Device.end();
+    
+    // Can we use the device for the recording as playback?
+    if (PrimaryRecordingDevice != l_Device.end() &&
+        PrimaryRecordingDevice->GetCanPlay() == true)
+    {
+        PrimaryPlaybackDevice = PrimaryRecordingDevice;
+        PrimaryPlaybackDevice->Play(c_Audio);
+    }
+    
+    // Stop all other devices (cancel recording) and set
+    // a playback device if the primary recording device
+    // does not provide playback functionality
     for (auto It = l_Device.begin(); It != l_Device.end(); ++It)
     {
-        if (It->GetCanPlay() == false) // Skip if not possible to playback
+        if (It->GetCanPlay() == false ||
+            It->GetState() == AudioDevice::STOPPED)
         {
             continue;
         }
-        else if (PlaybackDevice == l_Device.end() ||
-                 PlaybackDevice->GetRecordingAmplitude() < It->GetRecordingAmplitude())
+        
+        // No device set before? pick as playback
+        if (PrimaryPlaybackDevice == l_Device.end())
         {
-            PlaybackDevice = It;
+            It->Play(c_Audio);
+            PrimaryPlaybackDevice = It;
         }
-    }
-    
-    // No devices for playback, keep recording
-    if (PlaybackDevice == l_Device.end())
-    {
-        return;
-    }
-    
-    static size_t us_FrameSize = Configuration::Singleton().GetPlaybackFrameSamples();
-    
-    // Disable recording for all and set the active device for playback
-    for (auto It = l_Device.begin(); It != l_Device.end(); ++It)
-    {
-        // Playback on the active playback device, stop all others
-        if (It == PlaybackDevice)
-        {
-            // Copy audio before sending and pad if wierd order
-            It->c_SendMutex.lock();
-            
-            //TODO: Send Frame Samples richtig schreiben, endianess, write opcode func (send)
-            
-            //It->v_Send = v_Send; // @NOTE: No clearing, expect override
-            It->c_SendMutex.unlock();
-            
-            // Now start playback
-            It->Play();
-        }
-        else if (It->GetState() != AudioDevice::STOPPED)
+        else
         {
             It->Stop();
         }
     }
-    */
+    
+    // No device usable?
+    if (PrimaryPlaybackDevice == l_Device.end())
+    {
+        throw Exception("Failed to select a primary playback device!");
+    }
 }
 
 //*************************************************************************************
@@ -311,4 +288,9 @@ bool AudioStream::GetRecording() noexcept
 bool AudioStream::GetPrimaryRecordingDeviceSet() noexcept
 {
     return PrimaryRecordingDevice != l_Device.end() ? true : false;
+}
+
+bool AudioStream::GetPrimaryPlaybackDeviceSet() noexcept
+{
+    return PrimaryPlaybackDevice != l_Device.end() ? true : false;
 }

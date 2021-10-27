@@ -152,9 +152,9 @@ find_library(libmrhcevs NAMES mrhcevs REQUIRED)
 find_library(libmrhpsb NAMES mrhpsb REQUIRED)
 find_library(libmrhvt NAMES mrhvt REQUIRED)
 
-if(USE_METHOD_SERVER OR USE_METHOD_VOICE)
+if(USE_METHOD_SERVER)
     find_library(libsodium NAMES sodium REQUIRED)
-endif(USE_METHOD_SERVER OR USE_METHOD_VOICE)
+endif(USE_METHOD_SERVER)
 
 if(USE_METHOD_VOICE)
     find_package(google-cloud-cpp REQUIRED)
@@ -167,9 +167,9 @@ target_link_libraries(mrhpsspeech PUBLIC mrhcevs)
 target_link_libraries(mrhpsspeech PUBLIC mrhpsb)
 target_link_libraries(mrhpsspeech PUBLIC mrhvt)
 
-if(USE_METHOD_SERVER OR USE_METHOD_VOICE)
+if(USE_METHOD_SERVER)
     target_link_libraries(mrhpsspeech PUBLIC sodium)
-endif(USE_METHOD_SERVER OR USE_METHOD_VOICE)
+endif(USE_METHOD_SERVER)
 
 if(USE_METHOD_VOICE)
     target_link_libraries(mrhpsspeech PUBLIC google-cloud-cpp::speech)

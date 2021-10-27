@@ -35,6 +35,7 @@
 #define AUDIO_DEVICE_BOOL_TRUE 1
 #define AUDIO_DEVICE_BOOL_FALSE 0
 
+#define AUDIO_DEVICE_CONNECT_KEYPHRASE_SIZE 1024
 #define AUDIO_DEVICE_CONNECT_NAME_SIZE 1024
 #define AUDIO_DEVICE_CONNECT_ADDRESS_SIZE 512
 #define AUDIO_DEVICE_PAIR_KEY_SIZE 1024
@@ -137,6 +138,10 @@ namespace AudioDeviceOpCode
         typedef struct SERVICE_CONNECT_REQUEST_DATA_t
         {
             MRH_Uint32 u32_OpCodeVersion;
+            
+            // Trigger info
+            char p_TriggerKeyphrase[AUDIO_DEVICE_CONNECT_KEYPHRASE_SIZE];
+            MRH_Uint32 u32_TriggerTimeoutS;
             
             // Recording data format to request
             MRH_Uint32 u32_RecordingKHz;

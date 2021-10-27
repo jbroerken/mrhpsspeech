@@ -41,7 +41,6 @@
 
 // Project
 #include "./AudioDevice.h"
-#include "./AudioDeviceOpCode.h"
 #include "../../../Configuration.h"
 
 // Pre-defined
@@ -76,7 +75,8 @@ AudioDevice::AudioDevice(MRH_Uint32 u32_ID,
                                        b_CanPlay(false),
                                        b_CanRecord(false),
                                        us_AvailableSamples(0),
-                                       u64_HeartbeatTimeoutS(0)
+                                       u64_HeartbeatReadS(0),
+                                       u64_HeartbeatWriteS(0)
 {
     // Create buffer list
     Configuration& c_Configuration = Configuration::Singleton();
@@ -143,6 +143,14 @@ void AudioDevice::Stop() noexcept
     // Reset amplitude, new recording
     us_AvailableSamples = 0;
     
+    // Set write info for state change
+    AudioDeviceOpCode::SERVICE_CHANGE_DEVICE_STATE_DATA c_OpCode;
+    c_OpCode.u8_Record = AUDIO_DEVICE_BOOL_FALSE;
+    c_OpCode.u8_Playback = AUDIO_DEVICE_BOOL_FALSE;
+    
+    AddSwitchStateOpCode(c_OpCode);
+    
+    // And finally, set state
     e_State = STOPPED;
 }
 
@@ -169,6 +177,14 @@ void AudioDevice::Record()
     // Reset amplitude, new recording
     us_AvailableSamples = 0;
     
+    // Set write info for state change
+    AudioDeviceOpCode::SERVICE_CHANGE_DEVICE_STATE_DATA c_OpCode;
+    c_OpCode.u8_Record = AUDIO_DEVICE_BOOL_TRUE;
+    c_OpCode.u8_Playback = AUDIO_DEVICE_BOOL_FALSE;
+    
+    AddSwitchStateOpCode(c_OpCode);
+    
+    // All done, set the next state
     e_State = RECORDING;
 }
 
@@ -214,7 +230,7 @@ void AudioDevice::Recieve()
         switch (u32_OpCode)
         {
             case AudioDeviceOpCode::ALL_HEARTBEAT:
-                u64_HeartbeatTimeoutS = time(NULL) + DEVICE_CONNECTION_HEARTBEAT_S;
+                u64_HeartbeatReadS = time(NULL) + DEVICE_CONNECTION_HEARTBEAT_S;
                 c_ReadInfo.first = HANDLE_OPCODE_ID;
                 c_ReadInfo.second = 0;
                 break;
@@ -243,7 +259,7 @@ void AudioDevice::Recieve()
     }
     
     // Heartbeat issue?
-    if (time(NULL) > u64_HeartbeatTimeoutS)
+    if (time(NULL) > u64_HeartbeatReadS)
     {
         throw Exception("Heartbeat timeout!");
     }
@@ -353,7 +369,7 @@ bool AudioDevice::RecieveStateChanged()
 // Playback
 //*************************************************************************************
 
-void AudioDevice::Play()
+void AudioDevice::Play(AudioTrack const& c_Audio)
 {
     if (b_CanPlay == false)
     {
@@ -364,19 +380,33 @@ void AudioDevice::Play()
         return;
     }
     
-    // @NOTE: Audio set before
+    // Set write info for state change
+    AudioDeviceOpCode::SERVICE_CHANGE_DEVICE_STATE_DATA c_OpCode;
+    c_OpCode.u8_Record = AUDIO_DEVICE_BOOL_FALSE;
+    c_OpCode.u8_Playback = AUDIO_DEVICE_BOOL_TRUE;
     
+    AddSwitchStateOpCode(c_OpCode);
+    
+    // Now set the audio to write
+    // @TODO:
+    
+    // Now signal playing to stream
     e_State = PLAYING;
 }
 
 void AudioDevice::Send()
 {
-    @TODO: Switch if required and wait for response,
-           Otherwise send
-            -> Data is correct here, no checking needed!
-            -> Copy Audio to static var to protect against resets (for
-               last opcode with audio data to be sent correctly)
-            -> Remove Playback State if all audio was sent
+
+}
+
+void AudioDevice::AddSwitchStateOpCode(AudioDeviceOpCode::SERVICE_CHANGE_DEVICE_STATE_DATA& c_OpCode)
+{
+    
+    MRH_Uint8 p_OpCode[sizeof(MRH_Uint32) + (sizeof(MRH_Uint8) * 2)]; // See AudioDeviceOpCode::SERVICE_CHANGE_DEVICE_STATE_DATA
+    ((MRH_Uint32*)p_OpCode)[0] = AudioDeviceOpCode::SERVICE_CHANGE_DEVICE_STATE;
+    p_OpCode[sizeof(MRH_Uint32)] = AUDIO_DEVICE_BOOL_TRUE;
+    p_OpCode[sizeof(MRH_Uint8)] = AUDIO_DEVICE_BOOL_FALSE;
+    l_WriteBytes.emplace_back(v_OpCode);
 }
 
 //*************************************************************************************
@@ -528,7 +558,8 @@ void AudioDevice::Connect()
     SwitchRecordingBuffer();
     
     // Set next heartbeat timeout for connection
-    u64_HeartbeatTimeoutS = time(NULL) + DEVICE_CONNECTION_HEARTBEAT_S;
+    u64_HeartbeatReadS = time(NULL) + DEVICE_CONNECTION_HEARTBEAT_S;
+    u64_HeartbeatWriteS = time(NULL) + DEVICE_CONNECTION_HEARTBEAT_S / 2; // / 2 = send before timeout
 }
 
 void AudioDevice::Disconnect() noexcept
@@ -543,6 +574,8 @@ void AudioDevice::Disconnect() noexcept
     
     c_WriteInfo.first = HANDLE_OPCODE_ID;
     c_WriteInfo.second = 0;
+    
+    e_State = STOPPED;
     
     close(i_SocketFD);
     i_SocketFD = -1;

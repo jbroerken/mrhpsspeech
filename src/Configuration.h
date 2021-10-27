@@ -90,14 +90,6 @@ public:
     MRH_Uint32 GetTriggerTimeoutS() noexcept;
     
     /**
-     *  Get the path to the trigger recognized sound.
-     *
-     *  \return The path to the trigger recognized sound.
-     */
-    
-    std::string GetTriggerSoundPath() noexcept;
-    
-    /**
      *  Get the recording KHz.
      *
      *  \return The recording KHz.
@@ -178,7 +170,6 @@ private:
     // Trigger
     std::string s_TriggerKeyphrase;
     MRH_Uint32 u32_TriggerTimeoutS;
-    std::string s_TriggerSoundPath;
     
     // Recording
     MRH_Uint32 u32_RecordingKHz;

@@ -160,7 +160,7 @@ void Voice::Say(OutputStorage& c_OutputStorage)
     }
     
     /**
-     *  Synthesise String
+     *  Playback Synthesised String
      */
     
     if (b_StringSet == false && c_OutputStorage.GetFinishedAvailable() == true)

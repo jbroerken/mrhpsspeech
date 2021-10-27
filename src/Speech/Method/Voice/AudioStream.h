@@ -129,6 +129,14 @@ public:
     
     bool GetPrimaryRecordingDeviceSet() noexcept;
     
+    /**
+     *  Check if the primary playback device was set.
+     *
+     *  \return true if a device was set, false if not.
+     */
+    
+    bool GetPrimaryPlaybackDeviceSet() noexcept;
+    
 private:
     
     //*************************************************************************************
@@ -137,8 +145,9 @@ private:
     
     std::list<AudioDevice> l_Device;
     
-    // Selected recording device.
+    // Selected devices
     std::list<AudioDevice>::iterator PrimaryRecordingDevice;
+    std::list<AudioDevice>::iterator PrimaryPlaybackDevice;
     
     // Audio Info
     std::pair<MRH_Uint32, MRH_Uint32> c_RecordingFormat; // <KHz, Frame Elements>
