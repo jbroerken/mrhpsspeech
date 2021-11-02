@@ -23,7 +23,6 @@
 #define AudioDevicePool_h
 
 // C / C++
-#include <unordered_map>
 #include <utility>
 #include <vector>
 #include <list>
@@ -32,7 +31,7 @@
 #include <MRH_Typedefs.h>
 
 // Project
-#include "./AudioDevice.h"
+#include "./AudioDevice/AudioDevice.h"
 
 
 class AudioDevicePool
@@ -146,14 +145,14 @@ private:
     //*************************************************************************************
     
     // Connection
-    int i_SocketFD;
+    AudioDeviceTraffic c_DeviceTraffic;
     
     // Device list
-    std::unordered_map<MRH_Uint8, AudioDevice> m_Device;
+    std::list<AudioDevice> l_Device;
     
     // Selected devices
-    int i_RecordingDevice;
-    int i_PlaybackDevice;
+    std::list<AudioDevice>::iterator RecordingDevice;
+    std::list<AudioDevice>::iterator PlaybackDevice;
     
     // Audio Info
     std::pair<MRH_Uint32, MRH_Uint32> c_RecordingFormat; // <KHz, Frame Elements>

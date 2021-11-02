@@ -23,20 +23,13 @@
 #define AudioDevice_h
 
 // C / C++
-#include <thread>
-#include <atomic>
-#include <vector>
-#include <mutex>
-#include <list>
 
 // External
 #include <MRH_Typedefs.h>
 
 // Project
-#include "./AudioTrack.h"
-
-// Pre-defined
-#define AUDIO_DEVICE_SOCKET_DISCONNECTED -1
+#include "../AudioTrack.h"
+#include "./AudioDeviceTraffic.h"
 
 
 class AudioDevice
@@ -50,16 +43,18 @@ public:
     /**
      *  Default constructor.
      *
-     *  \param s_Name The device name.
-     *  \param i_SocketFD The device connection socket.
-     *  \param b_CanPlay If the device can play audio.
+     *  \param c_DeviceTraffic The device traffic instance to use for traffic.
+     *  \param s_Address The audio device address.
+     *  \param i_Port The audio device port.
      *  \param b_CanRecord If the device can record audio.
+     *  \param b_CanPlay If the device can play audio.
      */
     
-    AudioDevice(std::string const& s_Name,
-                int i_SocketFD,
-                bool b_CanPlay,
-                bool b_CanRecord);
+    AudioDevice(AudioDeviceTraffic& c_DeviceTraffic,
+                std::string const& s_Address,
+                int i_Port,
+                bool b_CanRecord,
+                bool b_CanPlay);
     
     /**
      *  Default destructor.
@@ -100,12 +95,28 @@ public:
     //*************************************************************************************
     
     /**
-     *  Get the device connection status.
+     *  Get the device availability status.
      *
-     *  \return true if connected, false if not.
+     *  \return true if available, false if not.
      */
     
-    bool GetConnected() noexcept;
+    bool GetAvailable() noexcept;
+    
+    /**
+     *  Get the device address.
+     *
+     *  \return The device address.
+     */
+    
+    std::string const& GetAddress() noexcept;
+    
+    /**
+     *  Get the device port.
+     *
+     *  \return The device port.
+     */
+    
+    int GetPort() noexcept;
     
     /**
      *  Get the currently recorded audio.
@@ -140,100 +151,43 @@ public:
     size_t GetRecievedSamples() noexcept;
     
     /**
-     *  Check if data is currently being sent.
+     *  Check if audio is currently being played.
      *
-     *  \return true if data is being sent, false if not.
+     *  \return true if audio is being played, false if not.
      */
     
-    bool GetSendingActive() noexcept;
+    bool GetPlaybackActive() noexcept;
     
 private:
     
     //*************************************************************************************
-    // Update
+    // Getters
     //*************************************************************************************
     
     /**
-     *  Update the audio device.
-     *
-     *  \param p_Instance The audio device to update.
+     *  Get all recieved data.
      */
     
-    static void Update(AudioDevice* p_Instance) noexcept;
-    
-    /**
-     *  Switch the recording buffer.
-     */
-    
-    void SwitchRecordingBuffer() noexcept;
-    
-    //*************************************************************************************
-    // Record
-    //*************************************************************************************
-    
-    /**
-     *  Recieve data from the device.
-     */
-    
-    void Recieve();
-    
-    //*************************************************************************************
-    // Playback
-    //*************************************************************************************
-    
-    /**
-     *  Send service data to the device.
-     */
-    
-    void Send();
-    
-    //*************************************************************************************
-    // I/O
-    //*************************************************************************************
-    
-    /**
-     *  Read bytes from the device connection.
-     *
-     *  \param p_Dst The destination to read to.
-     *  \param us_Length The length to read in bytes.
-     *  \param i_TimeoutMS The poll timeout in milliseconds.
-     *
-     *  \return The amount of bytes read.
-     */
-    
-    ssize_t Read(MRH_Uint8* p_Dst, size_t us_Length, int i_TimeoutMS);
-    
-    /**
-     *  Write bytes to the device connection.
-     *
-     *  \param p_Src The source to write from.
-     *  \param us_Length The length to write in bytes.
-     *
-     *  \return The amount of bytes written.
-     */
-    
-    ssize_t Write(const MRH_Uint8* p_Src, size_t us_Length);
+    void GetRecievedData() noexcept;
     
     //*************************************************************************************
     // Data
     //*************************************************************************************
     
-    std::thread c_Thread;
-    
-    std::atomic<int> i_SocketFD;
-    std::string s_Name;
+    AudioDeviceTraffic& c_DeviceTraffic;
+    std::string s_Address;
+    int i_Port;
     
     bool b_CanRecord;
     bool b_CanPlay;
-    size_t us_PlaybackFrameSamples;
     
-    std::mutex c_RecordingMutex;
-    std::list<AudioTrack> l_RecordingAudio;
-    std::list<AudioTrack>::iterator ActiveAudio;
-    std::atomic<size_t> us_RecievedSamples;
+    AudioTrack c_Recording;
+    size_t us_RecievedSamples;
     
-    std::mutex c_WriteMutex;
-    std::list<std::vector<MRH_Uint8>> l_WriteData;
+    bool b_PlaybackActive;
+    
+    MRH_Uint64 u64_LastDeviceHeartbeatS;
+    MRH_Uint64 u64_NextServiceHeartbeatS;
     
 protected:
     
