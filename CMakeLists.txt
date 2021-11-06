@@ -71,8 +71,6 @@ set(SRC_DIR_PATH "${CMAKE_SOURCE_DIR}/src/")
 			 
 set(SRC_LIST_CALLBACK "${SRC_DIR_PATH}/Callback/Service/CBAvail.cpp"
                       "${SRC_DIR_PATH}/Callback/Service/CBAvail.h"
-                      "${SRC_DIR_PATH}/Callback/Service/CBReset.cpp"
-                      "${SRC_DIR_PATH}/Callback/Service/CBReset.h"
                       "${SRC_DIR_PATH}/Callback/Service/CBCustomCommand.cpp"
                       "${SRC_DIR_PATH}/Callback/Service/CBCustomCommand.h"
                       "${SRC_DIR_PATH}/Callback/Speech/CBSayString.cpp"
@@ -82,26 +80,32 @@ set(SRC_LIST_CALLBACK "${SRC_DIR_PATH}/Callback/Service/CBAvail.cpp"
                       
 set(SRC_LIST_SPEECH_METHOD)
 
-if(USE_METHOD_CLI OR USE_METHOD_VOICE)
-    set(SRC_LIST_SPEECH_METHOD "${SRC_DIR_PATH}/Speech/Method/MessageStream/IO/MessageRead.cpp"
+if(USE_METHOD_CLI)
+    set(SRC_LIST_SPEECH_METHOD "${SRC_DIR_PATH}/Speech/Method/CLI.cpp"
+                               "${SRC_DIR_PATH}/Speech/Method/CLI.h"
+                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/IO/MessageRead.cpp"
                                "${SRC_DIR_PATH}/Speech/Method/MessageStream/IO/MessageRead.h"
                                "${SRC_DIR_PATH}/Speech/Method/MessageStream/IO/MessageWrite.cpp"
                                "${SRC_DIR_PATH}/Speech/Method/MessageStream/IO/MessageWrite.h"
                                "${SRC_DIR_PATH}/Speech/Method/MessageStream/IO/MessagePacket.h"
                                "${SRC_DIR_PATH}/Speech/Method/MessageStream/MessageStream.cpp"
                                "${SRC_DIR_PATH}/Speech/Method/MessageStream/MessageStream.h"
-                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/MessageOpCode.h"
+                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/MessageOpCode.cpp"
                                "${SRC_DIR_PATH}/Speech/Method/MessageStream/MessageOpCode.h")
-endif(USE_METHOD_CLI OR USE_METHOD_VOICE)
-
-if(USE_METHOD_CLI)
-    set(SRC_LIST_SPEECH_METHOD "${SRC_DIR_PATH}/Speech/Method/CLI.cpp"
-                               "${SRC_DIR_PATH}/Speech/Method/CLI.h")
 endif(USE_METHOD_CLI)
 
 if(USE_METHOD_SERVER)
     set(SRC_LIST_SPEECH_METHOD "${SRC_DIR_PATH}/Speech/Method/Server.cpp"
-                               "${SRC_DIR_PATH}/Speech/Method/Server.h")
+                               "${SRC_DIR_PATH}/Speech/Method/Server.h"
+                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/IO/MessageRead.cpp"
+                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/IO/MessageRead.h"
+                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/IO/MessageWrite.cpp"
+                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/IO/MessageWrite.h"
+                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/IO/MessagePacket.h"
+                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/MessageStream.cpp"
+                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/MessageStream.h"
+                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/MessageOpCode.cpp"
+                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/MessageOpCode.h")
 endif(USE_METHOD_SERVER)
 
 if(USE_METHOD_VOICE)
