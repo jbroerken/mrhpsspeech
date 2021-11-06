@@ -60,15 +60,15 @@ file(MAKE_DIRECTORY ${BUILD_DIR_PATH})
 ###
 set(SRC_DIR_PATH "${CMAKE_SOURCE_DIR}/src/")
 
-set(SRC_LIST_ALL "${SRC_DIR_PATH}/IO/MessageRead.cpp"
-                 "${SRC_DIR_PATH}/IO/MessageRead.h"
-                 "${SRC_DIR_PATH}/IO/MessageWrite.cpp"
-                 "${SRC_DIR_PATH}/IO/MessageWrite.h"
-                 "${SRC_DIR_PATH}/IO/MessagePacket.h"
-                 "${SRC_DIR_PATH}/MessageStream.cpp"
-                 "${SRC_DIR_PATH}/MessageStream.h"
-                 "${SRC_DIR_PATH}/MessageOpCode.cpp"
-                 "${SRC_DIR_PATH}/MessageOpCode.h"
+set(SRC_LIST_ALL "${SRC_DIR_PATH}/MessageStream/IO/MessageRead.cpp"
+                 "${SRC_DIR_PATH}/MessageStream/IO/MessageRead.h"
+                 "${SRC_DIR_PATH}/MessageStream/IO/MessageWrite.cpp"
+                 "${SRC_DIR_PATH}/MessageStream/IO/MessageWrite.h"
+                 "${SRC_DIR_PATH}/MessageStream/IO/MessagePacket.h"
+                 "${SRC_DIR_PATH}/MessageStream/MessageStream.cpp"
+                 "${SRC_DIR_PATH}/MessageStream/MessageStream.h"
+                 "${SRC_DIR_PATH}/MessageStream/MessageOpCode.cpp"
+                 "${SRC_DIR_PATH}/MessageStream/MessageOpCode.h"
                  "${SRC_DIR_PATH}/Exception.h"
                  "${SRC_DIR_PATH}/Main.cpp"
                  "${SRC_DIR_PATH}/Revision.h")
@@ -103,7 +103,7 @@ target_link_libraries(mrhclispeech PUBLIC Threads::Threads)
 #  ------------------
 #  Preprocessor source definitions.
 ###
-target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_MESSAGE_STREAM_SOCKET_DIR="/tmp/mrh/speech/")
+target_compile_definitions(mrhclispeech PRIVATE MRH_SPEECH_MESSAGE_STREAM_SOCKET_DIR="/tmp/mrh/speech/")
 
 ###
 #  Install
