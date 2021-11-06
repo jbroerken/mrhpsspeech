@@ -72,7 +72,7 @@ namespace MessageOpCode
         
         AUDIO_C_PLAYBACK_FINISHED = 4,          // Finished audio playback
         
-        AUDIO_S_AUDIO_FORMAT = 5,               // Audio format to use for playback and recording
+        AUDIO_S_AUDIO_INFO = 5,                 // Audio info to use for playback and recording
         AUDIO_S_START_RECORDING = 6,            // Start recording audio
         AUDIO_S_STOP_RECORDING = 7,             // Stop recording audio
         
@@ -261,10 +261,10 @@ namespace MessageOpCode
     };
     
     //*************************************************************************************
-    // OpCode Data - AUDIO_S_AUDIO_FORMAT
+    // OpCode Data - AUDIO_S_AUDIO_INFO
     //*************************************************************************************
     
-    class AUDIO_S_AUDIO_FORMAT_DATA : public OpCodeData
+    class AUDIO_S_AUDIO_INFO_DATA : public OpCodeData
     {
     public:
         
@@ -278,7 +278,7 @@ namespace MessageOpCode
          *  \param v_Data The data for the opcode.
          */
         
-        AUDIO_S_AUDIO_FORMAT_DATA(std::vector<MRH_Uint8>& v_Data) noexcept;
+        AUDIO_S_AUDIO_INFO_DATA(std::vector<MRH_Uint8>& v_Data) noexcept;
         
         /**
          *  Value constructor.
@@ -287,18 +287,22 @@ namespace MessageOpCode
          *  \param u32_RecordingFrameSamples The amount of samples in each recording frame.
          *  \param u32_PlaybackKHz The playback sample KHz.
          *  \param u32_PlaybackFrameSamples The amount of samples in each playback frame.
+         *  \param u32_TriggerTimeoutS The timeout for recognizing a trigger.
+         *  \param s_TriggerKeyphrase The key phrase to listen to.
          */
         
-        AUDIO_S_AUDIO_FORMAT_DATA(MRH_Uint32 u32_RecordingKHz,
-                                  MRH_Uint32 u32_RecordingFrameSamples,
-                                  MRH_Uint32 u32_PlaybackKHz,
-                                  MRH_Uint32 u32_PlaybackFrameSamples) noexcept;
+        AUDIO_S_AUDIO_INFO_DATA(MRH_Uint32 u32_RecordingKHz,
+                                MRH_Uint32 u32_RecordingFrameSamples,
+                                MRH_Uint32 u32_PlaybackKHz,
+                                MRH_Uint32 u32_PlaybackFrameSamples,
+                                MRH_Uint32 u32_TriggerTimeoutS,
+                                std::string const& s_TriggerKeyphrase) noexcept;
         
         /**
          *  Default destructor.
          */
         
-        ~AUDIO_S_AUDIO_FORMAT_DATA() noexcept;
+        ~AUDIO_S_AUDIO_INFO_DATA() noexcept;
         
         //*************************************************************************************
         // Getters
@@ -335,6 +339,22 @@ namespace MessageOpCode
          */
         
         MRH_Uint32 GetPlaybackFrameSamples() noexcept;
+        
+        /**
+         *  Get the trigger timeout in seconds.
+         *
+         *  \return The trigger timeout in seconds.
+         */
+        
+        MRH_Uint32 GetTriggerTimeoutS() noexcept;
+        
+        /**
+         *  Get the trigger keyphrase.
+         *
+         *  \return The trigger keyphrase.
+         */
+        
+        std::string GetTriggerKeyphrase() noexcept;
         
     private:
         

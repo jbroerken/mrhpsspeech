@@ -60,10 +60,12 @@ void AudioStream::UpdateStream() noexcept
     if (c_AudioStream.GetConnected() == true && b_LastState == false)
     {
         // Send format on new connection
-        MessageOpCode::AUDIO_S_AUDIO_FORMAT_DATA c_OpCode(Configuration::Singleton().GetRecordingKHz(),
-                                                          Configuration::Singleton().GetRecordingFrameSamples(),
-                                                          Configuration::Singleton().GetPlaybackKHz(),
-                                                          Configuration::Singleton().GetPlaybackFrameSamples());
+        MessageOpCode::AUDIO_S_AUDIO_INFO_DATA c_OpCode(Configuration::Singleton().GetRecordingKHz(),
+                                                        Configuration::Singleton().GetRecordingFrameSamples(),
+                                                        Configuration::Singleton().GetPlaybackKHz(),
+                                                        Configuration::Singleton().GetPlaybackFrameSamples(),
+                                                        Configuration::Singleton().GetTriggerTimeoutS(),
+                                                        Configuration::Singleton().GetTriggerKeyphrase());
         
         c_AudioStream.Send(c_OpCode.v_Data);
         

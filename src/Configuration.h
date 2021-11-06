@@ -90,22 +90,6 @@ public:
     MRH_Uint32 GetTriggerTimeoutS() noexcept;
     
     /**
-     *  Get the device connection port.
-     *
-     *  \return The device connection port.
-     */
-    
-    int GetDeviceConnectionPort() noexcept;
-    
-    /**
-     *  Get the device connection service key.
-     *
-     *  \return The device connection service key.
-     */
-    
-    std::string GetDeviceConnectionServiceKey() noexcept;
-    
-    /**
      *  Get the recording KHz.
      *
      *  \return The recording KHz.
@@ -186,10 +170,6 @@ private:
     // Trigger
     std::string s_TriggerKeyphrase;
     MRH_Uint32 u32_TriggerTimeoutS;
-    
-    // Device connection
-    int i_DeviceConnectionPort;
-    std::string s_DeviceConnectionServiceKey;
     
     // Recording
     MRH_Uint32 u32_RecordingKHz;
