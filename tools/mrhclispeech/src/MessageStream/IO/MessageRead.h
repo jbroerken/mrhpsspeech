@@ -1,5 +1,5 @@
 /**
- *  SpeechMethod.h
+ *  MessageRead.h
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -19,18 +19,22 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef SpeechMethod_h
-#define SpeechMethod_h
+#ifndef MessageRead_h
+#define MessageRead_h
 
 // C / C++
+#include <list>
+#include <vector>
+#include <map>
 
 // External
+#include <MRH_Typedefs.h>
 
 // Project
-#include "./OutputStorage.h"
+#include "../../Exception.h"
 
 
-class SpeechMethod
+class MessageRead
 {
 public:
     
@@ -42,121 +46,103 @@ public:
      *  Default destructor.
      */
     
-    virtual ~SpeechMethod() noexcept;
-    
-    //*************************************************************************************
-    // Reset
-    //*************************************************************************************
-    
-    /**
-     *  Reset speech method.
-     */
-    
-    virtual void Reset();
-    
-    //*************************************************************************************
-    // Listen
-    //*************************************************************************************
-    
-    /**
-     *  Listen to speech input.
-     */
-    
-    virtual void Listen();
-    
-    //*************************************************************************************
-    // Say
-    //*************************************************************************************
-    
-    /**
-     *  Perform speech output.
-     *
-     *  \param c_OutputStorage The output storage to use.
-     */
-    
-    virtual void Say(OutputStorage& c_OutputStorage);
-    
-    //*************************************************************************************
-    // Getters
-    //*************************************************************************************
-    
-    /**
-     *  Check if this speech method is usable.
-     *
-     *  \return true if usable, false if not.
-     */
-    
-    virtual bool IsUsable() noexcept;
+    virtual ~MessageRead() noexcept;
     
 private:
     
     //*************************************************************************************
-    // Types
+    // Read
     //*************************************************************************************
     
-    struct ListenID
-    {
-        //*************************************************************************************
-        // Constructor
-        //*************************************************************************************
-        
-        /**
-         *  Default constructor.
-         */
-        
-        ListenID() noexcept;
-        
-        //*************************************************************************************
-        // Data
-        //*************************************************************************************
-        
-        MRH_Uint32 u32_StringID;
-        std::mutex c_Mutex;
-    };
+    /**
+     *  Read from a connected client.
+     *
+     *  \param i_SocketFD The socket to read from.
+     *  \param i_TimeoutMS The poll timeout in milliseconds.
+     *  \param p_Buffer The buffer to read into.
+     *
+     *  \return -1 on failure, 0 on no data, 1 on data read.
+     */
+    
+    int ReadSocket(int i_SocketFD, int i_TimeoutMS, MRH_Uint8* p_Buffer) noexcept;
     
     //*************************************************************************************
     // Data
     //*************************************************************************************
     
-    // Store same for each class to prevent ID reuse on method switch!
-    static ListenID c_ListenID;
+    // <Stream ID, Message>
+    std::map<MRH_Uint8, std::vector<MRH_Uint8>> m_Unfinished;
+    
+    // <Message Bytes>
+    std::list<std::vector<MRH_Uint8>> l_Finished;
     
 protected:
     
     //*************************************************************************************
-    // Constructor
+    // Types
+    //*************************************************************************************
+    
+    enum ReadResult
+    {
+        READ_FAIL = -1,                  // Failure, close
+        READ_SUCCESS = 0,                // No messages after read
+        READ_MESSAGE_AVAILABLE = 1,      // New message after read
+    };
+    
+    //*************************************************************************************
+    // Constructor / Destructor
     //*************************************************************************************
     
     /**
      *  Default constructor.
      */
     
-    SpeechMethod() noexcept;
+    MessageRead() noexcept;
     
     //*************************************************************************************
-    // Listen
-    //*************************************************************************************
-    
-    /**
-     *  Create speech input events for a string.
-     *
-     *  \param s_String The speech input string.
-     */
-    
-    void SendInput(std::string const& s_String);
-    
-    //*************************************************************************************
-    // Say
+    // Clear
     //*************************************************************************************
     
     /**
-     *  Create a output performed event.
-     *
-     *  \param u32_StringID The string id of the performed output.
-     *  \param u32_GroupID The event group id to use.
+     *  Clear all unfinished and finished messages.
      */
     
-    void OutputPerformed(MRH_Uint32 u32_StringID, MRH_Uint32 u32_GroupID);
+    void ClearRead() noexcept;
+    
+    //*************************************************************************************
+    // Read
+    //*************************************************************************************
+    
+    /**
+     *  Read from a connected client.
+     *
+     *  \param i_SocketFD The socket to read from.
+     *  \param i_TimeoutMS The poll timeout in milliseconds.
+     *
+     *  \return The read result for message availability.
+     */
+    
+    ReadResult ReadMessages(int i_SocketFD, int i_TimeoutMS) noexcept;
+    
+    //*************************************************************************************
+    // Getters
+    //*************************************************************************************
+    
+    /**
+     *  Check if finished messages are available.
+     *
+     *  \return true if a messages are available, false if not.
+     */
+    
+    bool GetMessageAvailable() const noexcept;
+    
+    /**
+     *  Get a fully read message.
+     *
+     *  \return The fully read message.
+     */
+    
+    std::vector<MRH_Uint8> GetReadMessage();
 };
 
-#endif /* SpeechMethod_h */
+#endif /* MessageRead_h */

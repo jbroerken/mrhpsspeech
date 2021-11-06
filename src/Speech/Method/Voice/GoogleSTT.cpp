@@ -102,6 +102,12 @@ void GoogleSTT::AddAudio(AudioTrack const& c_Audio) noexcept
 
 std::string GoogleSTT::Transcribe()
 {
+    // Audio available?
+    if (c_Audio.first == 0 || c_Audio.second.size() == 0)
+    {
+        throw Exception("No audio to transcribe added!");
+    }
+    
     std::string s_LangCode = Configuration::Singleton().GetGoogleLanguageCode();
     
     /**
@@ -174,5 +180,16 @@ std::string GoogleSTT::Transcribe()
         }
     }
     
+    ResetAudio(); // Clear old
+    
     return s_Transcipt;
+}
+
+//*************************************************************************************
+// Getters
+//*************************************************************************************
+
+bool GoogleSTT::GetAudioAvailable() noexcept
+{
+    return (c_Audio.first != 0 && c_Audio.second.size() > 0) ? true : false;
 }

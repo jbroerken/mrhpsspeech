@@ -1,5 +1,5 @@
 /**
- *  AudioDevicePool.h
+ *  MessageRead.h
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -19,24 +19,75 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef AudioDevicePool_h
-#define AudioDevicePool_h
+#ifndef MessageRead_h
+#define MessageRead_h
 
 // C / C++
-#include <utility>
-#include <vector>
 #include <list>
+#include <vector>
+#include <map>
 
 // External
 #include <MRH_Typedefs.h>
 
 // Project
-#include "./AudioDevice/AudioDevice.h"
+#include "../../../../Exception.h"
 
 
-class AudioDevicePool
+class MessageRead
 {
 public:
+    
+    //*************************************************************************************
+    // Destructor
+    //*************************************************************************************
+    
+    /**
+     *  Default destructor.
+     */
+    
+    virtual ~MessageRead() noexcept;
+    
+private:
+    
+    //*************************************************************************************
+    // Read
+    //*************************************************************************************
+    
+    /**
+     *  Read from a connected client.
+     *
+     *  \param i_SocketFD The socket to read from.
+     *  \param i_TimeoutMS The poll timeout in milliseconds.
+     *  \param p_Buffer The buffer to read into.
+     *
+     *  \return -1 on failure, 0 on no data, 1 on data read.
+     */
+    
+    int ReadSocket(int i_SocketFD, int i_TimeoutMS, MRH_Uint8* p_Buffer) noexcept;
+    
+    //*************************************************************************************
+    // Data
+    //*************************************************************************************
+    
+    // <Stream ID, Message>
+    std::map<MRH_Uint8, std::vector<MRH_Uint8>> m_Unfinished;
+    
+    // <Message Bytes>
+    std::list<std::vector<MRH_Uint8>> l_Finished;
+    
+protected:
+    
+    //*************************************************************************************
+    // Types
+    //*************************************************************************************
+    
+    enum ReadResult
+    {
+        READ_FAIL = -1,                  // Failure, close
+        READ_SUCCESS = 0,                // No messages after read
+        READ_MESSAGE_AVAILABLE = 1,      // New message after read
+    };
     
     //*************************************************************************************
     // Constructor / Destructor
@@ -46,123 +97,52 @@ public:
      *  Default constructor.
      */
     
-    AudioDevicePool();
+    MessageRead() noexcept;
+    
+    //*************************************************************************************
+    // Clear
+    //*************************************************************************************
     
     /**
-     *  Default destructor.
+     *  Clear all unfinished and finished messages.
      */
     
-    ~AudioDevicePool() noexcept;
+    void ClearRead() noexcept;
     
     //*************************************************************************************
-    // Devices
-    //*************************************************************************************
-    
-    /**
-     *  Start all audio devices.
-     */
-    
-    void StartDevices() noexcept;
-    
-    /**
-     *  Stop all audio devices.
-     */
-    
-    void StopDevices() noexcept;
-    
-    //*************************************************************************************
-    // Record
+    // Read
     //*************************************************************************************
     
     /**
-     *  Select the audio device to use as a source for recordings. Only this device will
-     *  then be used to retrieve audio. All other recording devices will be ignored.
-     */
-    
-    void SelectRecordingDevice();
-    
-    /**
-     *  Reset the current recording device, allowing all devices to record again for
-     *  selection.
-     */
-    
-    void ResetRecordingDevice() noexcept;
-    
-    //*************************************************************************************
-    // Playback
-    //*************************************************************************************
-    
-    /**
-     *  Start audio playback with a given audio track.
+     *  Read from a connected client.
      *
-     *  \param c_Audio The audio for playback.
+     *  \param i_SocketFD The socket to read from.
+     *  \param i_TimeoutMS The poll timeout in milliseconds.
+     *
+     *  \return The read result for message availability.
      */
     
-    void Playback(AudioTrack const& c_Audio);
+    ReadResult ReadMessages(int i_SocketFD, int i_TimeoutMS) noexcept;
     
     //*************************************************************************************
     // Getters
     //*************************************************************************************
     
     /**
-     *  Grab the currently stored recorded audio.
+     *  Check if finished messages are available.
      *
-     *  \return The current recorded audio.
+     *  \return true if a messages are available, false if not.
      */
     
-    AudioTrack const& GetRecordedAudio();
+    bool GetMessageAvailable() const noexcept;
     
     /**
-     *  Check if audio is currently being played.
+     *  Get a fully read message.
      *
-     *  \return true if audio is being played, false if not.
+     *  \return The fully read message.
      */
     
-    bool GetPlaybackActive() noexcept;
-    
-    /**
-     *  Check if a recording device was set.
-     *
-     *  \return true if a device was set, false if not.
-     */
-    
-    bool GetRecordingDeviceSelected() noexcept;
-    
-private:
-    
-    //*************************************************************************************
-    // Devices
-    //*************************************************************************************
-    
-    /**
-     *  Update the decives in the device pool.
-     */
-    
-    void UpdateDevices() noexcept;
-    
-    //*************************************************************************************
-    // Data
-    //*************************************************************************************
-    
-    // Connection
-    AudioDeviceTraffic c_DeviceTraffic;
-    
-    // Device list
-    std::list<AudioDevice> l_Device;
-    
-    // Selected devices
-    std::list<AudioDevice>::iterator RecordingDevice;
-    std::list<AudioDevice>::iterator PlaybackDevice;
-    
-    // Audio Info
-    std::pair<MRH_Uint32, MRH_Uint32> c_RecordingFormat; // <KHz, Frame Elements>
-    std::pair<MRH_Uint32, MRH_Uint32> c_PlaybackFormat;
-    
-    // Audio to add to devices
-    std::vector<MRH_Sint16> v_Send;
-    
-protected:
-    
+    std::vector<MRH_Uint8> GetReadMessage();
 };
 
-#endif /* AudioDevicePool_h */
+#endif /* MessageRead_h */

@@ -33,7 +33,6 @@ libmrhev: https://github.com/jbroerken/libmrhev/
 libmrhpsb: https://github.com/jbroerken/libmrhpsb/
 mrhshared: https://github.com/jbroerken/mrhshared/
 Sodium: https://libsodium.gitbook.io/doc/
-libsamplerate: http://libsndfile.github.io/libsamplerate/index.html
 google-cloud-cpp: https://github.com/googleapis/google-cloud-cpp
 
 For more information about the requirements, check the "Building" section found in the documentation.

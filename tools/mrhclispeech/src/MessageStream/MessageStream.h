@@ -1,5 +1,5 @@
 /**
- *  AudioDeviceTraffic.h
+ *  MessageStream.h
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -19,24 +19,25 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef AudioDeviceTraffic_h
-#define AudioDeviceTraffic_h
+#ifndef MessageStream_h
+#define MessageStream_h
 
 // C / C++
 #include <thread>
 #include <atomic>
-#include <vector>
-#include <mutex>
-#include <list>
+#include <string>
 
 // External
 #include <MRH_Typedefs.h>
 
 // Project
-#include "../../../../Exception.h"
+#include "./IO/MessageRead.h"
+#include "./IO/MessageWrite.h"
+#include "./MessageOpCode.h"
 
 
-class AudioDeviceTraffic
+class MessageStream : private MessageRead,
+                      private MessageWrite
 {
 public:
     
@@ -46,114 +47,115 @@ public:
     
     /**
      *  Default constructor.
+     *
+     *  \param s_Channel The name identifier of the stream channel.
+     *  \param b_KeepAlive If the connection should be kept alive automatically.
      */
     
-    AudioDeviceTraffic();
+    MessageStream(std::string const& s_Channel,
+                  bool b_KeepAlive);
     
     /**
      *  Default destructor.
      */
     
-    virtual ~AudioDeviceTraffic() noexcept;
+    ~MessageStream() noexcept;
     
     //*************************************************************************************
     // Clear
     //*************************************************************************************
     
     /**
-     *  Clear all recieved messages for a device.
+     *  Clear all recieved messages of a type.
      *
-     *  \param s_Address The device address.
-     *  \param i_Port The device port.
+     *  \param u8_OpCode The type of opcode messages to clear.
      */
     
-    void ClearRecieved(std::string const& s_Address, int i_Port) noexcept;
+    void ClearRecieved(MRH_Uint8 u8_OpCode) noexcept;
+    
+    /**
+     *  Clear all recieved messages.
+     */
+    
+    void ClearAllRecieved() noexcept;
     
     //*************************************************************************************
     // Recieve
     //*************************************************************************************
     
     /**
-     *  Recieve data from the device.
+     *  Recieve the oldest message.
      *
-     *  \param s_Address The address of the device to recieve from.
-     *  \param i_Port The port of the device to recieve from.
      *  \param v_Data The recieved data.
      *
      *  \return true if data was set, false if not.
      */
     
-    bool Recieve(std::string const& s_Address, int i_Port, std::vector<MRH_Uint8>& v_Data);
-    
-    /**
-     *  Recieve data from the device.
-     *
-     *  \param u8_OpCode The expected opcode recieved.
-     *  \param v_Data The recieved data.
-     *
-     *  \return true if data was set, false if not.
-     */
-    
-    bool Recieve(MRH_Uint8 u8_OpCode, std::vector<MRH_Uint8>& v_Data);
+    bool Recieve(std::vector<MRH_Uint8>& v_Data);
     
     //*************************************************************************************
     // Send
     //*************************************************************************************
     
     /**
-     *  Send data to the device.
+     *  Send a message.
      *
-     *  \param s_Address The address of the device to send to.
-     *  \param i_Port The port of the device to send to.
      *  \param v_Data The data to send. The reference is consumed.
      */
     
-    void Send(std::string const& s_Address, int i_Port, std::vector<MRH_Uint8>& v_Data);
+    void Send(std::vector<MRH_Uint8>& v_Data);
     
-private:
-    
-    //*************************************************************************************
-    // Types
-    //*************************************************************************************
-    
-    struct Message
-    {
-    public:
-        
-        //*************************************************************************************
-        // Data
-        //*************************************************************************************
-        
-        std::string s_Address;
-        int i_Port;
-        std::vector<MRH_Uint8> v_Payload;
-    };
-    
-    //*************************************************************************************
-    // Update
-    //*************************************************************************************
-
     /**
-     *  Update the device traffic.
+     *  Send a message.
      *
-     *  \param p_Instance The class instance to use.
+     *  \param v_Data The data to send.
      */
     
-    static void Update(AudioDeviceTraffic* p_Instance) noexcept;
+    void Send(std::vector<MRH_Uint8> const& v_Data);
     
     //*************************************************************************************
     // Getters
     //*************************************************************************************
     
     /**
-     *  Check if a message is fully read.
+     *  Check if a connection is active.
      *
-     *  \param v_Data The full message data.
-     *
-     *  \return true if fully read, false if not.
+     *  \return true if a connection is active, false if not.
      */
     
-    bool GetMessageFinished(std::vector<MRH_Uint8> const& v_Data) noexcept;
+    bool GetConnected() const noexcept;
+    
+private:
+    
+    //*************************************************************************************
+    // Update
+    //*************************************************************************************
+    
+    /**
+     *  Update the message stream.
+     *
+     *  \param p_Instance The class instance to update.
+     */
+    
+    static void Update(MessageStream* p_Instance) noexcept;
+    
+    /**
+     *  Connect to a message stream.
+     *
+     *  \returns The socket file descriptor on success, -1 on failure.
+     */
+    
+    int Connect() noexcept;
+    
+    /**
+     *  Close a active connection.
+     *
+     *  \param i_SocketFD The socket to close.
+     *
+     *  \returns Always -1.
+     */
+    
+    int CloseConnection(int i_SocketFD) noexcept;
     
     //*************************************************************************************
     // Data
@@ -162,20 +164,19 @@ private:
     std::thread c_Thread;
     std::atomic<bool> b_Update;
     
-    //lsquic_engine_t* p_Engine;
-    
-    std::string s_ServiceKey;
+    const std::string s_Channel;
+    const std::string s_SocketPath;
+    const bool b_KeepAlive;
+    std::atomic<bool> b_Connected;
     
     std::mutex c_ReadMutex;
     std::mutex c_WriteMutex;
     
-    // <Device ID, Message list<Bytes>>
-    // @NOTE: Bytes include opcode and data length, min length is 5!
-    std::list<Message> l_Read;
-    std::list<Message> l_Write;
+    std::list<std::vector<MRH_Uint8>> l_Read;
+    std::list<std::vector<MRH_Uint8>> l_Write;
     
 protected:
 
 };
 
-#endif /* AudioDeviceTraffic_h */
+#endif /* MessageStream_h */

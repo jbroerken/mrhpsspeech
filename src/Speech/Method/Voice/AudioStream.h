@@ -1,5 +1,5 @@
 /**
- *  Voice.h
+ *  AudioStream.h
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -19,23 +19,23 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef Voice_h
-#define Voice_h
+#ifndef AudioStream_h
+#define AudioStream_h
 
 // C / C++
-#include <thread>
-#include <atomic>
+#include <utility>
+#include <vector>
+#include <list>
 
 // External
+#include <MRH_Typedefs.h>
 
 // Project
-#include "../SpeechMethod.h"
-#include "./Voice/AudioStream.h"
-#include "./Voice/GoogleSTT.h"
-#include "./Voice/GoogleTTS.h"
+#include "./AudioTrack.h"
+#include "../MessageStream/MessageStream.h"
 
 
-class Voice : public SpeechMethod
+class AudioStream
 {
 public:
     
@@ -47,76 +47,109 @@ public:
      *  Default constructor.
      */
     
-    Voice();
+    AudioStream();
     
     /**
      *  Default destructor.
      */
     
-    ~Voice() noexcept;
+    ~AudioStream() noexcept;
     
     //*************************************************************************************
-    // Reset
+    // Record
     //*************************************************************************************
     
     /**
-     *  Reset speech method.
+     *  Clear the currently recorded audio.
      */
     
-    void Reset() override;
-    
-    //*************************************************************************************
-    // Listen
-    //*************************************************************************************
+    void ClearRecording() noexcept;
     
     /**
-     *  Listen to speech input.
+     *  Start recording audio.
      */
     
-    void Listen() override;
+    void StartRecording();
+    
+    /**
+     *  Stop recording audio.
+     */
+    
+    void StopRecording();
     
     //*************************************************************************************
-    // Say
+    // Playback
     //*************************************************************************************
     
     /**
-     *  Perform speech output.
+     *  Start audio playback with a given audio track.
      *
-     *  \param c_OutputStorage The output storage to use.
+     *  \param c_Audio The audio for playback.
      */
     
-    void Say(OutputStorage& c_OutputStorage) override;
+    void Playback(AudioTrack const& c_Audio);
     
     //*************************************************************************************
     // Getters
     //*************************************************************************************
     
     /**
-     *  Check if this speech method is usable.
+     *  Grab the currently stored recorded audio.
      *
-     *  \return true if usable, false if not.
+     *  \return The current recorded audio.
      */
     
-    bool IsUsable() noexcept override;
+    AudioTrack const& GetRecordedAudio();
+    
+    /**
+     *  Check if the stream is connected.
+     *
+     *  \return true if connected, false if not.
+     */
+    
+    bool GetConnected() noexcept;
+    
+    /**
+     *  Check if audio is currently being recorded.
+     *
+     *  \return true if audio is being recorded, false if not.
+     */
+    
+    bool GetRecordingActive() noexcept;
+    
+    /**
+     *  Check if audio is currently being played.
+     *
+     *  \return true if audio is being played, false if not.
+     */
+    
+    bool GetPlaybackActive() noexcept;
     
 private:
+    
+    //*************************************************************************************
+    // Update
+    //*************************************************************************************
+    
+    /**
+     *  Update audio stream with recieved messages.
+     */
+    
+    void UpdateStream() noexcept;
     
     //*************************************************************************************
     // Data
     //*************************************************************************************
     
-    // Components
-    AudioStream c_AudioStream;
-    GoogleSTT c_GoogleSTT;
-    GoogleTTS c_GoogleTTS;
+    MessageStream c_AudioStream;
     
-    // Speech output
-    bool b_StringSet;
-    MRH_Uint32 u32_SayStringID;
-    MRH_Uint32 u32_SayGroupID;
+    AudioTrack c_RecordedAudio;
+    
+    bool b_RecordingActive;
+    bool b_PlaybackActive;
     
 protected:
-
+    
 };
 
-#endif /* Voice_h */
+#endif /* AudioStream_h */

@@ -42,7 +42,7 @@
 Voice::Voice()
 {
     MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, "Voice speech now available.",
-                                   "PocketSphinx.cpp", __LINE__);
+                                   "Voice.cpp", __LINE__);
 }
 
 Voice::~Voice() noexcept
@@ -52,22 +52,13 @@ Voice::~Voice() noexcept
 // Useage
 //*************************************************************************************
 
-void Voice::Resume()
-{
-    c_DevicePool.StartDevices();
-}
-
 void Voice::Reset()
 {
-    // Reset current audio but keep listening
+    // Reset recieved input
+    c_AudioStream.ClearRecording();
+    
+    // Reset current audio stored
     c_GoogleSTT.ResetAudio();
-}
-
-void Voice::Pause()
-{
-    // Reset Components
-    c_DevicePool.StopDevices();
-    c_GoogleSTT.ResetAudio(); // Reset audio already added
 }
 
 //*************************************************************************************
@@ -80,20 +71,20 @@ void Voice::Listen()
     //        buffer to retrieve
     std::this_thread::sleep_for(std::chrono::milliseconds(LISTEN_CHECK_WAIT_MS));
     
+    // Are we even recording?
+    if (c_AudioStream.GetRecordingActive() == false)
+    {
+        return;
+    }
+    
     static MRH_Uint64 u64_ProccessTimeS = time(NULL) + LISTEN_PAUSE_TIMEOUT_S;
     
     try
     {
-        // Do we need to set a recording device?
-        if (c_DevicePool.GetRecordingDeviceSelected() == false)
-        {
-            c_DevicePool.SelectRecordingDevice();
-        }
-        
         // Grab sample
-        AudioTrack const& c_Audio = c_DevicePool.GetRecordedAudio();
+        AudioTrack const& c_Audio = c_AudioStream.GetRecordedAudio();
         
-        if (c_Audio.GetAudioExists() == false)
+        if (c_Audio.GetAudioExists() == false && c_GoogleSTT.GetAudioAvailable() == true)
         {
             // Wait before we start to process audio
             if (time(NULL) > u64_ProccessTimeS)
@@ -109,9 +100,6 @@ void Voice::Listen()
                                                                          std::string(e.what()),
                                                    "Voice.cpp", __LINE__);
                 }
-                
-                // Reset the used recording device to choose a new one
-                c_DevicePool.ResetRecordingDevice();
             }
         }
         else
@@ -134,14 +122,19 @@ void Voice::Listen()
 void Voice::Say(OutputStorage& c_OutputStorage)
 {
     // Is playback currently active?
-    if (b_StringSet == true && c_DevicePool.GetPlaybackActive() == false)
+    if (b_StringSet == true && c_AudioStream.GetPlaybackActive() == false)
     {
         // Send info about performed output
         b_StringSet = false;
         
         try
         {
+            // First send output info
             OutputPerformed(u32_SayStringID, u32_SayGroupID);
+            
+            // Next, switch back to recording
+            c_AudioStream.ClearRecording(); // Remove old recording data
+            c_AudioStream.StartRecording();
         }
         catch (Exception& e)
         {
@@ -158,7 +151,18 @@ void Voice::Say(OutputStorage& c_OutputStorage)
         
         try
         {
-            c_DevicePool.Playback(c_GoogleTTS.Synthesise(c_String.s_String));
+            c_AudioStream.StopRecording();
+        }
+        catch (Exception& e)
+        {
+            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "Failed to stop recording: " +
+                                                                   std::string(e.what()),
+                                           "Voice.cpp", __LINE__);
+        }
+        
+        try
+        {
+            c_AudioStream.Playback(c_GoogleTTS.Synthesise(c_String.s_String));
             
             u32_SayStringID = c_String.u32_StringID;
             u32_SayGroupID = c_String.u32_GroupID;
@@ -180,5 +184,5 @@ void Voice::Say(OutputStorage& c_OutputStorage)
 
 bool Voice::IsUsable() noexcept
 {
-    return true;
+    return c_AudioStream.GetConnected();
 }

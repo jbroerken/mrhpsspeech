@@ -43,7 +43,6 @@
 
 Speech::Speech() : e_Method(MRH_EvSpeechMethod::VOICE),
                    b_Update(true),
-                   b_Reset(false),
                    b_MethodSelected(false)
 {
     // Add methods
@@ -107,15 +106,6 @@ Speech::~Speech() noexcept
 }
 
 //*************************************************************************************
-// Reset
-//*************************************************************************************
-
-void Speech::Reset() noexcept
-{
-    b_Reset = true;
-}
-
-//*************************************************************************************
 // Update
 //*************************************************************************************
 
@@ -150,13 +140,8 @@ void Speech::Update(Speech* p_Instance) noexcept
                 continue;
             }
             
-            // Stop old and start new
-            if (p_Method != NULL)
-            {
-                p_Method->Pause();
-            }
-            
-            Method.second->Resume();
+            // Reset the method now in use
+            Method.second->Reset();
             
             // Set the new method
             c_Logger.Log(MRH_PSBLogger::INFO, "Set speech method in use to " +
@@ -184,12 +169,6 @@ void Speech::Update(Speech* p_Instance) noexcept
         // No method?
         if (p_Method == NULL)
         {
-            // Remove reset if no method in use
-            if (p_Instance->b_Reset == true)
-            {
-                p_Instance->b_Reset = false;
-            }
-            
             // No longer selected
             if (p_Instance->b_MethodSelected == true)
             {
@@ -202,13 +181,6 @@ void Speech::Update(Speech* p_Instance) noexcept
         else if (p_Instance->b_MethodSelected == false)
         {
             p_Instance->b_MethodSelected = true;
-        }
-        
-        // Method needs reset?
-        if (p_Instance->b_Reset == true)
-        {
-            p_Method->Reset();
-            p_Instance->b_Reset = false;
         }
         
         // Exchange data

@@ -20,130 +20,45 @@
  */
 
 // C / C++
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <errno.h>
-#include <clocale>
-#include <thread>
-#include <atomic>
 #include <iostream>
-#include <vector>
+#include <clocale>
 
 // External
 #include <MRH_Typedefs.h>
 
 // Project
 #include "./Revision.h"
+#include "./MessageStream/MessageStream.h"
 
 // Pre-defined
-#ifndef MRH_SPEECH_CLI_SOCKET_PATH
-    #define MRH_SPEECH_CLI_SOCKET_PATH "/tmp/mrhpsspeech_cli.socket"
-#endif
-#define MRH_SPEECH_CLI_READ_SIZE sizeof(MRH_Uint32)
-#define MRH_SPEECH_CLI_WRITE_SIZE sizeof(MRH_Uint32)
+#define MRH_CLI_SPEECH_CHANNEL "speech_cli"
 
-
-//*************************************************************************************
-// Data
-//*************************************************************************************
-
-namespace
-{
-    std::atomic<bool> b_Update(true);
-    std::atomic<int> i_FD(-1);
-}
 
 //*************************************************************************************
 // Read
 //*************************************************************************************
 
-static void Read() noexcept
+static void Read(MessageStream* p_MessageStream, std::atomic<bool>* p_Update, const char* p_Locale) noexcept
 {
-    std::vector<MRH_Uint8> v_Read;
-    ssize_t ss_Read;
-    MRH_Uint32 u32_Read = 0;
-    struct pollfd s_PollFD;
-    bool b_PollResult;
+    std::vector<MRH_Uint8> v_Data;
     
-    // Prepare polling
-    s_PollFD.fd = i_FD;
-    s_PollFD.events = POLLIN;
-    
-    while (b_Update == true)
+    while (*p_Update == true)
     {
-        // Poll for data
-        switch (poll(&s_PollFD, (nfds_t)1, 100))
+        if (p_MessageStream->GetConnected() == false)
         {
-            case -1:
-                std::cout << "[ ERROR ] Failed to poll socket!" << std::endl;
-                b_Update = false;
-                return;
-            case 0:
-                b_PollResult = false;
-                break;
-                
-            default:
-                b_PollResult = true;
-                break;
+            *p_Update = false;
+            break;
         }
-        
-        if (b_PollResult == false)
+        else if (p_MessageStream->Recieve(v_Data) == false)
         {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
             continue;
         }
         
-        // Prepare read buffer
-        MRH_Uint32 u32_Required;
-        
-        if (u32_Read < MRH_SPEECH_CLI_READ_SIZE)
+        if (MessageOpCode::GetOpCode(v_Data) == MessageOpCode::STRING_CS_STRING)
         {
-            u32_Required = MRH_SPEECH_CLI_READ_SIZE;
-        }
-        else
-        {
-            u32_Required = (*((MRH_Uint32*)(v_Read.data()))) + MRH_SPEECH_CLI_READ_SIZE;
-        }
-        
-        v_Read.resize(u32_Required, '\0');
-        
-        // Read to vector
-        do
-        {
-            if ((ss_Read = read(i_FD, &(v_Read[u32_Read]), u32_Required - u32_Read)) < 0)
-            {
-                if (errno != EAGAIN)
-                {
-                    std::cout << "[ ERROR ] Failed to read message!" << std::endl;
-                    b_Update = false;
-                    return;
-                }
-            }
-            else if (ss_Read == 0)
-            {
-                std::cout << "[ ERROR ] 0 bytes read but polling says data available!" << std::endl;
-                b_Update = false;
-                break;
-            }
-            else if (ss_Read > 0)
-            {
-                u32_Read += ss_Read;
-            }
-        }
-        while (b_Update == true && ss_Read > 0 && u32_Read < u32_Required);
-        
-        // Print
-        if (u32_Read > MRH_SPEECH_CLI_READ_SIZE && u32_Read == u32_Required)
-        {
-            MRH_Uint8* p_Start = &v_Read[MRH_SPEECH_CLI_READ_SIZE];
-            MRH_Uint8* p_End = &v_Read[u32_Required];
-            u32_Read = 0;
-            
-            std::cout << std::string(p_Start, p_End) << std::endl;
+            MessageOpCode::STRING_CS_STRING_DATA c_OpCode(v_Data);
+            std::cout << MessageOpCode::STRING_CS_STRING_DATA(v_Data).GetString() << std::endl;
         }
     }
 }
@@ -152,19 +67,15 @@ static void Read() noexcept
 // Write
 //*************************************************************************************
 
-static void Write() noexcept
+static void Write(MessageStream& c_MessageStream, std::atomic<bool>& b_Update, const char* p_Locale) noexcept
 {
-    std::vector<MRH_Uint8> v_Write;
-    std::string s_Input("");
-    ssize_t ss_Write;
-    MRH_Uint32 u32_Written = 0;
+    std::string s_Input;
     
     while (b_Update == true)
     {
-        // Grab input
         std::getline(std::cin, s_Input);
-        
-        if (s_Input.compare("quit") == 0)
+    
+        if (c_MessageStream.GetConnected() == false || s_Input.compare("quit") == 0)
         {
             b_Update = false;
             break;
@@ -174,31 +85,9 @@ static void Write() noexcept
             continue;
         }
         
-        // Prepare
-        v_Write.resize(s_Input.size() + MRH_SPEECH_CLI_WRITE_SIZE, '\0');
-        
-        *((MRH_Uint32*)(&v_Write[0])) = static_cast<MRH_Uint32>(s_Input.size());
-        memcpy((MRH_Uint8*)&v_Write[MRH_SPEECH_CLI_WRITE_SIZE], s_Input.data(), s_Input.size());
-        u32_Written = 0;
-        
-        // Send to service
-        do
-        {
-            if ((ss_Write = write(i_FD, &(v_Write[u32_Written]), v_Write.size() - u32_Written)) < 0)
-            {
-                if (errno != EAGAIN)
-                {
-                    std::cout << "[ ERROR ] Failed to write message!" << std::endl;
-                    b_Update = false;
-                    return;
-                }
-            }
-            else if (ss_Write > 0)
-            {
-                u32_Written += ss_Write;
-            }
-        }
-        while (b_Update == true && ss_Write >= 0 && u32_Written < v_Write.size());
+        MessageOpCode::STRING_CS_STRING_DATA c_OpCode(s_Input);
+        c_MessageStream.Send(c_OpCode.v_Data);
+        s_Input = "";
     }
 }
 
@@ -221,25 +110,25 @@ int main(int argc, char* argv[])
     // Set locale
     std::setlocale(LC_ALL, argv[1]);
     
-    // Connect to socket
-    if ((i_FD = socket(AF_UNIX, SOCK_STREAM, 0)) < 0)
+    // Create connection
+    MessageStream c_MessageStream(MRH_CLI_SPEECH_CHANNEL,
+                                  true);
+    MRH_Uint64 u64_ConnectionTimeoutS = time(NULL) + 60;
+    
+    do
     {
-        std::cout << "[ ERROR ] Failed to create socket!" << std::endl;
-        return EXIT_FAILURE;
+        if (c_MessageStream.GetConnected() == true)
+        {
+            break;
+        }
+        
+        std::this_thread::sleep_for(std::chrono::seconds(1));
     }
+    while (time(NULL) < u64_ConnectionTimeoutS);
     
-    struct sockaddr_un c_Address;
-    socklen_t us_AddressLength;
-    
-    us_AddressLength = sizeof(c_Address);
-    memset(&c_Address, 0, us_AddressLength);
-    c_Address.sun_family = AF_UNIX;
-    strcpy(c_Address.sun_path, MRH_SPEECH_CLI_SOCKET_PATH);
-    
-    if (connect(i_FD, (struct sockaddr*)&c_Address, us_AddressLength) < 0)
+    if (time(NULL) >= u64_ConnectionTimeoutS)
     {
-        std::cout << "[ ERROR ] Connection failed for " << MRH_SPEECH_CLI_SOCKET_PATH << "!" << std::endl;
-        close(i_FD);
+        std::cout << "[ ERROR ] Connection timeout!" << std::endl;
         return EXIT_FAILURE;
     }
     
@@ -249,14 +138,12 @@ int main(int argc, char* argv[])
     std::cout << "Type \"quit\" to disconnect from service." << std::endl;
     std::cout << std::endl;
     
-    // Connected, start read thread
-    std::thread c_Thread = std::thread(Read);
-    
-    // Write until terminate
-    Write();
+    // Connected, R/W start
+    std::atomic<bool> b_Update(true);
+    std::thread c_Thread = std::thread(Read, &c_MessageStream, &b_Update, argv[1]);
+    Write(c_MessageStream, b_Update, argv[1]);
     
     // Clean up and exit
     c_Thread.join();
-    close(i_FD);
     return EXIT_SUCCESS;
 }

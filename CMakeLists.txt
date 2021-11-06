@@ -82,6 +82,18 @@ set(SRC_LIST_CALLBACK "${SRC_DIR_PATH}/Callback/Service/CBAvail.cpp"
                       
 set(SRC_LIST_SPEECH_METHOD)
 
+if(USE_METHOD_CLI OR USE_METHOD_VOICE)
+    set(SRC_LIST_SPEECH_METHOD "${SRC_DIR_PATH}/Speech/Method/MessageStream/IO/MessageRead.cpp"
+                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/IO/MessageRead.h"
+                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/IO/MessageWrite.cpp"
+                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/IO/MessageWrite.h"
+                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/IO/MessagePacket.h"
+                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/MessageStream.cpp"
+                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/MessageStream.h"
+                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/MessageOpCode.h"
+                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/MessageOpCode.h")
+endif(USE_METHOD_CLI OR USE_METHOD_VOICE)
+
 if(USE_METHOD_CLI)
     set(SRC_LIST_SPEECH_METHOD "${SRC_DIR_PATH}/Speech/Method/CLI.cpp"
                                "${SRC_DIR_PATH}/Speech/Method/CLI.h")
@@ -93,13 +105,10 @@ if(USE_METHOD_SERVER)
 endif(USE_METHOD_SERVER)
 
 if(USE_METHOD_VOICE)
-    set(SRC_LIST_SPEECH_METHOD "${SRC_DIR_PATH}/Speech/Method/Voice/AudioTrack.cpp"
-                               "${SRC_DIR_PATH}/Speech/Method/Voice/AudioTrack.h"
-                               "${SRC_DIR_PATH}/Speech/Method/Voice/AudioStream.cpp"
+    set(SRC_LIST_SPEECH_METHOD "${SRC_DIR_PATH}/Speech/Method/Voice/AudioStream.cpp"
                                "${SRC_DIR_PATH}/Speech/Method/Voice/AudioStream.h"
-                               "${SRC_DIR_PATH}/Speech/Method/Voice/AudioDevice.cpp"
-                               "${SRC_DIR_PATH}/Speech/Method/Voice/AudioDevice.h"
-                               "${SRC_DIR_PATH}/Speech/Method/Voice/AudioDeviceOpCode.h"
+                               "${SRC_DIR_PATH}/Speech/Method/Voice/AudioTrack.cpp"
+                               "${SRC_DIR_PATH}/Speech/Method/Voice/AudioTrack.h"
                                "${SRC_DIR_PATH}/Speech/Method/Voice/GoogleSTT.cpp"
                                "${SRC_DIR_PATH}/Speech/Method/Voice/GoogleSTT.h"
                                "${SRC_DIR_PATH}/Speech/Method/Voice/GoogleTTS.cpp"
@@ -186,9 +195,12 @@ target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_CONFIGURATION_PATH="/u
 target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SERVICE_PRINT_INPUT=0)
 target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SERVICE_PRINT_OUTPUT=0)
 
+if(USE_METHOD_CLI OR USE_METHOD_VOICE)
+    target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_MESSAGE_STREAM_SOCKET_DIR="/tmp/mrh/speech/")
+endif(USE_METHOD_CLI OR USE_METHOD_VOICE)
+
 if(USE_METHOD_CLI)
     target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_USE_METHOD_CLI=1)
-    target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_CLI_SOCKET_PATH="/tmp/mrhpsspeech_cli.socket")
 endif(USE_METHOD_CLI)
 
 if(USE_METHOD_SERVER)

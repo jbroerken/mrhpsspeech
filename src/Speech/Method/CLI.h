@@ -31,6 +31,7 @@
 
 // Project
 #include "../SpeechMethod.h"
+#include "./MessageStream/MessageStream.h"
 
 
 class CLI : public SpeechMethod
@@ -48,32 +49,20 @@ public:
     CLI();
     
     /**
-     *  Reset speech method.
-     */
-    
-    void Reset() override;
-    
-    /**
      *  Default destructor.
      */
     
     ~CLI() noexcept;
     
     //*************************************************************************************
-    // Useage
+    // Reset
     //*************************************************************************************
     
     /**
-     *  Resume speech method.
+     *  Reset speech method.
      */
     
-    void Resume() override;
-    
-    /**
-     *  Pause speech method.
-     */
-    
-    void Pause() override;
+    void Reset() override;
     
     //*************************************************************************************
     // Listen
@@ -112,51 +101,10 @@ public:
 private:
     
     //*************************************************************************************
-    // Update
-    //*************************************************************************************
-    
-    /**
-     *  Poll a socket.
-     *
-     *  \param i_FD The socket file descriptor to poll.
-     *  \param i_TimeoutMS The poll timeout in milliseconds.
-     *
-     *  \return true if data can be read, false if not.
-     */
-    
-    bool PollSocket(int i_FD, int i_TimeoutMS) noexcept;
-    
-    /**
-     *  Disconnect a client.
-     */
-    
-    void DisconnectClient() noexcept;
-    
-    /**
-     *  Update CLI method.
-     *
-     *  \param p_Instance The CLI instance to update.
-     */
-    
-    static void Update(CLI* p_Instance) noexcept;
-    
-    //*************************************************************************************
     // Data
     //*************************************************************************************
     
-    std::thread c_Thread;
-    std::atomic<bool> b_Update;
-    
-    int i_ConnectionFD;
-    std::atomic<int> i_ClientFD;
-    
-    std::vector<MRH_Uint8> v_Read;
-    MRH_Uint32 u32_Read;
-    
-    std::vector<MRH_Uint8> v_Write;
-    MRH_Uint32 u32_Written;
-    MRH_Uint32 u32_SayStringID;
-    MRH_Uint32 u32_SayGroupID;
+    MessageStream c_CLIStream;
     
 protected:
 

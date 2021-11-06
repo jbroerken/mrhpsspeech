@@ -1,5 +1,5 @@
 /**
- *  AudioDeviceOpCode.h
+ *  MessageOpCode.h
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -19,29 +19,26 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef AudioDeviceOpCode_h
-#define AudioDeviceOpCode_h
+#ifndef MessageOpCode_h
+#define MessageOpCode_h
 
 // C / C++
 #include <vector>
-#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-    #include <byteswap.h>
-#endif
+#include <string>
 
 // External
 #include <MRH_Typedefs.h>
 
 // Project
-#include "../../../../Exception.h"
 
 // Pre-defined
-#define AUDIO_DEVICE_OPCODE_VERSION 1
+#define OPCODE_OPCODE_POS 0
+#define OPCODE_OPCODE_SIZE sizeof(MRH_Uint8)
 
-#define AUDIO_DEVICE_BOOL_TRUE 1
-#define AUDIO_DEVICE_BOOL_FALSE 0
+#define OPCODE_DATA_POS OPCODE_OPCODE_POS + OPCODE_OPCODE_SIZE
 
 
-namespace AudioDeviceOpCode
+namespace MessageOpCode
 {
     //*************************************************************************************
     // OpCodes
@@ -49,36 +46,44 @@ namespace AudioDeviceOpCode
     
     enum OpCodeList
     {
-        // Shared
-        ALL_UNK = 0,                            // ???
+        /**
+         *  UNK
+         */
         
-        ALL_HEARTBEAT = 1,                      // Signal availability to partner
+        UNK_CS_UNK = 0,                         // ???
         
-        ALL_AUDIO = 2,                          // Audio data
+        /**
+         *  Hello
+         */
         
-        // Speech Service
-        SERVICE_CONNECT_RESPONSE_OK = 3,        // Connection success
-        SERVICE_CONNECT_RESPONSE_FAIL = 4,      // Failed to connect
+        HELLO_C_HELLO = 1,                      // Signal client still in use
         
-        SERVICE_PAIR_RESPONSE = 5,              // Responst to a device pairing request with connection data, encrypted
+        /**
+         *  String
+         */
         
-        SERVICE_START_RECORDING = 6,            // Signal recording start to device
-        SERVICE_STOP_RECORDING = 7,             // Signal recording stop to device.
+        STRING_CS_STRING = 2,                   // String data for input / output
         
-        // Audio Device
-        DEVICE_CONNECT_REQUEST,                 // Connection response of service request
+        /**
+         *  Audio
+         */
         
-        DEVICE_PAIR_REQUEST,                    // Request pairing with the service (Hand key and info)
+        AUDIO_CS_AUDIO = 3,                     // Audio data recorded / to play
         
-        DEVICE_PLAYBACK_FINISHED,               // Audio playback has ended
+        AUDIO_C_PLAYBACK_FINISHED = 4,          // Finished audio playback
         
-        // Bounds
-        OPCODE_MAX = DEVICE_PLAYBACK_FINISHED,
+        AUDIO_S_AUDIO_FORMAT = 5,               // Audio format to use for playback and recording
+        AUDIO_S_START_RECORDING = 6,            // Start recording audio
+        AUDIO_S_STOP_RECORDING = 7,             // Stop recording audio
+        
+        /**
+         *  Bounds
+         */
+        
+        OPCODE_MAX = AUDIO_S_STOP_RECORDING,
         
         OPCODE_COUNT = OPCODE_MAX + 1
     };
-    
-    typedef MRH_Uint8 OpCode; // OpCodeList, set size for sending
     
     //*************************************************************************************
     // OpCode Data - Base
@@ -98,7 +103,7 @@ namespace AudioDeviceOpCode
          *  \param u8_OpCode The opcode represented.
          */
         
-        OpCodeData(OpCode u8_OpCode) noexcept;
+        OpCodeData(MRH_Uint8 u8_OpCode) noexcept;
         
         /**
          *  Default destructor.
@@ -116,15 +121,7 @@ namespace AudioDeviceOpCode
          *  \return The opcode identifier.
          */
         
-        OpCode GetOpCode() noexcept;
-        
-        /**
-         *  Get the opcode data size.
-         *
-         *  \return The opcode data size.
-         */
-        
-        MRH_Uint32 GetDataSize() noexcept;
+        MRH_Uint8 GetOpCode() noexcept;
         
         //*************************************************************************************
         // Data
@@ -150,10 +147,10 @@ namespace AudioDeviceOpCode
     };
     
     //*************************************************************************************
-    // OpCode Data - ALL_AUDIO
+    // OpCode Data - STRING_CS_STRING
     //*************************************************************************************
     
-    class ALL_AUDIO_DATA : public OpCodeData
+    class STRING_CS_STRING_DATA : public OpCodeData
     {
     public:
         
@@ -167,7 +164,59 @@ namespace AudioDeviceOpCode
          *  \param v_Data The data for the opcode.
          */
         
-        ALL_AUDIO_DATA(std::vector<MRH_Uint8>& v_Data) noexcept;
+        STRING_CS_STRING_DATA(std::vector<MRH_Uint8>& v_Data) noexcept;
+        
+        /**
+         *  Value constructor.
+         *
+         *  \param s_String The message string.
+         */
+        
+        STRING_CS_STRING_DATA(std::string const& s_String) noexcept;
+        
+        /**
+         *  Default destructor.
+         */
+        
+        ~STRING_CS_STRING_DATA() noexcept;
+        
+        //*************************************************************************************
+        // Getters
+        //*************************************************************************************
+        
+        /**
+         *  Get the message string.
+         *
+         *  \return The message string.
+         */
+        
+        std::string GetString() noexcept;
+        
+    private:
+        
+    protected:
+        
+    };
+    
+    //*************************************************************************************
+    // OpCode Data - AUDIO_CS_AUDIO
+    //*************************************************************************************
+    
+    class AUDIO_CS_AUDIO_DATA : public OpCodeData
+    {
+    public:
+        
+        //*************************************************************************************
+        // Constructor / Destructor
+        //*************************************************************************************
+        
+        /**
+         *  Data constructor.
+         *
+         *  \param v_Data The data for the opcode.
+         */
+        
+        AUDIO_CS_AUDIO_DATA(std::vector<MRH_Uint8>& v_Data) noexcept;
         
         /**
          *  Value constructor.
@@ -176,26 +225,14 @@ namespace AudioDeviceOpCode
          *  \param u32_Count The amount of samples to store.
          */
         
-        ALL_AUDIO_DATA(const MRH_Sint16* p_Samples,
-                       MRH_Uint32 u32_Count) noexcept;
+        AUDIO_CS_AUDIO_DATA(const MRH_Sint16* p_Samples,
+                            MRH_Uint32 u32_Count) noexcept;
         
         /**
          *  Default destructor.
          */
         
-        ~ALL_AUDIO_DATA() noexcept;
-        
-        //*************************************************************************************
-        // Convert
-        //*************************************************************************************
-        
-        /**
-         *  Convert the samples stored to the host format.
-         */
-        
-#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-        void ConvertSamples() noexcept;
-#endif
+        ~AUDIO_CS_AUDIO_DATA() noexcept;
         
         //*************************************************************************************
         // Getters
@@ -210,9 +247,9 @@ namespace AudioDeviceOpCode
         const MRH_Sint16* GetAudioBuffer() noexcept;
         
         /**
-         *  Get the KHz used for recording.
+         *  Get the amount of audio samples.
          *
-         *  \return The KHz used for recording.
+         *  \return The amount of audio samples.
          */
         
         MRH_Uint32 GetSampleCount() noexcept;
@@ -224,10 +261,10 @@ namespace AudioDeviceOpCode
     };
     
     //*************************************************************************************
-    // OpCode Data - SERVICE_CONNECT_RESPONSE_OK
+    // OpCode Data - AUDIO_S_AUDIO_FORMAT
     //*************************************************************************************
     
-    class SERVICE_CONNECT_RESPONSE_OK_DATA : public OpCodeData
+    class AUDIO_S_AUDIO_FORMAT_DATA : public OpCodeData
     {
     public:
         
@@ -241,27 +278,27 @@ namespace AudioDeviceOpCode
          *  \param v_Data The data for the opcode.
          */
         
-        SERVICE_CONNECT_RESPONSE_OK_DATA(std::vector<MRH_Uint8>& v_Data) noexcept;
+        AUDIO_S_AUDIO_FORMAT_DATA(std::vector<MRH_Uint8>& v_Data) noexcept;
         
         /**
          *  Value constructor.
          *
-         *  \param u32_RecordingKHz The KHz used for recording.
-         *  \param u32_RecordingFrameElements The samples per frame for recording.
-         *  \param u32_PlaybackKHz The KHz used for playback.
-         *  \param u32_PlaybackFrameElements The samples per frame for playback.
+         *  \param u32_RecordingKHz The recording sample KHz.
+         *  \param u32_RecordingFrameSamples The amount of samples in each recording frame.
+         *  \param u32_PlaybackKHz The playback sample KHz.
+         *  \param u32_PlaybackFrameSamples The amount of samples in each playback frame.
          */
         
-        SERVICE_CONNECT_RESPONSE_OK_DATA(MRH_Uint32 u32_RecordingKHz,
-                                         MRH_Uint32 u32_RecordingFrameElements,
-                                         MRH_Uint32 u32_PlaybackKHz,
-                                         MRH_Uint32 u32_PlaybackFrameElements) noexcept;
+        AUDIO_S_AUDIO_FORMAT_DATA(MRH_Uint32 u32_RecordingKHz,
+                                  MRH_Uint32 u32_RecordingFrameSamples,
+                                  MRH_Uint32 u32_PlaybackKHz,
+                                  MRH_Uint32 u32_PlaybackFrameSamples) noexcept;
         
         /**
          *  Default destructor.
          */
         
-        ~SERVICE_CONNECT_RESPONSE_OK_DATA() noexcept;
+        ~AUDIO_S_AUDIO_FORMAT_DATA() noexcept;
         
         //*************************************************************************************
         // Getters
@@ -306,100 +343,18 @@ namespace AudioDeviceOpCode
     };
     
     //*************************************************************************************
-    // OpCode Data - DEVICE_CONNECT_REQUEST
-    //*************************************************************************************
-    
-    class DEVICE_CONNECT_REQUEST_DATA : public OpCodeData
-    {
-    public:
-        
-        //*************************************************************************************
-        // Constructor / Destructor
-        //*************************************************************************************
-        
-        /**
-         *  Data constructor.
-         *
-         *  \param v_Data The data for the opcode.
-         */
-        
-        DEVICE_CONNECT_REQUEST_DATA(std::vector<MRH_Uint8>& v_Data) noexcept;
-        
-        /**
-         *  Value constructor.
-         *
-         *  \param s_Address The device address for sending to.
-         *  \param u16_Port The device port for sending to.
-         *  \param u8_OpCodeVersion The opcode version in use.
-         *  \param b_CanRecord If the device supports recording.
-         *  \param b_CanPlay If the device supports playback.
-         */
-        
-        DEVICE_CONNECT_REQUEST_DATA(std::string const& s_Address,
-                                    MRH_Uint16 u16_Port,
-                                    MRH_Uint8 u8_OpCodeVersion,
-                                    bool b_CanRecord,
-                                    bool b_CanPlay) noexcept;
-        
-        /**
-         *  Default destructor.
-         */
-        
-        ~DEVICE_CONNECT_REQUEST_DATA() noexcept;
-        
-        //*************************************************************************************
-        // Getters
-        //*************************************************************************************
-        
-        /**
-         *  Get the device address for sending to.
-         *
-         *  \return The device address for sending to.
-         */
-        
-        std::string GetAddress() noexcept;
-        
-        /**
-         *  Get the device port for sending to.
-         *
-         *  \return The device port for sending to.
-         */
-        
-        MRH_Uint16 GetPort() noexcept;
-        
-        /**
-         *  Get the opcode version in use.
-         *
-         *  \return The opcode version in use.
-         */
-        
-        MRH_Uint8 GetOpCodeVersion() noexcept;
-        
-        /**
-         *  Get if the device supports recording.
-         *
-         *  \return true if recording is supported, false if not.
-         */
-        
-        bool GetCanRecord() noexcept;
-        
-        /**
-         *  Get if the device supports playback.
-         *
-         *  \return true if playback is supported, false if not.
-         */
-        
-        bool GetCanPlay() noexcept;
-        
-    private:
-        
-    protected:
-        
-    };
-    
-    //*************************************************************************************
     // Getters
     //*************************************************************************************
+    
+    /**
+     *  Get the opcode for a data buffer.
+     *
+     *  \param v_Data The data buffer.
+     *
+     *  \return The opcode.
+     */
+    
+    MRH_Uint8 GetOpCode(std::vector<MRH_Uint8> const& v_Data) noexcept;
     
     /**
      *  Get a data value.
@@ -410,7 +365,7 @@ namespace AudioDeviceOpCode
      *  \return The casted value.
      */
     
-    template <typename T> inline static T GetValue(std::vector<MRH_Uint8> const& v_Data, size_t us_Pos)
+    template <typename T> inline static T GetValue(std::vector<MRH_Uint8> const& v_Data, size_t us_Pos) noexcept
     {
         return *(T*)&(v_Data[us_Pos]);
     }
@@ -427,7 +382,7 @@ namespace AudioDeviceOpCode
      *  \param Value The value to set.
      */
     
-    template <typename T> inline void SetValue(std::vector<MRH_Uint8>& v_Data, size_t us_Pos, const T* Value)
+    template <typename T> inline void SetValue(std::vector<MRH_Uint8>& v_Data, size_t us_Pos, const T* Value) noexcept
     {
         std::memcpy(&(v_Data[us_Pos]),
                     Value,
@@ -435,4 +390,4 @@ namespace AudioDeviceOpCode
     }
 }
 
-#endif /* AudioDeviceOpCode_h */
+#endif /* MessageOpCode_h */

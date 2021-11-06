@@ -58,6 +58,11 @@ GoogleTTS::~GoogleTTS() noexcept
 
 AudioTrack const& GoogleTTS::Synthesise(std::string const& s_String)
 {
+    if (s_String.size() == 0)
+    {
+        throw Exception("Empty string given!");
+    }
+    
     std::string s_LangCode = Configuration::Singleton().GetGoogleLanguageCode();
     SsmlVoiceGender c_VoiceGender = SsmlVoiceGender::FEMALE;
     

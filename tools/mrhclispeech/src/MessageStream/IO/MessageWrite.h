@@ -1,5 +1,5 @@
 /**
- *  SpeechMethod.h
+ *  MessageWrite.h
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -19,18 +19,23 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef SpeechMethod_h
-#define SpeechMethod_h
+#ifndef MessageWrite_h
+#define MessageWrite_h
 
 // C / C++
+#include <list>
+#include <vector>
+#include <map>
+#include <utility>
 
 // External
+#include <MRH_Typedefs.h>
 
 // Project
-#include "./OutputStorage.h"
+#include "../../Exception.h"
 
 
-class SpeechMethod
+class MessageWrite
 {
 public:
     
@@ -42,121 +47,102 @@ public:
      *  Default destructor.
      */
     
-    virtual ~SpeechMethod() noexcept;
-    
-    //*************************************************************************************
-    // Reset
-    //*************************************************************************************
-    
-    /**
-     *  Reset speech method.
-     */
-    
-    virtual void Reset();
-    
-    //*************************************************************************************
-    // Listen
-    //*************************************************************************************
-    
-    /**
-     *  Listen to speech input.
-     */
-    
-    virtual void Listen();
-    
-    //*************************************************************************************
-    // Say
-    //*************************************************************************************
-    
-    /**
-     *  Perform speech output.
-     *
-     *  \param c_OutputStorage The output storage to use.
-     */
-    
-    virtual void Say(OutputStorage& c_OutputStorage);
-    
-    //*************************************************************************************
-    // Getters
-    //*************************************************************************************
-    
-    /**
-     *  Check if this speech method is usable.
-     *
-     *  \return true if usable, false if not.
-     */
-    
-    virtual bool IsUsable() noexcept;
+    virtual ~MessageWrite() noexcept;
     
 private:
     
     //*************************************************************************************
-    // Types
+    // Write
     //*************************************************************************************
     
-    struct ListenID
-    {
-        //*************************************************************************************
-        // Constructor
-        //*************************************************************************************
-        
-        /**
-         *  Default constructor.
-         */
-        
-        ListenID() noexcept;
-        
-        //*************************************************************************************
-        // Data
-        //*************************************************************************************
-        
-        MRH_Uint32 u32_StringID;
-        std::mutex c_Mutex;
-    };
+    /**
+     *  Write to a connected client.
+     *
+     *  \param i_SocketFD The socket to write to.
+     *  \param p_Buffer The buffer to write from.
+     *
+     *  \return -1 on failure, 0 on not writeable, 1 on data written.
+     */
+    
+    int WriteSocket(int i_SocketFD, const MRH_Uint8* p_Buffer) noexcept;
     
     //*************************************************************************************
     // Data
     //*************************************************************************************
     
-    // Store same for each class to prevent ID reuse on method switch!
-    static ListenID c_ListenID;
+    // <Stream ID, <Started, Message Bytes>>
+    std::map<MRH_Uint8, std::pair<bool, std::vector<MRH_Uint8>>> m_Write;
     
 protected:
     
     //*************************************************************************************
-    // Constructor
+    // Types
+    //*************************************************************************************
+    
+    enum WriteResult
+    {
+        WRITE_FAIL = -1,                  // Failure, close
+        WRITE_MESSAGE_AVAILABLE = 0,      // Success, but messages remain
+        WRITE_SUCCESS = 1,                // Data was written
+    };
+    
+    //*************************************************************************************
+    // Constructor / Destructor
     //*************************************************************************************
     
     /**
      *  Default constructor.
      */
     
-    SpeechMethod() noexcept;
+    MessageWrite();
     
     //*************************************************************************************
-    // Listen
-    //*************************************************************************************
-    
-    /**
-     *  Create speech input events for a string.
-     *
-     *  \param s_String The speech input string.
-     */
-    
-    void SendInput(std::string const& s_String);
-    
-    //*************************************************************************************
-    // Say
+    // Clear
     //*************************************************************************************
     
     /**
-     *  Create a output performed event.
-     *
-     *  \param u32_StringID The string id of the performed output.
-     *  \param u32_GroupID The event group id to use.
+     *  Clear all unfinished messages.
      */
     
-    void OutputPerformed(MRH_Uint32 u32_StringID, MRH_Uint32 u32_GroupID);
+    void ClearWrite() noexcept;
+    
+    //*************************************************************************************
+    // Add
+    //*************************************************************************************
+    
+    /**
+     *  Add a new message to write.
+     *
+     *  \param v_Message The message to add.
+     */
+    
+    void AddWriteMessage(std::vector<MRH_Uint8>& v_Message);
+    
+    //*************************************************************************************
+    // Write
+    //*************************************************************************************
+    
+    /**
+     *  Write unfinished messages to a connected client.
+     *
+     *  \param i_SocketFD The socket to write to.
+     *
+     *  \return The write result.
+     */
+    
+    WriteResult WriteMessages(int i_SocketFD) noexcept;
+    
+    //*************************************************************************************
+    // Getters
+    //*************************************************************************************
+    
+    /**
+     *  Check if messages are writeable.
+     *
+     *  \return true if a messages are writeable, false if not.
+     */
+    
+    bool GetMessageWriteable() const noexcept;
 };
 
-#endif /* SpeechMethod_h */
+#endif /* MessageWrite_h */
