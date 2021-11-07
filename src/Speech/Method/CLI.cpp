@@ -23,12 +23,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <errno.h>
-#include <cstring>
 #include <clocale>
 
 // External
@@ -49,14 +43,17 @@ CLI::~CLI() noexcept
 {}
 
 //*************************************************************************************
-// Reset
+// Switch
 //*************************************************************************************
 
-void CLI::Reset()
+void CLI::Start()
 {
     // Clear old recieved, might not be wanted anymore
     c_CLIStream.ClearAllRecieved();
 }
+
+void CLI::Stop()
+{}
 
 //*************************************************************************************
 // Listen

@@ -140,8 +140,13 @@ void Speech::Update(Speech* p_Instance) noexcept
                 continue;
             }
             
-            // Reset the method now in use
-            Method.second->Reset();
+            // Switch methods
+            if (p_Method != NULL)
+            {
+                p_Method->Stop();
+            }
+            
+            Method.second->Start();
             
             // Set the new method
             c_Logger.Log(MRH_PSBLogger::INFO, "Set speech method in use to " +

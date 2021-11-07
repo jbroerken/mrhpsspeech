@@ -49,17 +49,33 @@ Voice::~Voice() noexcept
 {}
 
 //*************************************************************************************
-// Useage
+// Switch
 //*************************************************************************************
 
-void Voice::Reset()
+void Voice::Start()
 {
     // Reset recieved input
     c_AudioStream.ClearRecording();
     c_GoogleSTT.ResetAudio();
     
     // Start recording again
-    c_AudioStream.StartRecording();
+    try
+    {
+        c_AudioStream.StartRecording();
+    }
+    catch (...)
+    {}
+}
+
+void Voice::Stop()
+{
+    // Signal recording stop
+    try
+    {
+        c_AudioStream.StopRecording();
+    }
+    catch (...)
+    {}
 }
 
 //*************************************************************************************

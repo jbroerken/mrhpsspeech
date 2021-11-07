@@ -45,14 +45,20 @@ public:
     virtual ~SpeechMethod() noexcept;
     
     //*************************************************************************************
-    // Reset
+    // Switch
     //*************************************************************************************
     
     /**
-     *  Reset speech method.
+     *  Start speech method.
      */
     
-    virtual void Reset();
+    virtual void Start();
+    
+    /**
+     *  Stop speech method.
+     */
+    
+    virtual void Stop();
     
     //*************************************************************************************
     // Listen

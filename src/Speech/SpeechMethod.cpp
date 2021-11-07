@@ -56,12 +56,17 @@ SpeechMethod::ListenID::ListenID() noexcept : u32_StringID(0)
 {}
 
 //*************************************************************************************
-// Reset
+// Switch
 //*************************************************************************************
 
-void SpeechMethod::Reset()
+void SpeechMethod::Start()
 {
-    throw Exception("Default speech reset function called!");
+    throw Exception("Default speech start function called!");
+}
+
+void SpeechMethod::Stop()
+{
+    throw Exception("Default speech stop function called!");
 }
 
 //*************************************************************************************
