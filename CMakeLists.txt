@@ -80,9 +80,8 @@ set(SRC_LIST_CALLBACK "${SRC_DIR_PATH}/Callback/Service/CBAvail.cpp"
                       
 set(SRC_LIST_SPEECH_METHOD)
 
-if(USE_METHOD_CLI)
-    set(SRC_LIST_SPEECH_METHOD "${SRC_DIR_PATH}/Speech/Method/CLI.cpp"
-                               "${SRC_DIR_PATH}/Speech/Method/CLI.h"
+if(USE_METHOD_CLI MATCHES ON OR USE_METHOD_VOICE MATCHES ON)
+    set(SRC_LIST_SPEECH_METHOD ${SRC_LIST_SPEECH_METHOD}
                                "${SRC_DIR_PATH}/Speech/Method/MessageStream/IO/MessageRead.cpp"
                                "${SRC_DIR_PATH}/Speech/Method/MessageStream/IO/MessageRead.h"
                                "${SRC_DIR_PATH}/Speech/Method/MessageStream/IO/MessageWrite.cpp"
@@ -92,24 +91,23 @@ if(USE_METHOD_CLI)
                                "${SRC_DIR_PATH}/Speech/Method/MessageStream/MessageStream.h"
                                "${SRC_DIR_PATH}/Speech/Method/MessageStream/MessageOpCode.cpp"
                                "${SRC_DIR_PATH}/Speech/Method/MessageStream/MessageOpCode.h")
-endif(USE_METHOD_CLI)
+endif()
 
-if(USE_METHOD_SERVER)
-    set(SRC_LIST_SPEECH_METHOD "${SRC_DIR_PATH}/Speech/Method/Server.cpp"
-                               "${SRC_DIR_PATH}/Speech/Method/Server.h"
-                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/IO/MessageRead.cpp"
-                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/IO/MessageRead.h"
-                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/IO/MessageWrite.cpp"
-                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/IO/MessageWrite.h"
-                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/IO/MessagePacket.h"
-                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/MessageStream.cpp"
-                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/MessageStream.h"
-                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/MessageOpCode.cpp"
-                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/MessageOpCode.h")
-endif(USE_METHOD_SERVER)
+if(USE_METHOD_CLI MATCHES ON)
+    set(SRC_LIST_SPEECH_METHOD ${SRC_LIST_SPEECH_METHOD}
+                               "${SRC_DIR_PATH}/Speech/Method/CLI.cpp"
+                               "${SRC_DIR_PATH}/Speech/Method/CLI.h")
+endif()
 
-if(USE_METHOD_VOICE)
-    set(SRC_LIST_SPEECH_METHOD "${SRC_DIR_PATH}/Speech/Method/Voice/AudioStream.cpp"
+if(USE_METHOD_SERVER MATCHES ON)
+    set(SRC_LIST_SPEECH_METHOD ${SRC_LIST_SPEECH_METHOD}
+                               "${SRC_DIR_PATH}/Speech/Method/Server.cpp"
+                               "${SRC_DIR_PATH}/Speech/Method/Server.h")
+endif()
+
+if(USE_METHOD_VOICE MATCHES ON)
+    set(SRC_LIST_SPEECH_METHOD ${SRC_LIST_SPEECH_METHOD}
+                               "${SRC_DIR_PATH}/Speech/Method/Voice/AudioStream.cpp"
                                "${SRC_DIR_PATH}/Speech/Method/Voice/AudioStream.h"
                                "${SRC_DIR_PATH}/Speech/Method/Voice/AudioTrack.cpp"
                                "${SRC_DIR_PATH}/Speech/Method/Voice/AudioTrack.h"
@@ -119,7 +117,7 @@ if(USE_METHOD_VOICE)
                                "${SRC_DIR_PATH}/Speech/Method/Voice/GoogleTTS.h"
                                "${SRC_DIR_PATH}/Speech/Method/Voice.cpp"
                                "${SRC_DIR_PATH}/Speech/Method/Voice.h")
-endif(USE_METHOD_VOICE)
+endif()
                  
 set(SRC_LIST_SPEECH "${SRC_DIR_PATH}/Speech/SpeechMethod.cpp"
                     "${SRC_DIR_PATH}/Speech/SpeechMethod.h"
@@ -165,13 +163,13 @@ find_library(libmrhcevs NAMES mrhcevs REQUIRED)
 find_library(libmrhpsb NAMES mrhpsb REQUIRED)
 find_library(libmrhvt NAMES mrhvt REQUIRED)
 
-if(USE_METHOD_SERVER)
+if(USE_METHOD_SERVER MATCHES ON)
     find_library(libsodium NAMES sodium REQUIRED)
-endif(USE_METHOD_SERVER)
+endif()
 
-if(USE_METHOD_VOICE)
+if(USE_METHOD_VOICE MATCHES ON)
     find_package(google-cloud-cpp REQUIRED)
-endif(USE_METHOD_VOICE)
+endif()
 
 target_link_libraries(mrhpsspeech PUBLIC Threads::Threads)
 target_link_libraries(mrhpsspeech PUBLIC mrhbf)
@@ -180,14 +178,14 @@ target_link_libraries(mrhpsspeech PUBLIC mrhcevs)
 target_link_libraries(mrhpsspeech PUBLIC mrhpsb)
 target_link_libraries(mrhpsspeech PUBLIC mrhvt)
 
-if(USE_METHOD_SERVER)
+if(USE_METHOD_SERVER MATCHES ON)
     target_link_libraries(mrhpsspeech PUBLIC sodium)
-endif(USE_METHOD_SERVER)
+endif()
 
-if(USE_METHOD_VOICE)
+if(USE_METHOD_VOICE MATCHES ON)
     target_link_libraries(mrhpsspeech PUBLIC google-cloud-cpp::speech)
     target_link_libraries(mrhpsspeech PUBLIC google-cloud-cpp::texttospeech)
-endif(USE_METHOD_VOICE)
+endif()
 
 ###
 #  Source Definitions
@@ -200,21 +198,21 @@ target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SERVICE_PRINT_INPUT=0)
 target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SERVICE_PRINT_OUTPUT=0)
 
 if(USE_METHOD_CLI OR USE_METHOD_VOICE)
-    target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_MESSAGE_STREAM_SOCKET_DIR="/tmp/mrh/speech/")
-endif(USE_METHOD_CLI OR USE_METHOD_VOICE)
+    target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_MESSAGE_STREAM_SOCKET_DIR="/tmp/mrh/")
+endif()
 
-if(USE_METHOD_CLI)
+if(USE_METHOD_CLI MATCHES ON)
     target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_USE_METHOD_CLI=1)
-endif(USE_METHOD_CLI)
+endif()
 
-if(USE_METHOD_SERVER)
+if(USE_METHOD_SERVER MATCHES ON)
     target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_USE_METHOD_SERVER=1)
-endif(USE_METHOD_SERVER)
+endif()
 
-if(USE_METHOD_VOICE)
+if(USE_METHOD_VOICE MATCHES ON)
     target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_USE_METHOD_VOICE=1)
     target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_DEVICE_CONFIG_PATH="/usr/local/etc/mrh/mrhpservice/Speech_Device.conf")
-endif(USE_METHOD_VOICE)
+endif()
 
 ###
 #  Install

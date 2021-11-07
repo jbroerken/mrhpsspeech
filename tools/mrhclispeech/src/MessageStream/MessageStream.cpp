@@ -38,8 +38,9 @@
 
 // Pre-defined
 #ifndef MRH_SPEECH_MESSAGE_STREAM_SOCKET_DIR
-    #define MRH_SPEECH_MESSAGE_STREAM_SOCKET_DIR "/tmp/mrh/speech/"
+    #define MRH_SPEECH_MESSAGE_STREAM_SOCKET_DIR "/tmp/mrh/"
 #endif
+#define MRH_SPEECH_MESSAGE_STREAM_SOCKET_PREFIX "mrhpsspeech_"
 #define MRH_SPEECH_MESSAGE_STREAM_SOCKET_EXT ".sock"
 
 #define MRH_SPEECH_CLIENT_TIMEOUT_S 300
@@ -52,7 +53,8 @@
 MessageStream::MessageStream(std::string const& s_Channel,
                              bool b_KeepAlive) : b_Update(true),
                                                  s_Channel(s_Channel),
-                                                 s_SocketPath(MRH_SPEECH_MESSAGE_STREAM_SOCKET_DIR +
+                                                 s_SocketPath(MRH_SPEECH_MESSAGE_STREAM_SOCKET_DIR
+                                                              MRH_SPEECH_MESSAGE_STREAM_SOCKET_PREFIX +
                                                               s_Channel +
                                                               MRH_SPEECH_MESSAGE_STREAM_SOCKET_EXT),
                                                  b_KeepAlive(b_KeepAlive),

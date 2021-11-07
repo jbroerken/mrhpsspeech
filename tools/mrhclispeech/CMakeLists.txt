@@ -103,7 +103,7 @@ target_link_libraries(mrhclispeech PUBLIC Threads::Threads)
 #  ------------------
 #  Preprocessor source definitions.
 ###
-target_compile_definitions(mrhclispeech PRIVATE MRH_SPEECH_MESSAGE_STREAM_SOCKET_DIR="/tmp/mrh/speech/")
+target_compile_definitions(mrhclispeech PRIVATE MRH_SPEECH_MESSAGE_STREAM_SOCKET_DIR="/tmp/mrh/")
 
 ###
 #  Install
