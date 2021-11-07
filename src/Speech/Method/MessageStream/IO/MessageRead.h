@@ -25,12 +25,12 @@
 // C / C++
 #include <list>
 #include <vector>
-#include <map>
 
 // External
 #include <MRH_Typedefs.h>
 
 // Project
+#include "./MessagePacket.h"
 #include "../../../../Exception.h"
 
 
@@ -70,10 +70,8 @@ private:
     // Data
     //*************************************************************************************
     
-    // <Stream ID, Message>
-    std::map<MRH_Uint8, std::vector<MRH_Uint8>> m_Unfinished;
+    std::vector<MRH_Uint8> p_Unfinished[MessagePacket::PACKET_STREAM_COUNT];
     
-    // <Message Bytes>
     std::list<std::vector<MRH_Uint8>> l_Finished;
     
 protected:

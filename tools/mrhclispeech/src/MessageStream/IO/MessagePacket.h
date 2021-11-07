@@ -42,18 +42,30 @@
 
 #define MESSAGE_PACKET_PAYLOAD_POS MESSAGE_PACKET_PAYLOAD_SIZE_POS + MESSAGE_PACKET_PAYLOAD_SIZE_SIZE
 
-
-enum MessagePacketType
+namespace MessagePacket
 {
-    START = 0,                                              // New data start
-    CONT = 1,                                               // Continue of data
-    END = 2,                                                // Last data packet
-    SINGLE = 3,                                             // Single packet (Start + End)
-    
-    MESSAGE_PACKET_TYPE_MAX = SINGLE,
-    
-    MESSAGE_PACKET_TYPE_COUNT = MESSAGE_PACKET_TYPE_MAX + 1
-};
+    enum PacketType
+    {
+        TYPE_START = 0,                             // New data start
+        TYPE_CONT = 1,                              // Continue of data
+        TYPE_END = 2,                               // Last data packet
+        TYPE_SINGLE = 3,                            // Single packet (Start + End)
+        
+        PACKET_TYPE_MAX = TYPE_SINGLE,
+        
+        PACKET_TYPE_COUNT = PACKET_TYPE_MAX + 1
+    };
+
+    enum PacketStream
+    {
+        STREAM_SPEECH = 0,                          // Voice Audio, String, ...
+        STREAM_COMMAND = 1,                         // Start Recording, Playback Finished, ...
+        
+        PACKET_STREAM_MAX = STREAM_COMMAND,
+        
+        PACKET_STREAM_COUNT = PACKET_STREAM_MAX + 1
+    };
+}
 
 
 #endif /* MessagePacket_h */

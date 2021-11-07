@@ -25,14 +25,13 @@
 // C / C++
 #include <list>
 #include <vector>
-#include <map>
 #include <utility>
 
 // External
 #include <MRH_Typedefs.h>
 
 // Project
-#include "../../../../Exception.h"
+#include "./MessagePacket.h"
 
 
 class MessageWrite
@@ -70,8 +69,8 @@ private:
     // Data
     //*************************************************************************************
     
-    // <Stream ID, <Started, Message Bytes>>
-    std::map<MRH_Uint8, std::pair<bool, std::vector<MRH_Uint8>>> m_Write;
+    // <Started, Message Bytes>
+    std::pair<bool, std::vector<MRH_Uint8>> p_Stream[MessagePacket::PACKET_STREAM_COUNT];
     
 protected:
     
@@ -94,7 +93,7 @@ protected:
      *  Default constructor.
      */
     
-    MessageWrite();
+    MessageWrite() noexcept;
     
     //*************************************************************************************
     // Clear
@@ -113,10 +112,13 @@ protected:
     /**
      *  Add a new message to write.
      *
+     *  \param e_Stream The stream to add the message to.
      *  \param v_Message The message to add.
+     *
+     *  \return true if the message was added, false if not.
      */
     
-    void AddWriteMessage(std::vector<MRH_Uint8>& v_Message);
+    bool AddWriteMessage(MessagePacket::PacketStream e_Stream, std::vector<MRH_Uint8>& v_Message) noexcept;
     
     //*************************************************************************************
     // Write

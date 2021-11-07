@@ -172,7 +172,10 @@ void MessageStream::Update(MessageStream* p_Instance) noexcept
     std::list<std::vector<MRH_Uint8>>& l_Read = p_Instance->l_Read;
     std::list<std::vector<MRH_Uint8>>& l_Write = p_Instance->l_Write;
     
+    MessagePacket::PacketStream e_WriteStream;
+    
     MRH_Uint64 u64_ClientTimeoutS = time(NULL) + MRH_SPEECH_CLIENT_TIMEOUT_S;
+    int i_ReadTimeoutMS;
     
     while (p_Instance->b_Update == true)
     {
@@ -214,16 +217,32 @@ void MessageStream::Update(MessageStream* p_Instance) noexcept
         // Grab message if available
         c_WriteMutex.lock();
         
-        try
+        for (auto It = l_Write.begin(); It != l_Write.end();)
         {
-            while (l_Write.size() > 0)
+            // Add to the right stream
+            switch (MessageOpCode::GetOpCode(l_Write.front()))
             {
-                p_Instance->AddWriteMessage(l_Write.front());
-                l_Write.pop_front();
+                case MessageOpCode::STRING_CS_STRING:
+                case MessageOpCode::AUDIO_CS_AUDIO:
+                    e_WriteStream = MessagePacket::STREAM_SPEECH;
+                    break;
+                    
+                default:
+                    e_WriteStream = MessagePacket::STREAM_COMMAND;
+                    break;
+            }
+            
+            if (p_Instance->AddWriteMessage(e_WriteStream, l_Write.front()) == true)
+            {
+                // Added to stream
+                It = l_Write.erase(It);
+            }
+            else
+            {
+                // Stream occupied, keep in order
+                ++It;
             }
         }
-        catch (...)
-        {} // No free stream
         
         c_WriteMutex.unlock();
         
@@ -242,7 +261,7 @@ void MessageStream::Update(MessageStream* p_Instance) noexcept
          *  Read
          */
         
-        int i_ReadTimeoutMS = p_Instance->GetMessageWriteable() == true ? 0 : 100;
+        i_ReadTimeoutMS = p_Instance->GetMessageWriteable() == true ? 0 : 100;
         
         switch (p_Instance->ReadMessages(i_ClientFD, i_ReadTimeoutMS))
         {

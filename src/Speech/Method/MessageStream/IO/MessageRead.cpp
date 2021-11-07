@@ -31,7 +31,9 @@
 
 // Project
 #include "./MessageRead.h"
-#include "./MessagePacket.h"
+
+// Pre-defined
+using namespace MessagePacket;
 
 
 //*************************************************************************************
@@ -50,7 +52,11 @@ MessageRead::~MessageRead() noexcept
 
 void MessageRead::ClearRead() noexcept
 {
-    m_Unfinished.clear();
+    for (MRH_Uint8 i = 0; i < PACKET_STREAM_COUNT; ++i)
+    {
+        p_Unfinished[i].clear();
+    }
+    
     l_Finished.clear();
 }
 
@@ -60,7 +66,6 @@ void MessageRead::ClearRead() noexcept
 
 MessageRead::ReadResult MessageRead::ReadMessages(int i_SocketFD, int i_TimeoutMS) noexcept
 {
-    auto Stream = m_Unfinished.end();
     static MRH_Uint8 p_Buffer[MESSAGE_PACKET_SIZE];
     int i_ReadResult;
     
@@ -79,20 +84,15 @@ MessageRead::ReadResult MessageRead::ReadMessages(int i_SocketFD, int i_TimeoutM
         }
         
         // Got packet, select stream
-        Stream = m_Unfinished.find(p_Buffer[MESSAGE_PACKET_STREAM_ID_POS]);
+        MRH_Uint8 u8_Stream = p_Buffer[MESSAGE_PACKET_STREAM_ID_POS];
         
-        if (Stream == m_Unfinished.end())
+        if (u8_Stream > PACKET_STREAM_MAX)
         {
-            bool b_Insert = m_Unfinished.insert(std::make_pair(p_Buffer[MESSAGE_PACKET_STREAM_ID_POS],
-                                                               std::vector<MRH_Uint8>())).second;
-            
-            if (b_Insert == false)
-            {
-                return READ_FAIL;
-            }
-            
-            Stream = m_Unfinished.find(p_Buffer[MESSAGE_PACKET_STREAM_ID_POS]);
+            // Packet stream does not exist
+            return READ_FAIL;
         }
+        
+        std::vector<MRH_Uint8>& v_Stream = p_Unfinished[u8_Stream];
         
         // Handle packet
         MRH_Uint16 u16_PayloadSize = *((MRH_Uint16*)&(p_Buffer[MESSAGE_PACKET_PAYLOAD_SIZE_POS]));
@@ -102,30 +102,30 @@ MessageRead::ReadResult MessageRead::ReadMessages(int i_SocketFD, int i_TimeoutM
         
         switch (p_Buffer[MESSAGE_PACKET_TYPE_POS])
         {
-            case MessagePacketType::START:
-                Stream->second = { p_Start,
-                                   p_End };
+            case TYPE_START:
+                v_Stream = { p_Start,
+                             p_End };
                 break;
                 
-            case MessagePacketType::CONT:
-                Stream->second.insert(Stream->second.end(),
-                                      p_Start,
-                                      p_End);
+            case TYPE_CONT:
+                v_Stream.insert(v_Stream.end(),
+                                p_Start,
+                                p_End);
                 break;
                 
-            case MessagePacketType::END:
-                Stream->second.insert(Stream->second.end(),
-                                      p_Start,
-                                      p_End);
+            case TYPE_END:
+                v_Stream.insert(v_Stream.end(),
+                                p_Start,
+                                p_End);
                 l_Finished.emplace_back();
-                l_Finished.back().swap(Stream->second);
+                l_Finished.back().swap(v_Stream);
                 break;
                 
-            case MessagePacketType::SINGLE:
-                if (Stream->second.size() > 0)
+            case TYPE_SINGLE:
+                if (v_Stream.size() > 0)
                 {
                     // Old unfinished data in stream, clear
-                    Stream->second.clear();
+                    v_Stream.clear();
                 }
                 l_Finished.emplace_back(p_Start,
                                         p_End);

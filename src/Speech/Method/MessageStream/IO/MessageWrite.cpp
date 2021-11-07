@@ -31,9 +31,10 @@
 
 // Project
 #include "./MessageWrite.h"
-#include "./MessagePacket.h"
 
 // Pre-defined
+using namespace MessagePacket;
+
 #define PAYLOAD_SIZE_MAX MESSAGE_PACKET_SIZE - MESSAGE_PACKET_PAYLOAD_POS
 
 
@@ -41,18 +42,11 @@
 // Constructor / Destructor
 //*************************************************************************************
 
-MessageWrite::MessageWrite()
+MessageWrite::MessageWrite() noexcept
 {
-    // Pad streams
-    for (MRH_Uint8 i = 0; i < ((MRH_Uint8) - 1); ++i)
+    for (MRH_Uint8 i = 0; i < PACKET_STREAM_COUNT; ++i)
     {
-        bool b_Insert = m_Write.insert(std::make_pair(i,
-                                                      std::make_pair(false,
-                                                                     std::vector<MRH_Uint8>()))).second;
-        if (b_Insert == false)
-        {
-            throw Exception("Failed to insert stream!");
-        }
+        p_Stream[i].first = false;
     }
 }
 
@@ -65,10 +59,10 @@ MessageWrite::~MessageWrite() noexcept
 
 void MessageWrite::ClearWrite() noexcept
 {
-    for (auto& Stream : m_Write)
+    for (MRH_Uint8 i = 0; i < PACKET_STREAM_COUNT; ++i)
     {
-        Stream.second.first = false;
-        Stream.second.second.clear();
+        p_Stream[i].first = false;
+        p_Stream[i].second.clear();
     }
 }
 
@@ -76,21 +70,23 @@ void MessageWrite::ClearWrite() noexcept
 // Add
 //*************************************************************************************
 
-void MessageWrite::AddWriteMessage(std::vector<MRH_Uint8>& v_Message)
+bool MessageWrite::AddWriteMessage(MessagePacket::PacketStream e_Stream, std::vector<MRH_Uint8>& v_Message) noexcept
 {
-    for (auto& Stream : m_Write)
+    if (e_Stream > PACKET_STREAM_MAX)
     {
-        // Find stream with empty message
-        if (Stream.second.second.size() == 0)
-        {
-            Stream.second.first = false; // Not started to send, new
-            Stream.second.second.swap(v_Message);
-            
-            return;
-        }
+        // Stream not existing
+        return false;
+    }
+    else if (p_Stream[e_Stream].second.size() > 0)
+    {
+        // Stream occupied
+        return false;
     }
     
-    throw Exception("All streams occupied!");
+    p_Stream[e_Stream].first = false; // Not started to send, new
+    p_Stream[e_Stream].second.swap(v_Message);
+    
+    return true;
 }
 
 //*************************************************************************************
@@ -104,10 +100,10 @@ MessageWrite::WriteResult MessageWrite::WriteMessages(int i_SocketFD) noexcept
     MRH_Uint16 u16_PayloadSize;
     bool b_MessageRemains = false;
     
-    for (auto& Stream : m_Write)
+    for (MRH_Uint8 i = 0; i < PACKET_STREAM_COUNT; ++i)
     {
-        bool& b_Started = Stream.second.first;
-        std::vector<MRH_Uint8>& v_Message = Stream.second.second;
+        bool& b_Started = p_Stream[i].first;
+        std::vector<MRH_Uint8>& v_Message = p_Stream[i].second;
         
         // Do we need to write something?
         if (v_Message.size() == 0)
@@ -116,7 +112,7 @@ MessageWrite::WriteResult MessageWrite::WriteMessages(int i_SocketFD) noexcept
         }
         
         // Set stream id, same for all packets
-        p_Buffer[MESSAGE_PACKET_STREAM_ID_POS] = Stream.first;
+        p_Buffer[MESSAGE_PACKET_STREAM_ID_POS] = i;
         
         // Write as many packets as possible for stream
         while (v_Message.size() > 0)
@@ -127,7 +123,7 @@ MessageWrite::WriteResult MessageWrite::WriteMessages(int i_SocketFD) noexcept
                 u16_PayloadSize = PAYLOAD_SIZE_MAX;
                 
                 // Packet type setting
-                p_Buffer[MESSAGE_PACKET_TYPE_POS] = b_Started ? MessagePacketType::CONT : MessagePacketType::START;
+                p_Buffer[MESSAGE_PACKET_TYPE_POS] = b_Started ? TYPE_CONT : TYPE_START;
             }
             else
             {
@@ -139,7 +135,7 @@ MessageWrite::WriteResult MessageWrite::WriteMessages(int i_SocketFD) noexcept
                             PAYLOAD_SIZE_MAX - u16_PayloadSize);
                 
                 // Packet type setting
-                p_Buffer[MESSAGE_PACKET_TYPE_POS] = b_Started ? MessagePacketType::END : MessagePacketType::SINGLE;
+                p_Buffer[MESSAGE_PACKET_TYPE_POS] = b_Started ? TYPE_END : TYPE_SINGLE;
             }
             
             std::memcpy(&(p_Buffer[MESSAGE_PACKET_PAYLOAD_SIZE_POS]),
@@ -219,9 +215,9 @@ int MessageWrite::WriteSocket(int i_SocketFD, const MRH_Uint8* p_Buffer) noexcep
 
 bool MessageWrite::GetMessageWriteable() const noexcept
 {
-    for (auto& Stream : m_Write)
+    for (MRH_Uint8 i = 0; i < PACKET_STREAM_COUNT; ++i)
     {
-        if (Stream.second.second.size() > 0)
+        if (p_Stream[i].second.size() > 0)
         {
             return true;
         }
