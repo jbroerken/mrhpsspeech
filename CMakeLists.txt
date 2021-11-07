@@ -211,7 +211,6 @@ endif()
 
 if(USE_METHOD_VOICE MATCHES ON)
     target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_USE_METHOD_VOICE=1)
-    target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_DEVICE_CONFIG_PATH="/usr/local/etc/mrh/mrhpservice/Speech_Device.conf")
 endif()
 
 ###

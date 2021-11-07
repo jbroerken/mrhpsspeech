@@ -78,7 +78,7 @@ std::string STRING_CS_STRING_DATA::GetString() noexcept
     }
     
     return std::string((const char*)&(v_Data[OPCODE_DATA_POS]),
-                       v_Data.size() - OPCODE_OPCODE_SIZE);
+                       v_Data.size() - OPCODE_DATA_POS);
 }
 
 //*************************************************************************************

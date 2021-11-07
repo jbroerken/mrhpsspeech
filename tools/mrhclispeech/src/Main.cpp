@@ -57,7 +57,6 @@ static void Read(MessageStream* p_MessageStream, std::atomic<bool>* p_Update, co
         
         if (MessageOpCode::GetOpCode(v_Data) == MessageOpCode::STRING_CS_STRING)
         {
-            MessageOpCode::STRING_CS_STRING_DATA c_OpCode(v_Data);
             std::cout << MessageOpCode::STRING_CS_STRING_DATA(v_Data).GetString() << std::endl;
         }
     }
