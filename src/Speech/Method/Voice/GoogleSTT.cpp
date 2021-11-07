@@ -66,6 +66,12 @@ void GoogleSTT::ResetAudio() noexcept
 
 void GoogleSTT::AddAudio(AudioTrack const& c_Audio) noexcept
 {
+    // Audio empty?
+    if (c_Audio.GetSampleCount() == 0)
+    {
+        return;
+    }
+    
     // New KHz?
     if (this->c_Audio.first != c_Audio.u32_KHz)
     {
@@ -73,27 +79,10 @@ void GoogleSTT::AddAudio(AudioTrack const& c_Audio) noexcept
         this->c_Audio.second = {};
     }
     
-    // Add chunks
-    std::list<AudioTrack::Chunk> const& Chunks = c_Audio.GetChunksConst();
-    const MRH_Sint16* p_Buffer;
-    size_t us_Elements;
-    
-    for (auto& Chunk : Chunks)
-    {
-        us_Elements = Chunk.GetElementsCurrent();
-        
-        // Found empty chunk, stop here
-        if (Chunk.GetElementsCurrent() == 0)
-        {
-            break;
-        }
-        
-        p_Buffer = Chunk.GetBufferConst();
-        
-        this->c_Audio.second.insert(this->c_Audio.second.end(),
-                                    p_Buffer,
-                                    p_Buffer + us_Elements);
-    }
+    // Add audio
+    this->c_Audio.second.insert(this->c_Audio.second.end(),
+                                c_Audio.GetBufferConst(),
+                                c_Audio.GetBufferConst() + c_Audio.GetSampleCount());
 }
 
 //*************************************************************************************

@@ -35,7 +35,6 @@
 
 AudioStream::AudioStream() : c_AudioStream("speech_audio"),
                              c_RecordedAudio(Configuration::Singleton().GetRecordingKHz(),
-                                             Configuration::Singleton().GetRecordingFrameSamples(),
                                              Configuration::Singleton().GetRecordingStorageS(),
                                              false),
                              b_RecordingActive(false),
@@ -55,15 +54,13 @@ void AudioStream::UpdateStream() noexcept
      *  State
      */
     
-    static bool b_LastState = c_AudioStream.GetConnected();
+    static bool b_LastState = false;
     
     if (c_AudioStream.GetConnected() == true && b_LastState == false)
     {
         // Send format on new connection
         MessageOpCode::AUDIO_S_AUDIO_INFO_DATA c_OpCode(Configuration::Singleton().GetRecordingKHz(),
-                                                        Configuration::Singleton().GetRecordingFrameSamples(),
                                                         Configuration::Singleton().GetPlaybackKHz(),
-                                                        Configuration::Singleton().GetPlaybackFrameSamples(),
                                                         Configuration::Singleton().GetTriggerTimeoutS(),
                                                         Configuration::Singleton().GetTriggerKeyphrase());
         
@@ -148,7 +145,8 @@ void AudioStream::StartRecording()
         return;
     }
     
-    // @NOTE: No stream update, no external data needed
+    // Update stream to check if a connection is new
+    UpdateStream();
     
     static const MessageOpCode::OpCodeData c_OpCode(MessageOpCode::AUDIO_S_START_RECORDING);
     
@@ -182,7 +180,7 @@ void AudioStream::StopRecording()
 void AudioStream::Playback(AudioTrack const& c_Audio)
 {
     // Audio info?
-    if (c_Audio.GetAudioExists() == false)
+    if (c_Audio.GetSampleCount() == 0)
     {
         throw Exception("No audio to play!");
     }
@@ -205,39 +203,21 @@ void AudioStream::Playback(AudioTrack const& c_Audio)
     }
     
     // Create messages for each audio
-    MRH_PSBLogger& c_Logger = MRH_PSBLogger::Singleton();
-    std::list<AudioTrack::Chunk> const& l_Chunk = c_Audio.GetChunksConst();
-    
-    for (auto& Chunk : l_Chunk)
+    try
     {
-        // Samples exist?
-        if (Chunk.GetElementsCurrent() == 0)
-        {
-            break;
-        }
-        
-        // Create opcode and copy data
-        MessageOpCode::AUDIO_CS_AUDIO_DATA c_OpCode(Chunk.GetBufferConst(),
-                                                    Chunk.GetElementsCurrent());
-        
-        try
-        {
-            c_AudioStream.Send(c_OpCode.v_Data);
-        }
-        catch (Exception& e)
-        {
-            c_Logger.Log(MRH_PSBLogger::WARNING, "Failed to send audio chunk: " +
-                                                 std::string(e.what()),
-                         "AudioStream.cpp", __LINE__);
-        }
-        
-        // Set active
-        // @NOTE: Set in loop in case chunks fail
-        if (b_PlaybackActive == false)
-        {
-            b_PlaybackActive = true;
-        }
+        MessageOpCode::AUDIO_CS_AUDIO_DATA c_OpCode(c_Audio.GetBufferConst(),
+                                                    c_Audio.GetSampleCount());
+        c_AudioStream.Send(c_OpCode.v_Data);
     }
+    catch (Exception& e)
+    {
+        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "Failed to send audio: " +
+                                                               std::string(e.what()),
+                                       "AudioStream.cpp", __LINE__);
+    }
+    
+    // Set active
+    b_PlaybackActive = true;
 }
 
 //*************************************************************************************

@@ -56,9 +56,10 @@ void Voice::Reset()
 {
     // Reset recieved input
     c_AudioStream.ClearRecording();
-    
-    // Reset current audio stored
     c_GoogleSTT.ResetAudio();
+    
+    // Start recording again
+    c_AudioStream.StartRecording();
 }
 
 //*************************************************************************************
@@ -84,21 +85,24 @@ void Voice::Listen()
         // Grab sample
         AudioTrack const& c_Audio = c_AudioStream.GetRecordedAudio();
         
-        if (c_Audio.GetAudioExists() == false && c_GoogleSTT.GetAudioAvailable() == true)
+        if (c_Audio.GetSampleCount() == false)
         {
-            // Wait before we start to process audio
-            if (time(NULL) > u64_ProccessTimeS)
+            if (c_GoogleSTT.GetAudioAvailable() == true)
             {
-                // Transcribe and send as input
-                try
+                // Wait before we start to process audio
+                if (time(NULL) > u64_ProccessTimeS)
                 {
-                    SendInput(c_GoogleSTT.Transcribe());
-                }
-                catch (Exception& e)
-                {
-                    MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Failed to send input: " +
-                                                                         std::string(e.what()),
-                                                   "Voice.cpp", __LINE__);
+                    // Transcribe and send as input
+                    try
+                    {
+                        SendInput(c_GoogleSTT.Transcribe());
+                    }
+                    catch (Exception& e)
+                    {
+                        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Failed to send input: " +
+                                                                             std::string(e.what()),
+                                                       "Voice.cpp", __LINE__);
+                    }
                 }
             }
         }

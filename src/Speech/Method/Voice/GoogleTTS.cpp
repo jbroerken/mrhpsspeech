@@ -44,7 +44,6 @@ using google::cloud::texttospeech::v1::SsmlVoiceGender;
 //*************************************************************************************
 
 GoogleTTS::GoogleTTS() : c_Audio(Configuration::Singleton().GetPlaybackKHz(),
-                                 Configuration::Singleton().GetPlaybackFrameSamples(),
                                  0, /* Grows on need, no initial data */
                                  true)
 {}
@@ -128,7 +127,6 @@ AudioTrack const& GoogleTTS::Synthesise(std::string const& s_String)
         throw Exception("Invalid synthesized audio!");
     }
     
-    // Create mono audio from it
     try
     {
         c_Audio.Clear();

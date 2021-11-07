@@ -93,7 +93,7 @@ AUDIO_CS_AUDIO_DATA::AUDIO_CS_AUDIO_DATA(const MRH_Sint16* p_Samples,
 {
     v_Data.insert(v_Data.end(),
                   (const MRH_Uint8*)p_Samples,
-                  (const MRH_Uint8*)p_Samples + (u32_Count * sizeof(MRH_Sint16)));
+                  (const MRH_Uint8*)p_Samples + ((u32_Count - 1) * sizeof(MRH_Sint16)));
 }
 
 AUDIO_CS_AUDIO_DATA::~AUDIO_CS_AUDIO_DATA() noexcept
@@ -106,12 +106,12 @@ const MRH_Sint16* AUDIO_CS_AUDIO_DATA::GetAudioBuffer() noexcept
         return NULL;
     }
     
-    return (const MRH_Sint16*)&(v_Data[OPCODE_DATA_POS + sizeof(MRH_Uint32)]);
+    return (const MRH_Sint16*)&(v_Data[OPCODE_DATA_POS]);
 }
 
 MRH_Uint32 AUDIO_CS_AUDIO_DATA::GetSampleCount() noexcept
 {
-    return (v_Data.size() - OPCODE_OPCODE_SIZE) / sizeof(MRH_Sint16);
+    return (v_Data.size() - OPCODE_DATA_POS) / sizeof(MRH_Sint16);
 }
 
 //*************************************************************************************
@@ -122,23 +122,19 @@ AUDIO_S_AUDIO_INFO_DATA::AUDIO_S_AUDIO_INFO_DATA(std::vector<MRH_Uint8>& v_Data)
 {}
 
 AUDIO_S_AUDIO_INFO_DATA::AUDIO_S_AUDIO_INFO_DATA(MRH_Uint32 u32_RecordingKHz,
-                                                 MRH_Uint32 u32_RecordingFrameSamples,
                                                  MRH_Uint32 u32_PlaybackKHz,
-                                                 MRH_Uint32 u32_PlaybackFrameSamples,
                                                  MRH_Uint32 u32_TriggerTimeoutS,
                                                  std::string const& s_TriggerKeyphrase) noexcept : OpCodeData(AUDIO_S_AUDIO_INFO)
 {
     v_Data.insert(v_Data.end(),
-                  sizeof(MRH_Uint32) * 5 + s_TriggerKeyphrase.size(),
+                  sizeof(MRH_Uint32) * 3 + s_TriggerKeyphrase.size(),
                   0);
     
     SetValue<MRH_Uint32>(v_Data, OPCODE_DATA_POS, &u32_RecordingKHz);
-    SetValue<MRH_Uint32>(v_Data, OPCODE_DATA_POS + sizeof(MRH_Uint32), &u32_RecordingFrameSamples);
-    SetValue<MRH_Uint32>(v_Data, OPCODE_DATA_POS + (sizeof(MRH_Uint32) * 2), &u32_PlaybackKHz);
-    SetValue<MRH_Uint32>(v_Data, OPCODE_DATA_POS + (sizeof(MRH_Uint32) * 3), &u32_PlaybackFrameSamples);
-    SetValue<MRH_Uint32>(v_Data, OPCODE_DATA_POS + (sizeof(MRH_Uint32) * 4), &u32_TriggerTimeoutS);
+    SetValue<MRH_Uint32>(v_Data, OPCODE_DATA_POS + (sizeof(MRH_Uint32) * 1), &u32_PlaybackKHz);
+    SetValue<MRH_Uint32>(v_Data, OPCODE_DATA_POS + (sizeof(MRH_Uint32) * 2), &u32_TriggerTimeoutS);
     
-    std::memcpy(&(v_Data[OPCODE_DATA_POS + (sizeof(MRH_Uint32) * 5)]),
+    std::memcpy(&(v_Data[OPCODE_DATA_POS + (sizeof(MRH_Uint32) * 3)]),
                 &s_TriggerKeyphrase[0],
                 s_TriggerKeyphrase.size());
 }
@@ -156,7 +152,7 @@ MRH_Uint32 AUDIO_S_AUDIO_INFO_DATA::GetRecordingKHz() noexcept
     return GetValue<MRH_Uint32>(v_Data, OPCODE_DATA_POS);
 }
 
-MRH_Uint32 AUDIO_S_AUDIO_INFO_DATA::GetRecordingFrameSamples() noexcept
+MRH_Uint32 AUDIO_S_AUDIO_INFO_DATA::GetPlaybackKHz() noexcept
 {
     if (v_Data.size() < OPCODE_DATA_POS + (sizeof(MRH_Uint32) * 2))
     {
@@ -166,7 +162,7 @@ MRH_Uint32 AUDIO_S_AUDIO_INFO_DATA::GetRecordingFrameSamples() noexcept
     return GetValue<MRH_Uint32>(v_Data, OPCODE_DATA_POS + sizeof(MRH_Uint32));
 }
 
-MRH_Uint32 AUDIO_S_AUDIO_INFO_DATA::GetPlaybackKHz() noexcept
+MRH_Uint32 AUDIO_S_AUDIO_INFO_DATA::GetTriggerTimeoutS() noexcept
 {
     if (v_Data.size() < OPCODE_DATA_POS + (sizeof(MRH_Uint32) * 3))
     {
@@ -176,30 +172,9 @@ MRH_Uint32 AUDIO_S_AUDIO_INFO_DATA::GetPlaybackKHz() noexcept
     return GetValue<MRH_Uint32>(v_Data, OPCODE_DATA_POS + (sizeof(MRH_Uint32) * 2));
 }
 
-MRH_Uint32 AUDIO_S_AUDIO_INFO_DATA::GetPlaybackFrameSamples() noexcept
-{
-    if (v_Data.size() < OPCODE_DATA_POS + (sizeof(MRH_Uint32) * 4))
-    {
-        return 0;
-    }
-    
-    return GetValue<MRH_Uint32>(v_Data, OPCODE_DATA_POS + (sizeof(MRH_Uint32) * 3));
-}
-
-
-MRH_Uint32 AUDIO_S_AUDIO_INFO_DATA::GetTriggerTimeoutS() noexcept
-{
-    if (v_Data.size() < OPCODE_DATA_POS + (sizeof(MRH_Uint32) * 5))
-    {
-        return 0;
-    }
-    
-    return GetValue<MRH_Uint32>(v_Data, OPCODE_DATA_POS + (sizeof(MRH_Uint32) * 4));
-}
-
 std::string AUDIO_S_AUDIO_INFO_DATA::GetTriggerKeyphrase() noexcept
 {
-    size_t us_StringStart = OPCODE_DATA_POS + (sizeof(MRH_Uint32) * 5);
+    size_t us_StringStart = OPCODE_DATA_POS + (sizeof(MRH_Uint32) * 3);
     
     if (v_Data.size() < us_StringStart + 1)
     {

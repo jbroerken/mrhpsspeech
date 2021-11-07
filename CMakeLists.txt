@@ -197,7 +197,7 @@ target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_CONFIGURATION_PATH="/u
 target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SERVICE_PRINT_INPUT=0)
 target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SERVICE_PRINT_OUTPUT=0)
 
-if(USE_METHOD_CLI OR USE_METHOD_VOICE)
+if(USE_METHOD_CLI MATCHES ON OR USE_METHOD_VOICE MATCHES ON)
     target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_MESSAGE_STREAM_SOCKET_DIR="/tmp/mrh/")
 endif()
 

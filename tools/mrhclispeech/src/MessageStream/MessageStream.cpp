@@ -204,7 +204,9 @@ void MessageStream::Update(MessageStream* p_Instance) noexcept
          *  Read
          */
         
-        switch (p_Instance->ReadMessages(i_ClientFD, 100))
+        int i_ReadTimeoutMS = p_Instance->GetMessageWriteable() == true ? 0 : 100;
+        
+        switch (p_Instance->ReadMessages(i_ClientFD, i_ReadTimeoutMS))
         {
             case MessageRead::READ_SUCCESS:
             {

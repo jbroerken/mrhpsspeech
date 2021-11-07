@@ -98,14 +98,6 @@ public:
     MRH_Uint32 GetRecordingKHz() noexcept;
     
     /**
-     *  Get the recording frame samples.
-     *
-     *  \return The recording frame samples.
-     */
-    
-    MRH_Uint32 GetRecordingFrameSamples() noexcept;
-    
-    /**
      *  Get the recording sample storage size.
      *
      *  \return The recording sample storage size.
@@ -120,14 +112,6 @@ public:
      */
     
     MRH_Uint32 GetPlaybackKHz() noexcept;
-    
-    /**
-     *  Get the playback frame samples.
-     *
-     *  \return The playback frame samples.
-     */
-    
-    MRH_Uint32 GetPlaybackFrameSamples() noexcept;
     
     /**
      *  Get the google cloud api language code.
@@ -173,12 +157,10 @@ private:
     
     // Recording
     MRH_Uint32 u32_RecordingKHz;
-    MRH_Uint32 u32_RecordingFrameSamples;
     MRH_Uint32 u32_RecordingStorageS;
     
     // Playback
     MRH_Uint32 u32_PlaybackKHz;
-    MRH_Uint32 u32_PlaybackFrameSamples;
     
     // Google
     std::string s_GoogleLangCode;

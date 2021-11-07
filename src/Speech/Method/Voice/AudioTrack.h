@@ -23,7 +23,7 @@
 #define AudioTrack_h
 
 // C / C++
-#include <list>
+#include <vector>
 
 // External
 #include <MRH_Typedefs.h>
@@ -37,91 +37,6 @@ class AudioTrack
 public:
     
     //*************************************************************************************
-    // Types
-    //*************************************************************************************
-    
-    class Chunk
-    {
-        friend class AudioTrack;
-        
-    public:
-        
-        //*************************************************************************************
-        // Constructor / Destructor
-        //*************************************************************************************
-        
-        /**
-         *  Default constructor.
-         *
-         *  \param us_Elements The amount of elements storable in the chunk.
-         */
-        
-        Chunk(size_t us_Elements);
-        
-        /**
-         *  Default destructor.
-         */
-        
-        ~Chunk() noexcept;
-        
-        //*************************************************************************************
-        // Update
-        //*************************************************************************************
-        
-        /**
-         *  Calculate the average amplitude.
-         */
-        
-        void CalculateAvgAmplitude() noexcept;
-        
-        //*************************************************************************************
-        // Getters
-        //*************************************************************************************
-        
-        /**
-         *  Get the chunk buffer.
-         *
-         *  \return The chunk buffer.
-         */
-        
-        MRH_Sint16* GetBuffer() noexcept;
-        
-        /**
-         *  Get the const chunk buffer.
-         *
-         *  \return The const chunk buffer.
-         */
-        
-        const MRH_Sint16* GetBufferConst() const noexcept;
-        
-        /**
-         *  Get the amount of elements currently stored.
-         *
-         *  \return The currently stored element count.
-         */
-        
-        size_t GetElementsCurrent() const noexcept;
-        
-        //*************************************************************************************
-        // Data
-        //*************************************************************************************
-        
-        const size_t us_ElementsTotal;
-        
-    private:
-        
-        //*************************************************************************************
-        // Data
-        //*************************************************************************************
-        
-        MRH_Sint16* p_Buffer;
-        size_t us_ElementsCurrent;
-        
-    public:
-        
-    };
-    
-    //*************************************************************************************
     // Constructor / Destructor
     //*************************************************************************************
     
@@ -129,13 +44,11 @@ public:
      *  Default constructor.
      *
      *  \param u32_KHz The audio track KHz for all chunks.
-     *  \param us_ChunkElements The elements storable in each chunk.
-     *  \param u8_StorageSizeS The amount of audio storable in seconds.
+     *  \param u8_StorageSizeS The initial amount of audio storable in seconds.
      *  \param b_CanGrow If the track can be expanded beyond the initial size.
      */
     
     AudioTrack(MRH_Uint32 u32_KHz,
-               size_t us_ChunkElements,
                MRH_Uint8 u8_StorageSizeS,
                bool b_CanGrow);
     
@@ -169,27 +82,34 @@ public:
     //*************************************************************************************
     
     /**
-     *  Get the const chunk list.
+     *  Get the audio buffer.
      *
-     *  \return The const chunk list.
+     *  \return The audio buffer.
      */
     
-    std::list<Chunk> const& GetChunksConst() const noexcept;
+    MRH_Sint16* GetBuffer() noexcept;
     
     /**
-     *  Check if this audio track has any audio.
+     *  Get the const audio buffer.
      *
-     *  \return true if audio exists, false if not.
+     *  \return The const audio buffer.
      */
     
-    bool GetAudioExists() const noexcept;
+    const MRH_Sint16* GetBufferConst() const noexcept;
+    
+    /**
+     *  Get the amount of samples currently stored.
+     *
+     *  \return The currently stored sample count.
+     */
+    
+    size_t GetSampleCount() const noexcept;
     
     //*************************************************************************************
     // Data
     //*************************************************************************************
     
     const MRH_Uint32 u32_KHz;
-    const size_t us_ChunkElements;
     const bool b_CanGrow;
     
 private:
@@ -198,8 +118,8 @@ private:
     // Data
     //*************************************************************************************
     
-    std::list<Chunk> l_Chunk;
-    std::list<Chunk>::iterator FreeChunk;
+    std::vector<MRH_Sint16> v_Samples;
+    size_t us_SampleCount;
     
 protected:
     

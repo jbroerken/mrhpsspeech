@@ -284,17 +284,13 @@ namespace MessageOpCode
          *  Value constructor.
          *
          *  \param u32_RecordingKHz The recording sample KHz.
-         *  \param u32_RecordingFrameSamples The amount of samples in each recording frame.
          *  \param u32_PlaybackKHz The playback sample KHz.
-         *  \param u32_PlaybackFrameSamples The amount of samples in each playback frame.
          *  \param u32_TriggerTimeoutS The timeout for recognizing a trigger.
          *  \param s_TriggerKeyphrase The key phrase to listen to.
          */
         
         AUDIO_S_AUDIO_INFO_DATA(MRH_Uint32 u32_RecordingKHz,
-                                MRH_Uint32 u32_RecordingFrameSamples,
                                 MRH_Uint32 u32_PlaybackKHz,
-                                MRH_Uint32 u32_PlaybackFrameSamples,
                                 MRH_Uint32 u32_TriggerTimeoutS,
                                 std::string const& s_TriggerKeyphrase) noexcept;
         
@@ -317,28 +313,12 @@ namespace MessageOpCode
         MRH_Uint32 GetRecordingKHz() noexcept;
         
         /**
-         *  Get the samples per frame for recording.
-         *
-         *  \return The samples per frame for recording.
-         */
-        
-        MRH_Uint32 GetRecordingFrameSamples() noexcept;
-        
-        /**
          *  Get the KHz used for playback.
          *
          *  \return The KHz used for playback.
          */
         
         MRH_Uint32 GetPlaybackKHz() noexcept;
-        
-        /**
-         *  Get the samples per frame for playback.
-         *
-         *  \return The samples per frame for playback.
-         */
-        
-        MRH_Uint32 GetPlaybackFrameSamples() noexcept;
         
         /**
          *  Get the trigger timeout in seconds.

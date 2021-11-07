@@ -49,12 +49,10 @@ namespace
         
         // Recording Key
         RECORDING_KHZ = 6,
-        RECORDING_FRAME_SAMPLES = 7,
-        RECORDING_STORAGE_S,
+        RECORDING_STORAGE_S = 7,
         
         // Playback Key
         PLAYBACK_KHZ,
-        PLAYBACK_FRAME_SAMPLES,
         
         // Google API Key
         GOOGLE_API_LANGUAGE_CODE,
@@ -80,12 +78,10 @@ namespace
         
         // Recording Key
         "KHz",
-        "FrameSamples",
         "RecordingStorageS",
         
         // Playback Key
         "KHz",
-        "FrameSamples",
         
         // Google API Key
         "LanguageCode",
@@ -101,10 +97,8 @@ namespace
 Configuration::Configuration() noexcept : s_TriggerKeyphrase("Hey Mamao"),
                                           u32_TriggerTimeoutS(30),
                                           u32_RecordingKHz(16000),
-                                          u32_RecordingFrameSamples(2048),
                                           u32_RecordingStorageS(5),
                                           u32_PlaybackKHz(16000),
-                                          u32_PlaybackFrameSamples(2048),
                                           s_GoogleLangCode("en"),
                                           u32_GoogleVoiceGender(0)
 {}
@@ -151,13 +145,11 @@ void Configuration::Load()
             else if (Block.GetName().compare(p_Identifier[BLOCK_RECORDING]) == 0)
             {
                 u32_RecordingKHz = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[RECORDING_KHZ])));
-                u32_RecordingFrameSamples = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[RECORDING_FRAME_SAMPLES])));
                 u32_RecordingStorageS = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[RECORDING_STORAGE_S])));
             }
             else if (Block.GetName().compare(p_Identifier[BLOCK_PLAYBACK]) == 0)
             {
                 u32_PlaybackKHz = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PLAYBACK_KHZ])));
-                u32_PlaybackFrameSamples = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[PLAYBACK_FRAME_SAMPLES])));
             }
             else if (Block.GetName().compare(p_Identifier[BLOCK_GOOGLE_API]) == 0)
             {
@@ -191,11 +183,6 @@ MRH_Uint32 Configuration::GetRecordingKHz() noexcept
     return u32_RecordingKHz;
 }
 
-MRH_Uint32 Configuration::GetRecordingFrameSamples() noexcept
-{
-    return u32_RecordingFrameSamples;
-}
-
 MRH_Uint32 Configuration::GetRecordingStorageS() noexcept
 {
     return u32_RecordingStorageS;
@@ -204,11 +191,6 @@ MRH_Uint32 Configuration::GetRecordingStorageS() noexcept
 MRH_Uint32 Configuration::GetPlaybackKHz() noexcept
 {
     return u32_PlaybackKHz;
-}
-
-MRH_Uint32 Configuration::GetPlaybackFrameSamples() noexcept
-{
-    return u32_PlaybackFrameSamples;
 }
 
 std::string Configuration::GetGoogleLanguageCode() noexcept
