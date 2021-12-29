@@ -23,8 +23,12 @@
 #define Server_h
 
 // C / C++
+#include <thread>
+#include <mutex>
+#include <atomic>
 
 // External
+#include <libmrhsrv.h>
 
 // Project
 #include "../SpeechMethod.h"
@@ -103,8 +107,57 @@ public:
 private:
     
     //*************************************************************************************
+    // Server
+    //*************************************************************************************
+    
+    /**
+     *  Perform connection and authentication with a given server.
+     *
+     *  \param p_Context The context in use.
+     *  \param p_Server The server to authenticate for.
+     *  \param s_Address The server address.
+     *  \param i_Port The server port.
+     *
+     *  \return true on success, false on failure.
+     */
+    
+    bool ConnectToServer(MRH_Srv_Context* p_Context, MRH_Srv_Server* p_Server, std::string const& s_Address, int i_Port) noexcept;
+    
+    /**
+     *  Request channel info from a server.
+     *
+     *  \param p_Server The server to request from.
+     *  \param s_Channel The channel identifier to request.
+     *  \param s_Address The reference to the address result.
+     *  \param i_Port The reference to the port result.
+     *
+     *  \return true on success, false on failure.
+     */
+
+    bool RequestChannel(MRH_Srv_Server* p_Server, std::string const& s_Channel, std::string& s_Address, int& i_Port) noexcept;
+    
+    /**
+     *  Update the server communication.
+     *
+     *  \param p_Instance The server instance to update with.
+     */
+    
+    static void Update(Server* p_Instance) noexcept;
+    
+    //*************************************************************************************
     // Data
     //*************************************************************************************
+    
+    std::thread c_Thread;
+    std::atomic<bool> b_Run;
+    
+    std::atomic<bool> b_AppConnected;
+    
+    std::mutex c_RecieveMutex;
+    std::list<std::string> l_Recieve;
+    
+    std::mutex c_SendMutex;
+    std::list<std::string> l_Send;
     
 protected:
 

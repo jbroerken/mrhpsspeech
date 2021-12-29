@@ -72,62 +72,134 @@ public:
     //*************************************************************************************
     // Getters
     //*************************************************************************************
+    
+    /**
+     *  Get the service method wait time in milliseconds.
+     *
+     *  \return The method wait time.
+     */
+    
+    MRH_Uint32 GetServiceMethodWaitMS() noexcept;
 
     /**
-     *  Get the trigger key phrase to start listening.
+     *  Get the voice trigger key phrase to start listening.
      *
      *  \return The trigger key phrase.
      */
 
-    std::string GetTriggerKeyphrase() noexcept;
+    std::string GetVoiceTriggerKeyphrase() noexcept;
     
     /**
-     *  Get the trigger recognized timout in seconds.
+     *  Get the voice trigger recognized timout in seconds.
      *
      *  \return The trigger recognized reset timeout.
      */
     
-    MRH_Uint32 GetTriggerTimeoutS() noexcept;
+    MRH_Uint32 GetVoiceTriggerTimeoutS() noexcept;
     
     /**
-     *  Get the recording KHz.
+     *  Get the voice recording KHz.
      *
      *  \return The recording KHz.
      */
     
-    MRH_Uint32 GetRecordingKHz() noexcept;
+    MRH_Uint32 GetVoiceRecordingKHz() noexcept;
     
     /**
-     *  Get the recording sample storage size.
+     *  Get the voice recording sample storage size.
      *
      *  \return The recording sample storage size.
      */
     
-    MRH_Uint32 GetRecordingStorageS() noexcept;
+    MRH_Uint32 GetVoiceRecordingStorageS() noexcept;
     
     /**
-     *  Get the playback KHz.
+     *  Get the voice playback KHz.
      *
      *  \return The playback KHz.
      */
     
-    MRH_Uint32 GetPlaybackKHz() noexcept;
+    MRH_Uint32 GetVoicePlaybackKHz() noexcept;
     
     /**
-     *  Get the google cloud api language code.
+     *  Get the voice google cloud api language code.
      *
      *  \return The google cloud api language code.
      */
     
-    std::string GetGoogleLanguageCode() noexcept;
+    std::string GetVoiceGoogleLanguageCode() noexcept;
     
     /**
-     *  Get the google cloud api voice gender.
+     *  Get the voice google cloud api voice gender.
      *
      *  \return The google cloud api voice gender.
      */
     
-    MRH_Uint32 GetGoogleVoiceGender() noexcept;
+    MRH_Uint32 GetVoiceGoogleVoiceGender() noexcept;
+    
+    /**
+     *  Get the server account mail.
+     *
+     *  \return The server account mail.
+     */
+    
+    std::string GetServerAccountMail() noexcept;
+    
+    /**
+     *  Get the server account password.
+     *
+     *  \return The server account password.
+     */
+    
+    std::string GetServerAccountPassword() noexcept;
+    
+    /**
+     *  Get the server device key.
+     *
+     *  \return The server device key.
+     */
+    
+    std::string GetServerDeviceKey() noexcept;
+    
+    /**
+     *  Get the server device password.
+     *
+     *  \return The server device password.
+     */
+    
+    std::string GetServerDevicePassword() noexcept;
+    
+    /**
+     *  Get the server connection server address.
+     *
+     *  \return The server connection server address.
+     */
+    
+    std::string GetServerConnectionAddress() noexcept;
+    
+    /**
+     *  Get the server connection server port.
+     *
+     *  \return The server connection server port.
+     */
+    
+    int GetServerConnectionPort() noexcept;
+    
+    /**
+     *  Get the server communication server channel.
+     *
+     *  \return The server communication server channel.
+     */
+    
+    std::string GetServerCommunicationChannel() noexcept;
+    
+    /**
+     *  Get the server timeout in seconds.
+     *
+     *  \return The server timeout in seconds.
+     */
+    
+    MRH_Uint32 GetServerTimeoutS() noexcept;
     
 private:
     
@@ -151,20 +223,28 @@ private:
     // Data
     //**************************************************************************************
 
-    // Trigger
-    std::string s_TriggerKeyphrase;
-    MRH_Uint32 u32_TriggerTimeoutS;
+    // Service
+    MRH_Uint32 u32_ServiceMethodWaitMS;
     
-    // Recording
-    MRH_Uint32 u32_RecordingKHz;
-    MRH_Uint32 u32_RecordingStorageS;
+    // Voice
+    std::string s_VoiceTriggerKeyphrase;
+    MRH_Uint32 u32_VoiceTriggerTimeoutS;
+    MRH_Uint32 u32_VoiceRecordingKHz;
+    MRH_Uint32 u32_VoiceRecordingStorageS;
+    MRH_Uint32 u32_VoicePlaybackKHz;
+    std::string s_VoiceGoogleLangCode;
+    MRH_Uint32 u32_VoiceGoogleVoiceGender;
     
-    // Playback
-    MRH_Uint32 u32_PlaybackKHz;
+    // Server
+    std::string s_ServerAccountMail;
+    std::string s_ServerAccountPassword;
+    std::string s_ServerDeviceKey;
+    std::string s_ServerDevicePassword;
+    std::string s_ServerConnectionAddress;
+    int i_ServerConnectionPort;
+    std::string s_ServerCommunicationChannel;
+    MRH_Uint32 u32_ServerTimeoutS;
     
-    // Google
-    std::string s_GoogleLangCode;
-    MRH_Uint32 u32_GoogleVoiceGender;
     
 protected:
 

@@ -84,10 +84,6 @@ void Voice::Stop()
 
 void Voice::Listen()
 {
-    // @NOTE: We ALWAYS wait - give the devices some time to fill the recording
-    //        buffer to retrieve
-    std::this_thread::sleep_for(std::chrono::milliseconds(LISTEN_CHECK_WAIT_MS));
-    
     // Are we even recording?
     if (c_AudioStream.GetRecordingActive() == false)
     {

@@ -23,8 +23,6 @@
 #define Voice_h
 
 // C / C++
-#include <thread>
-#include <atomic>
 
 // External
 

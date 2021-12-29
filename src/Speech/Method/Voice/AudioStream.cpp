@@ -34,8 +34,8 @@
 //*************************************************************************************
 
 AudioStream::AudioStream() : c_AudioStream("speech_audio"),
-                             c_RecordedAudio(Configuration::Singleton().GetRecordingKHz(),
-                                             Configuration::Singleton().GetRecordingStorageS(),
+                             c_RecordedAudio(Configuration::Singleton().GetVoiceRecordingKHz(),
+                                             Configuration::Singleton().GetVoiceRecordingStorageS(),
                                              false),
                              b_RecordingActive(false),
                              b_PlaybackActive(false)
@@ -59,10 +59,10 @@ void AudioStream::UpdateStream() noexcept
     if (c_AudioStream.GetConnected() == true && b_LastState == false)
     {
         // Send format on new connection
-        MessageOpCode::AUDIO_S_AUDIO_INFO_DATA c_OpCode(Configuration::Singleton().GetRecordingKHz(),
-                                                        Configuration::Singleton().GetPlaybackKHz(),
-                                                        Configuration::Singleton().GetTriggerTimeoutS(),
-                                                        Configuration::Singleton().GetTriggerKeyphrase());
+        MessageOpCode::AUDIO_S_AUDIO_INFO_DATA c_OpCode(Configuration::Singleton().GetVoiceRecordingKHz(),
+                                                        Configuration::Singleton().GetVoicePlaybackKHz(),
+                                                        Configuration::Singleton().GetVoiceTriggerTimeoutS(),
+                                                        Configuration::Singleton().GetVoiceTriggerKeyphrase());
         
         c_AudioStream.Send(c_OpCode.v_Data);
         

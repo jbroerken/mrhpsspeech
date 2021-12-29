@@ -26,6 +26,7 @@
 
 // Project
 #include "./Speech.h"
+#include "../Configuration.h"
 #if MRH_SPEECH_USE_METHOD_CLI > 0
 #include "./Method/CLI.h"
 #endif
@@ -115,6 +116,7 @@ void Speech::Update(Speech* p_Instance) noexcept
     MRH_PSBLogger& c_Logger = MRH_PSBLogger::Singleton();
     OutputStorage& c_OutputStorage = p_Instance->c_OutputStorage;
     SpeechMethod* p_Method = NULL;
+    MRH_Uint32 u32_MethodWaitMS = Configuration::Singleton().GetServiceMethodWaitMS();
     
     while (p_Instance->b_Update == true)
     {
@@ -187,6 +189,11 @@ void Speech::Update(Speech* p_Instance) noexcept
         {
             p_Instance->b_MethodSelected = true;
         }
+        
+        // Wait a bit for data
+        // @NOTE: We ALWAYS wait - we want servers and audio devices to idealy
+        //        have sent some data when calling Listen()
+        std::this_thread::sleep_for(std::chrono::milliseconds(u32_MethodWaitMS));
         
         // Exchange data
         try

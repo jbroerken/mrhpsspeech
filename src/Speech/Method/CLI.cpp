@@ -37,7 +37,10 @@
 //*************************************************************************************
 
 CLI::CLI() : c_CLIStream("speech_cli")
-{}
+{
+    MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, "CLI speech now available.",
+                                   "CLI.cpp", __LINE__);
+}
 
 CLI::~CLI() noexcept
 {}
@@ -61,9 +64,6 @@ void CLI::Stop()
 
 void CLI::Listen()
 {
-    // Wait a bit for data
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    
     // No client or data, do nothing
     if (c_CLIStream.GetConnected() == false)
     {

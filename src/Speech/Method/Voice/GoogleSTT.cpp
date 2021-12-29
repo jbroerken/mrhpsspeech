@@ -97,7 +97,7 @@ std::string GoogleSTT::Transcribe()
         throw Exception("No audio to transcribe added!");
     }
     
-    std::string s_LangCode = Configuration::Singleton().GetGoogleLanguageCode();
+    std::string s_LangCode = Configuration::Singleton().GetVoiceGoogleLanguageCode();
     
     /**
      *  Credentials Setup
