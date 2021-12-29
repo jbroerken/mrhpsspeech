@@ -115,26 +115,26 @@ private:
      *
      *  \param p_Context The context in use.
      *  \param p_Server The server to authenticate for.
-     *  \param s_Address The server address.
+     *  \param p_Address The server address.
      *  \param i_Port The server port.
      *
      *  \return true on success, false on failure.
      */
     
-    bool ConnectToServer(MRH_Srv_Context* p_Context, MRH_Srv_Server* p_Server, std::string const& s_Address, int i_Port) noexcept;
+    bool ConnectToServer(MRH_Srv_Context* p_Context, MRH_Srv_Server* p_Server, const char* p_Address, int i_Port) noexcept;
     
     /**
      *  Request channel info from a server.
      *
      *  \param p_Server The server to request from.
-     *  \param s_Channel The channel identifier to request.
-     *  \param s_Address The reference to the address result.
+     *  \param p_Channel The channel identifier to request.
+     *  \param p_Address The reference to the address result.
      *  \param i_Port The reference to the port result.
      *
      *  \return true on success, false on failure.
      */
 
-    bool RequestChannel(MRH_Srv_Server* p_Server, std::string const& s_Channel, std::string& s_Address, int& i_Port) noexcept;
+    bool RequestChannel(MRH_Srv_Server* p_Server, const char* p_Channel, char* p_Address, int& i_Port) noexcept;
     
     /**
      *  Update the server communication.

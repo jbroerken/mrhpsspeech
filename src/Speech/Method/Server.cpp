@@ -78,7 +78,7 @@ void Server::Stop()
 // Server
 //*************************************************************************************
 
-bool Server::ConnectToServer(MRH_Srv_Context* p_Context, MRH_Srv_Server* p_Server, std::string const& s_Address, int i_Port) noexcept
+bool Server::ConnectToServer(MRH_Srv_Context* p_Context, MRH_Srv_Server* p_Server, const char* p_Address, int i_Port) noexcept
 {
     /**
      *  Variables
@@ -92,13 +92,17 @@ bool Server::ConnectToServer(MRH_Srv_Context* p_Context, MRH_Srv_Server* p_Serve
     
     // Setup things we send
     memset(c_AuthRequest.p_Mail, '\0', MRH_SRV_SIZE_ACCOUNT_MAIL);
-    strncpy(c_AuthRequest.p_Mail, Configuration::Singleton().GetServerAccountMail().c_str(), MRH_SRV_SIZE_ACCOUNT_MAIL);
+    strncpy(c_AuthRequest.p_Mail,
+            Configuration::Singleton().GetServerAccountMail().c_str(),
+            MRH_SRV_SIZE_ACCOUNT_MAIL);
     c_AuthRequest.u8_Actor = MRH_SRV_CLIENT_PLATFORM;
     c_AuthRequest.u8_Version = MRH_SRV_NET_MESSAGE_VERSION;
 
     memset(c_AuthProof.p_NonceHash, '\0', MRH_SRV_SIZE_NONCE_HASH);
     memset(c_AuthProof.p_DeviceKey, '\0', MRH_SRV_SIZE_DEVICE_KEY);
-    strncpy(c_AuthProof.p_DeviceKey, Configuration::Singleton().GetServerDeviceKey().c_str(), MRH_SRV_SIZE_DEVICE_KEY);
+    strncpy(c_AuthProof.p_DeviceKey,
+            Configuration::Singleton().GetServerDeviceKey().c_str(),
+            MRH_SRV_SIZE_DEVICE_KEY);
     
     // Message buffer
     uint8_t p_Buffer[MRH_SRV_SIZE_MESSAGE_BUFFER];
@@ -107,7 +111,7 @@ bool Server::ConnectToServer(MRH_Srv_Context* p_Context, MRH_Srv_Server* p_Serve
      *  Request & Challenge
      */
     
-    if (MRH_SRV_Connect(p_Context, p_Server, s_Address.c_str(), i_Port) < 0)
+    if (MRH_SRV_Connect(p_Context, p_Server, p_Address, i_Port) < 0)
     {
         return false;
     }
@@ -139,11 +143,15 @@ bool Server::ConnectToServer(MRH_Srv_Context* p_Context, MRH_Srv_Server* p_Serve
      *  Nonce
      */
     
-    std::string s_Password = Configuration::Singleton().GetServerAccountPassword();
-    uint8_t p_PasswordHash[MRH_SRV_SIZE_PASSWORD_HASH] = { '\0' };
+    char p_Password[MRH_SRV_SIZE_ACCOUNT_PASSWORD] = { '\0' };
+    uint8_t p_PasswordHash[MRH_SRV_SIZE_ACCOUNT_PASSWORD] = { '\0' };
     
-    if (MRH_SRV_CreatePasswordHash(p_PasswordHash, s_Password.c_str(), c_AuthChallenge.p_Salt, c_AuthChallenge.u8_HashType) < 0 ||
-        MRH_SRV_CreateNonceHash((uint8_t*)(c_AuthProof.p_NonceHash), c_AuthChallenge.u32_Nonce, s_Password.c_str()) < 0)
+    strncpy(p_Password,
+            Configuration::Singleton().GetServerAccountPassword().c_str(),
+            MRH_SRV_SIZE_ACCOUNT_PASSWORD);
+    
+    if (MRH_SRV_CreatePasswordHash(p_PasswordHash, p_Password, (c_AuthChallenge.p_Salt), c_AuthChallenge.u8_HashType) < 0 ||
+        MRH_SRV_CreateNonceHash((c_AuthProof.p_NonceHash), c_AuthChallenge.u32_Nonce, p_Password) < 0)
     {
         return false;
     }
@@ -179,7 +187,7 @@ bool Server::ConnectToServer(MRH_Srv_Context* p_Context, MRH_Srv_Server* p_Serve
     return c_AuthResult.u8_Result == MRH_SRV_NET_MESSAGE_ERR_NONE ? true : false;
 }
 
-bool Server::RequestChannel(MRH_Srv_Server* p_Server, std::string const& s_Channel, std::string& s_Address, int& i_Port) noexcept
+bool Server::RequestChannel(MRH_Srv_Server* p_Server, const char* p_Channel, char* p_Address, int& i_Port) noexcept
 {
     /**
      *  Variables
@@ -190,8 +198,7 @@ bool Server::RequestChannel(MRH_Srv_Server* p_Server, std::string const& s_Chann
     MRH_SRV_S_MSG_CHANNEL_RESPONSE_DATA c_Response;
     
     // Setup things we send
-    memset(c_Request.p_Channel, '\0', MRH_SRV_SIZE_SERVER_CHANNEL);
-    strncpy(c_Request.p_Channel, Configuration::Singleton().GetServerCommunicationChannel().c_str(), MRH_SRV_SIZE_SERVER_CHANNEL);
+    memcpy(c_Request.p_Channel, p_Channel, MRH_SRV_SIZE_SERVER_CHANNEL);
     
     // Message buffer
     uint8_t p_Buffer[MRH_SRV_SIZE_MESSAGE_BUFFER];
@@ -230,8 +237,7 @@ bool Server::RequestChannel(MRH_Srv_Server* p_Server, std::string const& s_Chann
     }
     
     // Set data
-    s_Address = std::string(c_Response.p_Channel,
-                            c_Response.p_Channel + strnlen(c_Response.p_Channel, MRH_SRV_SIZE_SERVER_CHANNEL));
+    strncpy(p_Address, c_Response.p_Address, MRH_SRV_SIZE_SERVER_ADDRESS);
     i_Port = c_Response.u32_Port;
     
     return true;
@@ -246,7 +252,6 @@ void Server::Update(Server* p_Instance) noexcept
     MRH_PSBLogger& c_Logger = MRH_PSBLogger::Singleton();
     Configuration& c_Config = Configuration::Singleton();
     
-    std::string s_DevicePassword = c_Config.GetServerDevicePassword();
     MRH_Uint32 u32_TimeoutS = c_Config.GetServerTimeoutS();
     
     uint8_t p_Buffer[MRH_SRV_SIZE_MESSAGE_BUFFER];
@@ -254,6 +259,27 @@ void Server::Update(Server* p_Instance) noexcept
     uint32_t u32_Nonce;
     randombytes_buf(&u32_Nonce, sizeof(u32_Nonce));
     time_t u32_HelloTimerS = time(NULL);
+    
+    int i_ConPort = c_Config.GetServerConnectionPort();
+    char p_ConAddress[MRH_SRV_SIZE_SERVER_ADDRESS] = { '\0' };
+    strncpy(p_ConAddress,
+            c_Config.GetServerConnectionAddress().c_str(),
+            MRH_SRV_SIZE_SERVER_ADDRESS);
+    
+    char p_Channel[MRH_SRV_SIZE_SERVER_CHANNEL] = { '\0' };
+    strncpy(p_Channel,
+            c_Config.GetServerCommunicationChannel().c_str(),
+            MRH_SRV_SIZE_SERVER_CHANNEL);
+    
+    char p_DeviceKey[MRH_SRV_SIZE_DEVICE_KEY] = { '\0' };
+    strncpy(p_DeviceKey,
+            c_Config.GetServerDeviceKey().c_str(),
+            MRH_SRV_SIZE_DEVICE_KEY);
+    
+    char p_DevicePassword[MRH_SRV_SIZE_DEVICE_PASSWORD] = { '\0' };
+    strncpy(p_DevicePassword,
+            c_Config.GetServerDevicePassword().c_str(),
+            MRH_SRV_SIZE_DEVICE_PASSWORD);
     
     /**
      *  Context
@@ -282,7 +308,7 @@ void Server::Update(Server* p_Instance) noexcept
         return;
     }
     
-    MRH_Srv_Server* p_Speech = MRH_SRV_CreateServer(p_Context, c_Config.GetServerCommunicationChannel().c_str());
+    MRH_Srv_Server* p_Speech = MRH_SRV_CreateServer(p_Context, p_Channel);
     
     if (p_Speech == NULL)
     {
@@ -309,16 +335,15 @@ void Server::Update(Server* p_Instance) noexcept
         // Check connection
         if (MRH_SRV_IsConnected(p_Speech) < 0)
         {
-            std::string s_ComAddress;
+            char p_ComAddress[MRH_SRV_SIZE_SERVER_ADDRESS] = { '\0' };
             int i_ComPort;
             
             if (p_Instance->ConnectToServer(p_Context, p_Connection,
-                                            c_Config.GetServerConnectionAddress(),
-                                            c_Config.GetServerConnectionPort()) == false ||
-                p_Instance->RequestChannel(p_Connection, c_Config.GetServerCommunicationChannel(),
-                                           s_ComAddress, i_ComPort) == false ||
+                                            p_ConAddress, i_ConPort) == false ||
+                p_Instance->RequestChannel(p_Connection, p_Channel,
+                                           p_ComAddress, i_ComPort) == false ||
                 p_Instance->ConnectToServer(p_Context, p_Speech,
-                                            s_ComAddress, i_ComPort) == false)
+                                            p_ComAddress, i_ComPort) == false)
             {
                 MRH_SRV_Disconnect(p_Connection);
                 std::this_thread::sleep_for(std::chrono::seconds(60));
@@ -357,7 +382,7 @@ void Server::Update(Server* p_Instance) noexcept
                     c_Challenge.u32_Nonce = u32_Nonce;
                     c_Challenge.u8_Actor = MRH_SRV_CLIENT_PLATFORM;
                     
-                    if (MRH_SRV_SendMessage(p_Speech, MRH_SRV_C_MSG_PAIR_CHALLENGE, &c_Challenge, s_DevicePassword.c_str()) < 0)
+                    if (MRH_SRV_SendMessage(p_Speech, MRH_SRV_C_MSG_PAIR_CHALLENGE, &c_Challenge, p_DevicePassword) < 0)
                     {
                         c_Logger.Log(MRH_PSBLogger::ERROR, "Failed to send net message: " +
                                                            std::string(MRH_ERR_GetServerErrorString()),
@@ -372,9 +397,9 @@ void Server::Update(Server* p_Instance) noexcept
                     uint8_t u8_Result = MRH_SRV_NET_MESSAGE_ERR_NONE;
                     uint8_t p_NonceBuffer[MRH_SRV_SIZE_NONCE_HASH];
                     
-                    if (MRH_SRV_CreateNonceHash(p_NonceBuffer, u32_Nonce, s_DevicePassword.c_str()) < 0 ||
-                        MRH_SRV_SetNetMessage(&c_Proof, p_Buffer, s_DevicePassword.c_str()) < 0 ||
-                        strncmp(c_Proof.p_DeviceKey, c_Config.GetServerDeviceKey().c_str(), MRH_SRV_SIZE_DEVICE_KEY) != 0 ||
+                    if (MRH_SRV_CreateNonceHash(p_NonceBuffer, u32_Nonce, p_DevicePassword) < 0 ||
+                        MRH_SRV_SetNetMessage(&c_Proof, p_Buffer, p_DevicePassword) < 0 ||
+                        strncmp(c_Proof.p_DeviceKey, p_DeviceKey, MRH_SRV_SIZE_DEVICE_KEY) != 0 ||
                         memcmp(p_NonceBuffer, c_Proof.p_NonceHash, MRH_SRV_SIZE_NONCE_HASH) != 0)
                     {
                         c_Logger.Log(MRH_PSBLogger::ERROR, "Failed to check proof: " +
@@ -386,7 +411,7 @@ void Server::Update(Server* p_Instance) noexcept
                     MRH_SRV_C_MSG_PAIR_RESULT_DATA c_Result;
                     c_Result.u8_Result = u8_Result;
                     
-                    if (MRH_SRV_SendMessage(p_Speech, MRH_SRV_C_MSG_PAIR_RESULT, &c_Result, s_DevicePassword.c_str()) < 0)
+                    if (MRH_SRV_SendMessage(p_Speech, MRH_SRV_C_MSG_PAIR_RESULT, &c_Result, p_DevicePassword) < 0)
                     {
                         c_Logger.Log(MRH_PSBLogger::ERROR, "Failed to send net message: " +
                                                            std::string(MRH_ERR_GetServerErrorString()),
@@ -412,7 +437,7 @@ void Server::Update(Server* p_Instance) noexcept
                     
                     MRH_SRV_C_MSG_TEXT_DATA c_Text;
                     
-                    if (MRH_SRV_SetNetMessage(&c_Text, p_Buffer, s_DevicePassword.c_str()) == 0)
+                    if (MRH_SRV_SetNetMessage(&c_Text, p_Buffer, p_DevicePassword) == 0)
                     {
                         std::string s_Text(c_Text.p_String,
                                            c_Text.p_String + strnlen(c_Text.p_String, MRH_SRV_SIZE_MESSAGE_BUFFER - 1));
@@ -455,11 +480,12 @@ void Server::Update(Server* p_Instance) noexcept
                     }
                     else
                     {
+                        memset(c_Text.p_String, '\0', (MRH_SRV_SIZE_MESSAGE_BUFFER - 1));
                         strncpy(c_Text.p_String, s_String.c_str(), s_String.size());
                         s_String.clear();
                     }
                     
-                    if (MRH_SRV_SendMessage(p_Speech, MRH_SRV_C_MSG_PAIR_RESULT, &c_Text, s_DevicePassword.c_str()) < 0)
+                    if (MRH_SRV_SendMessage(p_Speech, MRH_SRV_C_MSG_PAIR_RESULT, &c_Text, p_DevicePassword) < 0)
                     {
                         c_Logger.Log(MRH_PSBLogger::WARNING, "Failed to send net message: " +
                                                              std::string(MRH_ERR_GetServerErrorString()),
@@ -481,7 +507,7 @@ void Server::Update(Server* p_Instance) noexcept
         else if (u32_HelloTimerS <= time(NULL))
         {
             // Send Hello to keep connection active
-            if (MRH_SRV_SendMessage(p_Speech, MRH_SRV_C_MSG_HELLO, NULL, s_DevicePassword.c_str()) < 0)
+            if (MRH_SRV_SendMessage(p_Speech, MRH_SRV_C_MSG_HELLO, NULL, p_DevicePassword) < 0)
             {
                 c_Logger.Log(MRH_PSBLogger::WARNING, "Failed to send net message: " +
                                                      std::string(MRH_ERR_GetServerErrorString()),
