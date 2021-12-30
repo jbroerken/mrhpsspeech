@@ -26,6 +26,7 @@
 
 // External
 #include <libmrhpsb/MRH_PSBLogger.h>
+#include <sodium.h>
 
 // Project
 #include "./Server.h"
@@ -130,12 +131,15 @@ bool Server::ConnectToServer(MRH_Srv_Context* p_Context, MRH_Srv_Server* p_Serve
         {
             return false;
         }
-        else if (MRH_SRV_RecieveMessage(p_Server, p_Buffer) != MRH_SRV_S_MSG_AUTH_CHALLENGE)
+        else if (MRH_SRV_RecieveMessage(p_Server, p_Buffer, NULL) != MRH_SRV_S_MSG_AUTH_CHALLENGE)
         {
             continue;
         }
+        else if (MRH_SRV_SetNetMessage(&c_AuthChallenge, p_Buffer) < 0)
+        {
+            return false;
+        }
         
-        MRH_SRV_SetNetMessage(&c_AuthChallenge, p_Buffer, NULL);
         break;
     }
     
@@ -174,12 +178,15 @@ bool Server::ConnectToServer(MRH_Srv_Context* p_Context, MRH_Srv_Server* p_Serve
         {
             return false;
         }
-        else if (MRH_SRV_RecieveMessage(p_Server, p_Buffer) != MRH_SRV_S_MSG_AUTH_RESULT)
+        else if (MRH_SRV_RecieveMessage(p_Server, p_Buffer, NULL) != MRH_SRV_S_MSG_AUTH_RESULT)
         {
             continue;
         }
+        else if (MRH_SRV_SetNetMessage(&c_AuthResult, p_Buffer) < 0)
+        {
+            return false;
+        }
         
-        MRH_SRV_SetNetMessage(&c_AuthResult, p_Buffer, NULL);
         break;
     }
     
@@ -221,14 +228,15 @@ bool Server::RequestChannel(MRH_Srv_Server* p_Server, const char* p_Channel, cha
         {
             return false;
         }
-        else if (MRH_SRV_RecieveMessage(p_Server, p_Buffer) != MRH_SRV_S_MSG_CHANNEL_RESPONSE)
+        else if (MRH_SRV_RecieveMessage(p_Server, p_Buffer, NULL) != MRH_SRV_S_MSG_CHANNEL_RESPONSE)
         {
             continue;
         }
-        
-        MRH_SRV_SetNetMessage(&c_Response, p_Buffer, NULL);
-        
-        if (strncmp(c_Request.p_Channel, c_Response.p_Channel, MRH_SRV_SIZE_SERVER_CHANNEL) != 0)
+        else if (MRH_SRV_SetNetMessage(&c_Response, p_Buffer) < 0)
+        {
+            return false;
+        }
+        else if (strncmp(c_Request.p_Channel, c_Response.p_Channel, MRH_SRV_SIZE_SERVER_CHANNEL) != 0)
         {
             continue;
         }
@@ -361,7 +369,7 @@ void Server::Update(Server* p_Instance) noexcept
          *  Recieve
          */
         
-        while ((e_Message = MRH_SRV_RecieveMessage(p_Speech, p_Buffer)) != MRH_SRV_CS_MSG_UNK)
+        while ((e_Message = MRH_SRV_RecieveMessage(p_Speech, p_Buffer, p_DevicePassword)) != MRH_SRV_CS_MSG_UNK)
         {
             switch (e_Message)
             {
@@ -382,7 +390,7 @@ void Server::Update(Server* p_Instance) noexcept
                     c_Challenge.u32_Nonce = u32_Nonce;
                     c_Challenge.u8_Actor = MRH_SRV_CLIENT_PLATFORM;
                     
-                    if (MRH_SRV_SendMessage(p_Speech, MRH_SRV_C_MSG_PAIR_CHALLENGE, &c_Challenge, p_DevicePassword) < 0)
+                    if (MRH_SRV_SendMessage(p_Speech, MRH_SRV_C_MSG_PAIR_CHALLENGE, &c_Challenge, NULL) < 0)
                     {
                         c_Logger.Log(MRH_PSBLogger::ERROR, "Failed to send net message: " +
                                                            std::string(MRH_ERR_GetServerErrorString()),
@@ -398,7 +406,7 @@ void Server::Update(Server* p_Instance) noexcept
                     uint8_t p_NonceBuffer[MRH_SRV_SIZE_NONCE_HASH];
                     
                     if (MRH_SRV_CreateNonceHash(p_NonceBuffer, u32_Nonce, p_DevicePassword) < 0 ||
-                        MRH_SRV_SetNetMessage(&c_Proof, p_Buffer, p_DevicePassword) < 0 ||
+                        MRH_SRV_SetNetMessage(&c_Proof, p_Buffer) < 0 ||
                         strncmp(c_Proof.p_DeviceKey, p_DeviceKey, MRH_SRV_SIZE_DEVICE_KEY) != 0 ||
                         memcmp(p_NonceBuffer, c_Proof.p_NonceHash, MRH_SRV_SIZE_NONCE_HASH) != 0)
                     {
@@ -411,7 +419,7 @@ void Server::Update(Server* p_Instance) noexcept
                     MRH_SRV_C_MSG_PAIR_RESULT_DATA c_Result;
                     c_Result.u8_Result = u8_Result;
                     
-                    if (MRH_SRV_SendMessage(p_Speech, MRH_SRV_C_MSG_PAIR_RESULT, &c_Result, p_DevicePassword) < 0)
+                    if (MRH_SRV_SendMessage(p_Speech, MRH_SRV_C_MSG_PAIR_RESULT, &c_Result, NULL) < 0)
                     {
                         c_Logger.Log(MRH_PSBLogger::ERROR, "Failed to send net message: " +
                                                            std::string(MRH_ERR_GetServerErrorString()),
@@ -437,7 +445,7 @@ void Server::Update(Server* p_Instance) noexcept
                     
                     MRH_SRV_C_MSG_TEXT_DATA c_Text;
                     
-                    if (MRH_SRV_SetNetMessage(&c_Text, p_Buffer, p_DevicePassword) == 0)
+                    if (MRH_SRV_SetNetMessage(&c_Text, p_Buffer) == 0)
                     {
                         std::string s_Text(c_Text.p_String,
                                            c_Text.p_String + strnlen(c_Text.p_String, MRH_SRV_SIZE_MESSAGE_BUFFER - 1));
@@ -507,7 +515,7 @@ void Server::Update(Server* p_Instance) noexcept
         else if (u32_HelloTimerS <= time(NULL))
         {
             // Send Hello to keep connection active
-            if (MRH_SRV_SendMessage(p_Speech, MRH_SRV_C_MSG_HELLO, NULL, p_DevicePassword) < 0)
+            if (MRH_SRV_SendMessage(p_Speech, MRH_SRV_C_MSG_HELLO, NULL, NULL) < 0)
             {
                 c_Logger.Log(MRH_PSBLogger::WARNING, "Failed to send net message: " +
                                                      std::string(MRH_ERR_GetServerErrorString()),
