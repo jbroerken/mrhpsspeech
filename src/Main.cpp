@@ -75,8 +75,7 @@ int main(int argc, const char* argv[])
         p_Context = new libmrhpsb("mrhpsspeech",
                                   argc,
                                   argv,
-                                  MRH_SPEECH_SERVICE_THREAD_COUNT,
-                                  true);
+                                  MRH_SPEECH_SERVICE_THREAD_COUNT);
     }
     catch (MRH_PSBException& e)
     {
