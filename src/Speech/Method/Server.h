@@ -107,34 +107,8 @@ public:
 private:
     
     //*************************************************************************************
-    // Server
+    // Update
     //*************************************************************************************
-    
-    /**
-     *  Perform connection and authentication with a given server.
-     *
-     *  \param p_Context The context in use.
-     *  \param p_Server The server to authenticate for.
-     *  \param p_Address The server address.
-     *  \param i_Port The server port.
-     *
-     *  \return true on success, false on failure.
-     */
-    
-    bool ConnectToServer(MRH_Srv_Context* p_Context, MRH_Srv_Server* p_Server, const char* p_Address, int i_Port) noexcept;
-    
-    /**
-     *  Request channel info from a server.
-     *
-     *  \param p_Server The server to request from.
-     *  \param p_Channel The channel identifier to request.
-     *  \param p_Address The reference to the address result.
-     *  \param i_Port The reference to the port result.
-     *
-     *  \return true on success, false on failure.
-     */
-
-    bool RequestChannel(MRH_Srv_Server* p_Server, const char* p_Channel, char* p_Address, int& i_Port) noexcept;
     
     /**
      *  Update the server communication.
@@ -145,14 +119,60 @@ private:
     static void Update(Server* p_Instance) noexcept;
     
     //*************************************************************************************
+    // Listen
+    //*************************************************************************************
+    
+    /**
+     *  Recieve a message from the server.
+     *
+     *  \param p_Server The server to recieve from.
+     *  \param i_State The current client state.
+     *
+     *  \return The next state the client moved to, -1 on no message.
+     */
+    
+    int RecieveMessage(MRH_Srv_Server* p_Server, int i_State) noexcept;
+    
+    //*************************************************************************************
+    // Say
+    //*************************************************************************************
+    
+    /**
+     *  Send a message from the server.
+     *
+     *  \param p_Server The server to recieve from.
+     *  \param i_State The current client state.
+     *
+     *  \return true if a message was sent, false if not.
+     */
+    
+    bool SendMessage(MRH_Srv_Server* p_Server, int i_State) noexcept;
+    
+    //*************************************************************************************
     // Data
     //*************************************************************************************
     
+    // Thread
     std::thread c_Thread;
     std::atomic<bool> b_Run;
     
-    std::atomic<bool> b_AppConnected;
+    // Connection
+    std::atomic<bool> b_AppPaired;
     
+    char p_AccountMail[MRH_SRV_SIZE_ACCOUNT_MAIL];
+    char p_AccountPassword[MRH_SRV_SIZE_ACCOUNT_PASSWORD];
+    
+    char p_DeviceKey[MRH_SRV_SIZE_DEVICE_KEY];
+    char p_DevicePassword[MRH_SRV_SIZE_DEVICE_PASSWORD];
+    
+    char p_ConServerAddress[MRH_SRV_SIZE_SERVER_ADDRESS];
+    int i_ConServerPort;
+    
+    char p_ComServerChannel[MRH_SRV_SIZE_SERVER_CHANNEL];
+    char p_ComServerAddress[MRH_SRV_SIZE_SERVER_ADDRESS];
+    int i_ComServerPort;
+    
+    // Messages
     std::mutex c_RecieveMutex;
     std::list<std::string> l_Recieve;
     

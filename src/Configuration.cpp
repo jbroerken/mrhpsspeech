@@ -39,17 +39,17 @@ namespace
     {
         // Block Name
         BLOCK_SERVICE = 0,
-        BLOCK_VOICE = 2,
-        BLOCK_SERVER = 3,
+        BLOCK_VOICE = 1,
+        BLOCK_SERVER = 2,
         
         // Service Key
-        SERVICE_METHOD_WAIT_MS = 4,
+        SERVICE_METHOD_WAIT_MS = 3,
         
         // Voice Key
-        VOICE_TRIGGER_KEYPHRASE = 5,
-        VOICE_TRIGGER_TIMEOUT_S = 6,
-        VOICE_RECORDING_KHZ = 7,
-        VOICE_RECORDING_STORAGE_S,
+        VOICE_TRIGGER_KEYPHRASE = 4,
+        VOICE_TRIGGER_TIMEOUT_S = 5,
+        VOICE_RECORDING_KHZ = 6,
+        VOICE_RECORDING_STORAGE_S = 7,
         VOICE_PLAYBACK_KHZ,
         VOICE_GOOGLE_API_LANGUAGE_CODE,
         VOICE_GOOGLE_API_VOICE_GENDER,

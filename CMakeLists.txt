@@ -164,7 +164,9 @@ find_library(libmrhpsb NAMES mrhpsb REQUIRED)
 find_library(libmrhvt NAMES mrhvt REQUIRED)
 
 if(USE_METHOD_SERVER MATCHES ON)
+    find_library(libmsquic NAMES msquic REQUIRED)
     find_library(libsodium NAMES sodium REQUIRED)
+    find_library(libmrhsrv NAMES mrhsrv REQUIRED)
 endif()
 
 if(USE_METHOD_VOICE MATCHES ON)
@@ -179,7 +181,14 @@ target_link_libraries(mrhpsspeech PUBLIC mrhpsb)
 target_link_libraries(mrhpsspeech PUBLIC mrhvt)
 
 if(USE_METHOD_SERVER MATCHES ON)
+    if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+        target_link_libraries(mrhpsspeech PUBLIC
+                              "-framework CoreFoundation"
+                              "-framework Security")
+    endif()
+    target_link_libraries(mrhpsspeech PUBLIC msquic)
     target_link_libraries(mrhpsspeech PUBLIC sodium)
+    target_link_libraries(mrhpsspeech PUBLIC mrhsrv)
 endif()
 
 if(USE_METHOD_VOICE MATCHES ON)

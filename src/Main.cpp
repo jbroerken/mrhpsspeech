@@ -71,11 +71,11 @@ int main(int argc, const char* argv[])
     
     try
     {
-        Configuration::Singleton().Load();
         p_Context = new libmrhpsb("mrhpsspeech",
                                   argc,
                                   argv,
                                   MRH_SPEECH_SERVICE_THREAD_COUNT);
+        Configuration::Singleton().Load();
     }
     catch (MRH_PSBException& e)
     {
