@@ -30,6 +30,7 @@
 #include "./Callback/Service/CBCustomCommand.h"
 #include "./Callback/Speech/CBSayString.h"
 #include "./Callback/Speech/CBSpeechMethod.h"
+#include "./Callback/Speech/CBRemoteNotification.h"
 #include "./Configuration.h"
 #include "./Revision.h"
 
@@ -99,6 +100,7 @@ int main(int argc, const char* argv[])
         
         std::shared_ptr<MRH_Callback> p_CBSayString(new CBSayString(p_Speech));
         std::shared_ptr<MRH_Callback> p_CBSpeechMethod(new CBSpeechMethod(p_Speech));
+        std::shared_ptr<MRH_Callback> p_CBRemoteNotification(new CBRemoteNotification());
         
         p_Context->AddCallback(p_CBAvail, MRH_EVENT_LISTEN_AVAIL_U);
         p_Context->AddCallback(p_CBAvail, MRH_EVENT_SAY_AVAIL_U);
@@ -108,6 +110,7 @@ int main(int argc, const char* argv[])
         p_Context->AddCallback(p_CBSayString, MRH_EVENT_SAY_STRING_U);
         p_Context->AddCallback(p_CBSpeechMethod, MRH_EVENT_LISTEN_GET_METHOD_U);
         p_Context->AddCallback(p_CBSpeechMethod, MRH_EVENT_SAY_GET_METHOD_U);
+        p_Context->AddCallback(p_CBRemoteNotification, MRH_EVENT_SAY_REMOTE_NOTIFICATION_U);
     }
     catch (MRH_PSBException& e)
     {

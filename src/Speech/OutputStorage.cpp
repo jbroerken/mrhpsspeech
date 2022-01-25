@@ -74,29 +74,29 @@ void OutputStorage::ResetFinished() noexcept
 // Add
 //*************************************************************************************
 
-void OutputStorage::AddEvent(const MRH_S_STRING_U* p_Event, MRH_Uint32 u32_GroupID) noexcept
+void OutputStorage::AddString(MRH_EvD_S_String_U const& c_String, MRH_Uint32 u32_GroupID) noexcept
 {
     c_UnfinishedMutex.lock();
     
     // Already found?
-    auto Unfinished = m_Unfinished.find(p_Event->GetID());
+    auto Unfinished = m_Unfinished.find(c_String.u32_ID);
     
     if (Unfinished == m_Unfinished.end())
     {
         // Not found, add new
         try
         {
-            MRH_SpeechString c_String(p_Event->GetString(),
-                                      p_Event->GetPart(),
-                                      p_Event->GetID(),
-                                      p_Event->GetType() == MRH_S_STRING_U::END ? true : false);
+            MRH_SpeechString c_New(c_String.p_String,
+                                   c_String.u32_Part,
+                                   c_String.u32_ID,
+                                   c_String.u8_Type == MRH_EVD_S_STRING_END ? true : false);
             
-            if (m_Unfinished.insert(std::make_pair(p_Event->GetID(), std::make_pair(c_String, u32_GroupID))).second == false)
+            if (m_Unfinished.insert(std::make_pair(c_String.u32_ID, std::make_pair(c_New, u32_GroupID))).second == false)
             {
                 throw Exception("Failed to add output to map!");
             }
             
-            Unfinished = m_Unfinished.find(p_Event->GetID());
+            Unfinished = m_Unfinished.find(c_String.u32_ID);
         }
         catch (std::exception& e) // Catch all
         {
@@ -117,15 +117,15 @@ void OutputStorage::AddEvent(const MRH_S_STRING_U* p_Event, MRH_Uint32 u32_Group
             {
                 case MRH_SpeechString::UNFINISHED:
                 case MRH_SpeechString::END_KNOWN:
-                    Unfinished->second.first.Add(p_Event->GetString(),
-                                                 p_Event->GetPart(),
-                                                 p_Event->GetType() == MRH_S_STRING_U::END ? true : false);
+                    Unfinished->second.first.Add(c_String.p_String,
+                                                 c_String.u32_Part,
+                                                 c_String.u8_Type == MRH_EVD_S_STRING_END ? true : false);
                     break;
                 case MRH_SpeechString::COMPLETE:
-                    Unfinished->second.first.Reset(p_Event->GetString(),
-                                                   p_Event->GetID(),
-                                                   p_Event->GetPart(),
-                                                   p_Event->GetType() == MRH_S_STRING_U::END ? true : false);
+                    Unfinished->second.first.Reset(c_String.p_String,
+                                                   c_String.u32_ID,
+                                                   c_String.u32_Part,
+                                                   c_String.u8_Type == MRH_EVD_S_STRING_END ? true : false);
                     break;
                     
                 default:
@@ -137,10 +137,10 @@ void OutputStorage::AddEvent(const MRH_S_STRING_U* p_Event, MRH_Uint32 u32_Group
         else
         {
             Unfinished->second.second = u32_GroupID;
-            Unfinished->second.first.Reset(p_Event->GetString(),
-                                           p_Event->GetID(),
-                                           p_Event->GetPart(),
-                                           p_Event->GetType() == MRH_S_STRING_U::END ? true : false);
+            Unfinished->second.first.Reset(c_String.p_String,
+                                           c_String.u32_ID,
+                                           c_String.u32_Part,
+                                           c_String.u8_Type == MRH_EVD_S_STRING_END ? true : false);
         }
     }
     catch (std::exception& e) // Catch all

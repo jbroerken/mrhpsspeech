@@ -27,7 +27,6 @@
 #include <atomic>
 
 // External
-#include <libmrhcevs/Event/MRH_EvSpeechMethod.h>
 
 // Project
 #include "./OutputStorage.h"
@@ -37,6 +36,22 @@
 class Speech
 {
 public:
+    
+    //*************************************************************************************
+    // Types
+    //*************************************************************************************
+    
+    // The order is important! Lower numbers are used before higher ones (std::map)
+    enum Method
+    {
+        CLI = 0,
+        MRH_SRV = 1,
+        VOICE = 2,
+        
+        METHOD_MAX = VOICE,
+        
+        METHOD_COUNT = METHOD_MAX + 1
+    };
     
     //*************************************************************************************
     // Constructor / Destructor
@@ -72,7 +87,7 @@ public:
      *  \return The current speech method.
      */
     
-    MRH_EvSpeechMethod::Method GetMethod() noexcept;
+    Method GetMethod() noexcept;
     
     /**
      *  Check if a speech method was selected.
@@ -83,22 +98,6 @@ public:
     bool GetMethodSelected() noexcept;
     
 private:
-    
-    //*************************************************************************************
-    // Types
-    //*************************************************************************************
-    
-    // The order is important! Lower numbers are used before higher ones (std::map)
-    enum Method
-    {
-        CLI = 0,
-        MRH_SRV = 1,
-        VOICE = 2,
-        
-        METHOD_MAX = VOICE,
-        
-        METHOD_COUNT = METHOD_MAX + 1
-    };
     
     //*************************************************************************************
     // Update
@@ -122,7 +121,7 @@ private:
     OutputStorage c_OutputStorage;
     
     std::map<Method, SpeechMethod*> m_Method;
-    std::atomic<MRH_EvSpeechMethod::Method> e_Method; // Separate for thread safety
+    std::atomic<Method> e_Method; // Separate for thread safety
     std::atomic<bool> b_MethodSelected;
     
 protected:

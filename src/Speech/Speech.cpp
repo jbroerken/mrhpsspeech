@@ -42,7 +42,7 @@
 // Constructor / Destructor
 //*************************************************************************************
 
-Speech::Speech() : e_Method(MRH_EvSpeechMethod::VOICE),
+Speech::Speech() : e_Method(VOICE),
                    b_Update(true),
                    b_MethodSelected(false)
 {
@@ -132,7 +132,7 @@ void Speech::Update(Speech* p_Instance) noexcept
                 if (Method.second->IsUsable() == false)
                 {
                     p_Method = NULL;
-                    p_Instance->e_Method = MRH_EvSpeechMethod::VOICE; // Default
+                    p_Instance->e_Method = VOICE; // Default
                 }
                 
                 continue;
@@ -156,18 +156,8 @@ void Speech::Update(Speech* p_Instance) noexcept
                          "Speech.cpp", __LINE__);
             p_Method = Method.second;
             
-            // Method callback - set correct method
-            switch (Method.first)
-            {
-                case CLI:
-                case MRH_SRV:
-                    p_Instance->e_Method = MRH_EvSpeechMethod::TEXT;
-                    break;
-                    
-                default:
-                    p_Instance->e_Method = MRH_EvSpeechMethod::VOICE;
-                    break;
-            }
+            // Set used speech method
+            p_Instance->e_Method = Method.first;
             
             // Method set, end
             break;
@@ -191,8 +181,8 @@ void Speech::Update(Speech* p_Instance) noexcept
         }
         
         // Wait a bit for data
-        // @NOTE: We ALWAYS wait - we want servers and audio devices to idealy
-        //        have sent some data when calling Listen()
+        // @NOTE: We ALWAYS wait - we want servers and audio devices to have sent
+        //        some data when calling Listen()
         std::this_thread::sleep_for(std::chrono::milliseconds(u32_MethodWaitMS));
         
         // Exchange data
@@ -218,7 +208,7 @@ OutputStorage& Speech::GetOutputStorage() noexcept
     return c_OutputStorage;
 }
 
-MRH_EvSpeechMethod::Method Speech::GetMethod() noexcept
+Speech::Method Speech::GetMethod() noexcept
 {
     return e_Method;
 }

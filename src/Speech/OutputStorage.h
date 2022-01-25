@@ -28,7 +28,7 @@
 #include <list>
 
 // External
-#include <libmrhcevs/Event/V1/User/MRH_CESayU_V1.h>
+#include <libmrhevdata/Version/1/MRH_EvSay_V1.h>
 #include <libmrhvt/String/MRH_SpeechString.h>
 
 // Project
@@ -109,13 +109,13 @@ public:
     //*************************************************************************************
     
     /**
-     *  Add a output event to the storage. This function is thread safe.
+     *  Add a output string to the storage. This function is thread safe.
      *
-     *  \param p_Event The event to add.
+     *  \param c_String The string data to add.
      *  \param u32_GroupID The group id of the event to add.
      */
     
-    void AddEvent(const MRH_S_STRING_U* p_Event, MRH_Uint32 u32_GroupID) noexcept;
+    void AddString(MRH_EvD_S_String_U const& c_String, MRH_Uint32 u32_GroupID) noexcept;
     
     //*************************************************************************************
     // Getters

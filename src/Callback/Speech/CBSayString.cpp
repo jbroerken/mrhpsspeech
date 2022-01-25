@@ -22,6 +22,7 @@
 // C / C++
 
 // External
+#include <libmrhpsb/MRH_PSBLogger.h>
 
 // Project
 #include "./CBSayString.h"
@@ -42,8 +43,17 @@ CBSayString::~CBSayString() noexcept
 // Callback
 //*************************************************************************************
 
-void CBSayString::Callback(const MRH_EVBase* p_Event, MRH_Uint32 u32_GroupID) noexcept
+void CBSayString::Callback(const MRH_Event* p_Event, MRH_Uint32 u32_GroupID) noexcept
 {
+    MRH_EvD_S_String_U c_Data;
+    
+    if (MRH_EVD_ReadEvent(&c_Data, p_Event->u32_Type, p_Event) < 0)
+    {
+        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Failed to read request event!",
+                                       "CBSayString.cpp", __LINE__);
+        return;
+    }
+    
     // No return, sent on output performed!
-    p_Speech->GetOutputStorage().AddEvent(static_cast<const MRH_S_STRING_U*>(p_Event), u32_GroupID);
+    p_Speech->GetOutputStorage().AddString(c_Data, u32_GroupID);
 }

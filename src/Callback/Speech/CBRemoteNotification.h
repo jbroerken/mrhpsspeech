@@ -1,5 +1,5 @@
 /**
- *  CBSpeechMethod.h
+ *  CBRemoteNotification.h
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -19,8 +19,8 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef CBSpeechMethod_h
-#define CBSpeechMethod_h
+#ifndef CBRemoteNotification_h
+#define CBRemoteNotification_h
 
 // C / C++
 #include <memory>
@@ -29,10 +29,9 @@
 #include <libmrhpsb/MRH_Callback.h>
 
 // Project
-#include "../../Speech/Speech.h"
 
 
-class CBSpeechMethod : public MRH_Callback
+class CBRemoteNotification : public MRH_Callback
 {
 public:
 
@@ -42,17 +41,15 @@ public:
     
     /**
      *  Default constructor.
-     *
-     *  \param p_Speech The used speech to check on callback.
      */
     
-    CBSpeechMethod(std::shared_ptr<Speech>& p_Speech) noexcept;
+    CBRemoteNotification() noexcept;
     
     /**
      *  Default destructor.
      */
     
-    ~CBSpeechMethod() noexcept;
+    ~CBRemoteNotification() noexcept;
     
     //*************************************************************************************
     // Callback
@@ -73,10 +70,8 @@ private:
     // Data
     //*************************************************************************************
     
-    std::shared_ptr<Speech> p_Speech;
-    
 protected:
 
 };
 
-#endif /* CBSpeechMethod_h */
+#endif /* CBRemoteNotification_h */

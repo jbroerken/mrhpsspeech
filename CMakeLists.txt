@@ -76,7 +76,9 @@ set(SRC_LIST_CALLBACK "${SRC_DIR_PATH}/Callback/Service/CBAvail.cpp"
                       "${SRC_DIR_PATH}/Callback/Speech/CBSayString.cpp"
                       "${SRC_DIR_PATH}/Callback/Speech/CBSayString.h"
                       "${SRC_DIR_PATH}/Callback/Speech/CBSpeechMethod.cpp"
-                      "${SRC_DIR_PATH}/Callback/Speech/CBSpeechMethod.h")
+                      "${SRC_DIR_PATH}/Callback/Speech/CBSpeechMethod.h"
+                      "${SRC_DIR_PATH}/Callback/Speech/CBRemoteNotification.cpp"
+                      "${SRC_DIR_PATH}/Callback/Speech/CBRemoteNotification.h")
                       
 set(SRC_LIST_SPEECH_METHOD)
 
@@ -159,7 +161,7 @@ set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 find_library(libmrhbf NAMES mrhbf REQUIRED)
 find_library(libmrhev NAMES mrhev REQUIRED)
-find_library(libmrhcevs NAMES mrhcevs REQUIRED)
+find_library(libmrhevdata NAMES mrhevdata REQUIRED)
 find_library(libmrhpsb NAMES mrhpsb REQUIRED)
 find_library(libmrhvt NAMES mrhvt REQUIRED)
 
@@ -176,7 +178,7 @@ endif()
 target_link_libraries(mrhpsspeech PUBLIC Threads::Threads)
 target_link_libraries(mrhpsspeech PUBLIC mrhbf)
 target_link_libraries(mrhpsspeech PUBLIC mrhev)
-target_link_libraries(mrhpsspeech PUBLIC mrhcevs)
+target_link_libraries(mrhpsspeech PUBLIC mrhevdata)
 target_link_libraries(mrhpsspeech PUBLIC mrhpsb)
 target_link_libraries(mrhpsspeech PUBLIC mrhvt)
 

@@ -42,25 +42,72 @@ CBSpeechMethod::~CBSpeechMethod() noexcept
 // Callback
 //*************************************************************************************
 
-void CBSpeechMethod::Callback(const MRH_EVBase* p_Event, MRH_Uint32 u32_GroupID) noexcept
+void CBSpeechMethod::Callback(const MRH_Event* p_Event, MRH_Uint32 u32_GroupID) noexcept
 {
-    try
+    MRH_Event* p_Result = NULL;
+    
+    if (p_Event->u32_Type == MRH_EVENT_LISTEN_GET_METHOD_U)
     {
-        switch (p_Event->GetType())
+        MRH_EvD_L_GetMethod_S c_Data;
+        c_Data.u8_Result = 1;
+        
+        switch (p_Speech->GetMethod())
         {
-            case MRH_EVENT_LISTEN_GET_METHOD_U:
-                MRH_EventStorage::Singleton().Add(MRH_L_GET_METHOD_S(p_Speech->GetMethod()),
-                                                  u32_GroupID);
+            case Speech::CLI:
+            case Speech::MRH_SRV:
+                c_Data.u8_Method = MRH_EVD_L_SPEECH_TEXT;
                 break;
-            case MRH_EVENT_SAY_GET_METHOD_U:
-                MRH_EventStorage::Singleton().Add(MRH_S_GET_METHOD_S(p_Speech->GetMethod()),
-                                                  u32_GroupID);
+                
+            default:
+                c_Data.u8_Method = MRH_EVD_L_SPEECH_VOICE;
                 break;
         }
+        
+        p_Result = MRH_EVD_CreateSetEvent(MRH_EVENT_LISTEN_GET_METHOD_S, &c_Data);
+    }
+    else if (p_Event->u32_Type == MRH_EVENT_SAY_GET_METHOD_U)
+    {
+        MRH_EvD_S_GetMethod_S c_Data;
+        c_Data.u8_Result = 1;
+        
+        switch (p_Speech->GetMethod())
+        {
+            case Speech::CLI:
+            case Speech::MRH_SRV:
+                c_Data.u8_Method = MRH_EVD_S_SPEECH_TEXT;
+                break;
+                
+            default:
+                c_Data.u8_Method = MRH_EVD_S_SPEECH_VOICE;
+                break;
+        }
+        
+        p_Result = MRH_EVD_CreateSetEvent(MRH_EVENT_SAY_GET_METHOD_S, &c_Data);
+    }
+    else
+    {
+        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Failed to create response event!",
+                                       "CBSpeechMethod.cpp", __LINE__);
+        return;
+    }
+    
+    if (p_Result == NULL)
+    {
+        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Failed to create response event!",
+                                       "CBSpeechMethod.cpp", __LINE__);
+        return;
+    }
+    
+    p_Result->u32_GroupID = u32_GroupID;
+    
+    try
+    {
+        MRH_EventStorage::Singleton().Add(p_Result);
     }
     catch (MRH_PSBException& e)
     {
         MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, e.what(),
                                        "CBSpeechMethod.cpp", __LINE__);
+        MRH_EVD_DestroyEvent(p_Result);
     }
 }

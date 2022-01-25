@@ -1,5 +1,5 @@
 /**
- *  CBCustomCommand.cpp
+ *  CBRemoteNotification.cpp
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -25,24 +25,24 @@
 #include <libmrhpsb/MRH_PSBLogger.h>
 
 // Project
-#include "./CBCustomCommand.h"
+#include "./CBRemoteNotification.h"
 
 
 //*************************************************************************************
 // Constructor / Destructor
 //*************************************************************************************
 
-CBCustomCommand::CBCustomCommand() noexcept
+CBRemoteNotification::CBRemoteNotification() noexcept
 {}
 
-CBCustomCommand::~CBCustomCommand() noexcept
+CBRemoteNotification::~CBRemoteNotification() noexcept
 {}
 
 //*************************************************************************************
 // Callback
 //*************************************************************************************
 
-void CBCustomCommand::Callback(const MRH_Event* p_Event, MRH_Uint32 u32_GroupID) noexcept
+void CBRemoteNotification::Callback(const MRH_Event* p_Event, MRH_Uint32 u32_GroupID) noexcept
 {
     MRH_EvD_Sys_NotImplemented_S c_Data;
     c_Data.u32_Type = p_Event->u32_Type;
