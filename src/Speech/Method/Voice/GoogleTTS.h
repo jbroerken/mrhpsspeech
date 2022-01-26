@@ -29,6 +29,7 @@
 
 // Project
 #include "./AudioTrack.h"
+#include "../../../Configuration.h"
 
 
 class GoogleTTS
@@ -41,9 +42,11 @@ public:
     
     /**
      *  Default constructor.
+     *
+     *  \param c_Configuration The configuration to use.
      */
     
-    GoogleTTS();
+    GoogleTTS(Configuration const& c_Configuration);
     
     /**
      *  Default destructor.
@@ -70,6 +73,9 @@ private:
     //*************************************************************************************
     
     AudioTrack c_Audio; // Result
+    
+    std::string s_LangCode;
+    MRH_Uint32 u32_VoiceGender;
     
 protected:
     

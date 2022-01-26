@@ -36,177 +36,9 @@ class Configuration
 public:
     
     //*************************************************************************************
-    // Constructor
-    //*************************************************************************************
-
-    /**
-     *  Copy constructor. Disabled for this class.
-     *
-     *  \param c_Configuration Configuration class source.
-     */
-
-    Configuration(Configuration const& c_Configuration) = delete;
-    
-    //*************************************************************************************
-    // Singleton
-    //*************************************************************************************
-
-    /**
-     *  Get the class instance.
-     *
-     *  \return The class instance.
-     */
-
-    static Configuration& Singleton() noexcept;
-    
-    //*************************************************************************************
-    // Load
-    //*************************************************************************************
-
-    /**
-     *  Load the configuration.
-     */
-    
-    void Load();
-
-    //*************************************************************************************
-    // Getters
-    //*************************************************************************************
-    
-    /**
-     *  Get the service method wait time in milliseconds.
-     *
-     *  \return The method wait time.
-     */
-    
-    MRH_Uint32 GetServiceMethodWaitMS() noexcept;
-
-    /**
-     *  Get the voice trigger key phrase to start listening.
-     *
-     *  \return The trigger key phrase.
-     */
-
-    std::string GetVoiceTriggerKeyphrase() noexcept;
-    
-    /**
-     *  Get the voice trigger recognized timout in seconds.
-     *
-     *  \return The trigger recognized reset timeout.
-     */
-    
-    MRH_Uint32 GetVoiceTriggerTimeoutS() noexcept;
-    
-    /**
-     *  Get the voice recording KHz.
-     *
-     *  \return The recording KHz.
-     */
-    
-    MRH_Uint32 GetVoiceRecordingKHz() noexcept;
-    
-    /**
-     *  Get the voice recording sample storage size.
-     *
-     *  \return The recording sample storage size.
-     */
-    
-    MRH_Uint32 GetVoiceRecordingStorageS() noexcept;
-    
-    /**
-     *  Get the voice playback KHz.
-     *
-     *  \return The playback KHz.
-     */
-    
-    MRH_Uint32 GetVoicePlaybackKHz() noexcept;
-    
-    /**
-     *  Get the voice google cloud api language code.
-     *
-     *  \return The google cloud api language code.
-     */
-    
-    std::string GetVoiceGoogleLanguageCode() noexcept;
-    
-    /**
-     *  Get the voice google cloud api voice gender.
-     *
-     *  \return The google cloud api voice gender.
-     */
-    
-    MRH_Uint32 GetVoiceGoogleVoiceGender() noexcept;
-    
-    /**
-     *  Get the server account mail.
-     *
-     *  \return The server account mail.
-     */
-    
-    std::string GetServerAccountMail() noexcept;
-    
-    /**
-     *  Get the server account password.
-     *
-     *  \return The server account password.
-     */
-    
-    std::string GetServerAccountPassword() noexcept;
-    
-    /**
-     *  Get the server device key.
-     *
-     *  \return The server device key.
-     */
-    
-    std::string GetServerDeviceKey() noexcept;
-    
-    /**
-     *  Get the server device password.
-     *
-     *  \return The server device password.
-     */
-    
-    std::string GetServerDevicePassword() noexcept;
-    
-    /**
-     *  Get the server connection server address.
-     *
-     *  \return The server connection server address.
-     */
-    
-    std::string GetServerConnectionAddress() noexcept;
-    
-    /**
-     *  Get the server connection server port.
-     *
-     *  \return The server connection server port.
-     */
-    
-    int GetServerConnectionPort() noexcept;
-    
-    /**
-     *  Get the server communication server channel.
-     *
-     *  \return The server communication server channel.
-     */
-    
-    std::string GetServerCommunicationChannel() noexcept;
-    
-    /**
-     *  Get the server timeout in seconds.
-     *
-     *  \return The server timeout in seconds.
-     */
-    
-    MRH_Uint32 GetServerTimeoutS() noexcept;
-    
-private:
-    
-    //*************************************************************************************
     // Constructor / Destructor
     //*************************************************************************************
-
+    
     /**
      *  Default constructor.
      */
@@ -219,6 +51,148 @@ private:
 
     ~Configuration() noexcept;
 
+    //*************************************************************************************
+    // Getters
+    //*************************************************************************************
+    
+    /**
+     *  Get the service method wait time in milliseconds.
+     *
+     *  \return The method wait time.
+     */
+    
+    MRH_Uint32 GetServiceMethodWaitMS() const noexcept;
+
+    /**
+     *  Get the voice trigger key phrase to start listening.
+     *
+     *  \return The trigger key phrase.
+     */
+
+    std::string GetVoiceTriggerKeyphrase() const noexcept;
+    
+    /**
+     *  Get the voice trigger recognized timout in seconds.
+     *
+     *  \return The trigger recognized reset timeout.
+     */
+    
+    MRH_Uint32 GetVoiceTriggerTimeoutS() const noexcept;
+    
+    /**
+     *  Get the voice recording KHz.
+     *
+     *  \return The recording KHz.
+     */
+    
+    MRH_Uint32 GetVoiceRecordingKHz() const noexcept;
+    
+    /**
+     *  Get the voice recording sample storage size.
+     *
+     *  \return The recording sample storage size.
+     */
+    
+    MRH_Uint32 GetVoiceRecordingStorageS() const noexcept;
+    
+    /**
+     *  Get the voice playback KHz.
+     *
+     *  \return The playback KHz.
+     */
+    
+    MRH_Uint32 GetVoicePlaybackKHz() const noexcept;
+    
+    /**
+     *  Get the voice google cloud api language code.
+     *
+     *  \return The google cloud api language code.
+     */
+    
+    std::string GetVoiceGoogleLanguageCode() const noexcept;
+    
+    /**
+     *  Get the voice google cloud api voice gender.
+     *
+     *  \return The google cloud api voice gender.
+     */
+    
+    MRH_Uint32 GetVoiceGoogleVoiceGender() const noexcept;
+    
+    /**
+     *  Get the server account mail.
+     *
+     *  \return The server account mail.
+     */
+    
+    std::string GetServerAccountMail() const noexcept;
+    
+    /**
+     *  Get the server account password.
+     *
+     *  \return The server account password.
+     */
+    
+    std::string GetServerAccountPassword() const noexcept;
+    
+    /**
+     *  Get the server device key.
+     *
+     *  \return The server device key.
+     */
+    
+    std::string GetServerDeviceKey() const noexcept;
+    
+    /**
+     *  Get the server device password.
+     *
+     *  \return The server device password.
+     */
+    
+    std::string GetServerDevicePassword() const noexcept;
+    
+    /**
+     *  Get the server connection server address.
+     *
+     *  \return The server connection server address.
+     */
+    
+    std::string GetServerConnectionAddress() const noexcept;
+    
+    /**
+     *  Get the server connection server port.
+     *
+     *  \return The server connection server port.
+     */
+    
+    int GetServerConnectionPort() const noexcept;
+    
+    /**
+     *  Get the server communication server channel.
+     *
+     *  \return The server communication server channel.
+     */
+    
+    std::string GetServerCommunicationChannel() const noexcept;
+    
+    /**
+     *  Get the server timeout in seconds.
+     *
+     *  \return The server timeout in seconds.
+     */
+    
+    MRH_Uint32 GetServerTimeoutS() const noexcept;
+    
+    /**
+     *  Get the server connection retry wait time in seconds.
+     *
+     *  \return The server connection retry wait time in seconds.
+     */
+    
+    MRH_Uint32 GetServerRetryWaitS() const noexcept;
+    
+private:
+    
     //*************************************************************************************
     // Data
     //**************************************************************************************
@@ -244,7 +218,7 @@ private:
     int i_ServerConnectionPort;
     std::string s_ServerCommunicationChannel;
     MRH_Uint32 u32_ServerTimeoutS;
-    
+    MRH_Uint32 u32_ServerRetryWaitS;
     
 protected:
 

@@ -44,7 +44,7 @@ using google::cloud::speech::v1::StreamingRecognitionResult;
 // Constructor / Destructor
 //*************************************************************************************
 
-GoogleSTT::GoogleSTT() noexcept
+GoogleSTT::GoogleSTT(Configuration const& c_Configuration) noexcept : s_LangCode(c_Configuration.GetVoiceGoogleLanguageCode())
 {}
 
 GoogleSTT::~GoogleSTT() noexcept
@@ -96,8 +96,6 @@ std::string GoogleSTT::Transcribe()
     {
         throw Exception("No audio to transcribe added!");
     }
-    
-    std::string s_LangCode = Configuration::Singleton().GetVoiceGoogleLanguageCode();
     
     /**
      *  Credentials Setup

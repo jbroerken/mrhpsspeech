@@ -43,9 +43,11 @@ using google::cloud::texttospeech::v1::SsmlVoiceGender;
 // Constructor / Destructor
 //*************************************************************************************
 
-GoogleTTS::GoogleTTS() : c_Audio(Configuration::Singleton().GetVoicePlaybackKHz(),
-                                 0, /* Grows on need, no initial data */
-                                 true)
+GoogleTTS::GoogleTTS(Configuration const& c_Configuration) : c_Audio(c_Configuration.GetVoicePlaybackKHz(),
+                                                                     0, /* Grows on need, no initial data */
+                                                                     true),
+                                                             s_LangCode(c_Configuration.GetVoiceGoogleLanguageCode()),
+                                                             u32_VoiceGender(c_Configuration.GetVoiceGoogleVoiceGender())
 {}
 
 GoogleTTS::~GoogleTTS() noexcept
@@ -62,10 +64,9 @@ AudioTrack const& GoogleTTS::Synthesise(std::string const& s_String)
         throw Exception("Empty string given!");
     }
     
-    std::string s_LangCode = Configuration::Singleton().GetVoiceGoogleLanguageCode();
     SsmlVoiceGender c_VoiceGender = SsmlVoiceGender::FEMALE;
     
-    if (Configuration::Singleton().GetVoiceGoogleVoiceGender() > 0)
+    if (u32_VoiceGender > 0)
     {
         c_VoiceGender = SsmlVoiceGender::MALE;
     }

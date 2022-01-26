@@ -43,9 +43,11 @@ public:
     
     /**
      *  Default constructor.
+     *
+     *  \param c_Configuration The configuration to use.
      */
     
-    Voice();
+    Voice(Configuration const& c_Configuration);
     
     /**
      *  Default destructor.

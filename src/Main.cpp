@@ -76,24 +76,13 @@ int main(int argc, const char* argv[])
                                   argc,
                                   argv,
                                   MRH_SPEECH_SERVICE_THREAD_COUNT);
-        Configuration::Singleton().Load();
-    }
-    catch (MRH_PSBException& e)
-    {
-        return Exit(NULL, e.what(), EXIT_FAILURE);
-    }
-    catch (std::exception& e)
-    {
-        return Exit(NULL, e.what(), EXIT_FAILURE);
-    }
-    
-    // Setup service specific data
-    c_Logger.Log(MRH_PSBLogger::INFO, "Initializing mrhpsspeech (" + std::string(VERSION_NUMBER) + ")...",
-                 "Main.cpp", __LINE__);
-    
-    try
-    {
-        std::shared_ptr<Speech> p_Speech(new Speech());
+        
+        c_Logger.Log(MRH_PSBLogger::INFO, "Initializing mrhpsspeech (" + std::string(VERSION_NUMBER) + ")...",
+                     "Main.cpp", __LINE__);
+        
+        Configuration c_Configuration;
+        
+        std::shared_ptr<Speech> p_Speech(new Speech(c_Configuration));
         
         std::shared_ptr<MRH_Callback> p_CBAvail(new CBAvail(p_Speech));
         std::shared_ptr<MRH_Callback> p_CBCustomCommand(new CBCustomCommand());
@@ -111,6 +100,10 @@ int main(int argc, const char* argv[])
         p_Context->AddCallback(p_CBSpeechMethod, MRH_EVENT_LISTEN_GET_METHOD_U);
         p_Context->AddCallback(p_CBSpeechMethod, MRH_EVENT_SAY_GET_METHOD_U);
         p_Context->AddCallback(p_CBRemoteNotification, MRH_EVENT_SAY_REMOTE_NOTIFICATION_U);
+    }
+    catch (Exception& e)
+    {
+        return Exit(p_Context, e.what(), EXIT_FAILURE);
     }
     catch (MRH_PSBException& e)
     {

@@ -31,6 +31,7 @@
 
 // Project
 #include "./AudioTrack.h"
+#include "../../../Configuration.h"
 
 
 class GoogleSTT
@@ -43,9 +44,11 @@ public:
     
     /**
      *  Default constructor.
+     *
+     *  \param c_Configuration The configuration to use.
      */
     
-    GoogleSTT() noexcept;
+    GoogleSTT(Configuration const& c_Configuration) noexcept;
     
     /**
      *  Default destructor.
@@ -106,6 +109,8 @@ private:
     //*************************************************************************************
     
     std::pair<MRH_Uint32, std::vector<MRH_Sint16>> c_Audio;
+    
+    std::string s_LangCode;
     
 protected:
     

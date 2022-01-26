@@ -31,6 +31,7 @@
 // Project
 #include "./OutputStorage.h"
 #include "./SpeechMethod.h"
+#include "../Configuration.h"
 
 
 class Speech
@@ -59,9 +60,11 @@ public:
     
     /**
      *  Default constructor.
+     *
+     *  \param c_Configuration The configuration to use.
      */
     
-    Speech();
+    Speech(Configuration const& c_Configuration);
     
     /**
      *  Default destructor.
@@ -107,9 +110,10 @@ private:
      *  Update speech methods.
      *
      *  \param p_Instance The speech instance to update.
+     *  \param u32_MethodWaitMS The wait time between each method update.
      */
     
-    static void Update(Speech* p_Instance) noexcept;
+    static void Update(Speech* p_Instance, MRH_Uint32 u32_MethodWaitMS) noexcept;
     
     //*************************************************************************************
     // Data

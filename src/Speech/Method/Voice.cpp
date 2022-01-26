@@ -28,10 +28,8 @@
 
 // Project
 #include "./Voice.h"
-#include "../../Configuration.h"
 
 // Pre-defined
-#define LISTEN_CHECK_WAIT_MS 250 // Wait before checking again
 #define LISTEN_PAUSE_TIMEOUT_S 3 // Time until audio is processed
 
 
@@ -39,7 +37,9 @@
 // Constructor / Destructor
 //*************************************************************************************
 
-Voice::Voice()
+Voice::Voice(Configuration const& c_Configuration) : c_AudioStream(c_Configuration),
+                                                     c_GoogleSTT(c_Configuration),
+                                                     c_GoogleTTS(c_Configuration)
 {
     MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, "Voice speech now available.",
                                    "Voice.cpp", __LINE__);

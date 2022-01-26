@@ -63,9 +63,10 @@ namespace
         SERVER_CONNECTION_PORT,
         SERVER_COMMUNICATION_CHANNEL,
         SERVER_TIMEOUT_S,
+        SERVER_RETRY_WAIT_S,
         
         // Bounds
-        IDENTIFIER_MAX = SERVER_TIMEOUT_S,
+        IDENTIFIER_MAX = SERVER_RETRY_WAIT_S,
 
         IDENTIFIER_COUNT = IDENTIFIER_MAX + 1
     };
@@ -97,7 +98,8 @@ namespace
         "ConnectionAddress",
         "ConnectionPort",
         "CommunicationChannel",
-        "TimeoutS"
+        "TimeoutS",
+        "RetryWaitS"
     };
 }
 
@@ -121,37 +123,9 @@ Configuration::Configuration() noexcept : u32_ServiceMethodWaitMS(100),
                                           s_ServerConnectionAddress("127.0.0.1"),
                                           i_ServerConnectionPort(16096),
                                           s_ServerCommunicationChannel("de.mrh.speech"),
-                                          u32_ServerTimeoutS(60)
-{}
-
-Configuration::~Configuration() noexcept
-{}
-
-//*************************************************************************************
-// Singleton
-//*************************************************************************************
-
-Configuration& Configuration::Singleton() noexcept
+                                          u32_ServerTimeoutS(60),
+                                          u32_ServerRetryWaitS(300)
 {
-    static Configuration c_Configuration;
-    return c_Configuration;
-}
-
-//*************************************************************************************
-// Load
-//*************************************************************************************
-
-void Configuration::Load()
-{
-    static bool b_IsLoaded = false;
-    
-    if (b_IsLoaded == true)
-    {
-        throw Exception("Configuration already loaded! Reloading blocked to prevent issues.");
-    }
-    
-    b_IsLoaded = true;
-    
     try
     {
         MRH_BlockFile c_File(MRH_SPEECH_CONFIGURATION_PATH);
@@ -182,6 +156,7 @@ void Configuration::Load()
                 i_ServerConnectionPort = std::stoi(Block.GetValue(p_Identifier[SERVER_CONNECTION_PORT]));
                 s_ServerCommunicationChannel = Block.GetValue(p_Identifier[SERVER_COMMUNICATION_CHANNEL]);
                 u32_ServerTimeoutS = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[SERVER_TIMEOUT_S])));
+                u32_ServerRetryWaitS = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[SERVER_RETRY_WAIT_S])));
             }
         }
     }
@@ -191,86 +166,94 @@ void Configuration::Load()
     }
 }
 
+Configuration::~Configuration() noexcept
+{}
+
 //*************************************************************************************
 // Getters
 //*************************************************************************************
 
-MRH_Uint32 Configuration::GetServiceMethodWaitMS() noexcept
+MRH_Uint32 Configuration::GetServiceMethodWaitMS() const noexcept
 {
     return u32_ServiceMethodWaitMS;
 }
 
-std::string Configuration::GetVoiceTriggerKeyphrase() noexcept
+std::string Configuration::GetVoiceTriggerKeyphrase() const noexcept
 {
     return s_VoiceTriggerKeyphrase;
 }
 
-MRH_Uint32 Configuration::GetVoiceTriggerTimeoutS() noexcept
+MRH_Uint32 Configuration::GetVoiceTriggerTimeoutS() const noexcept
 {
     return u32_VoiceTriggerTimeoutS;
 }
 
-MRH_Uint32 Configuration::GetVoiceRecordingKHz() noexcept
+MRH_Uint32 Configuration::GetVoiceRecordingKHz() const noexcept
 {
     return u32_VoiceRecordingKHz;
 }
 
-MRH_Uint32 Configuration::GetVoiceRecordingStorageS() noexcept
+MRH_Uint32 Configuration::GetVoiceRecordingStorageS() const noexcept
 {
     return u32_VoiceRecordingStorageS;
 }
 
-MRH_Uint32 Configuration::GetVoicePlaybackKHz() noexcept
+MRH_Uint32 Configuration::GetVoicePlaybackKHz() const noexcept
 {
     return u32_VoicePlaybackKHz;
 }
 
-std::string Configuration::GetVoiceGoogleLanguageCode() noexcept
+std::string Configuration::GetVoiceGoogleLanguageCode() const noexcept
 {
     return s_VoiceGoogleLangCode;
 }
 
-MRH_Uint32 Configuration::GetVoiceGoogleVoiceGender() noexcept
+MRH_Uint32 Configuration::GetVoiceGoogleVoiceGender() const noexcept
 {
     return u32_VoiceGoogleVoiceGender;
 }
 
-std::string Configuration::GetServerAccountMail() noexcept
+std::string Configuration::GetServerAccountMail() const noexcept
 {
     return s_ServerAccountMail;
 }
 
-std::string Configuration::GetServerAccountPassword() noexcept
+std::string Configuration::GetServerAccountPassword() const noexcept
 {
     return s_ServerAccountPassword;
 }
 
-std::string Configuration::GetServerDeviceKey() noexcept
+std::string Configuration::GetServerDeviceKey() const noexcept
 {
     return s_ServerDeviceKey;
 }
 
-std::string Configuration::GetServerDevicePassword() noexcept
+std::string Configuration::GetServerDevicePassword() const noexcept
 {
     return s_ServerDevicePassword;
 }
 
-std::string Configuration::GetServerConnectionAddress() noexcept
+std::string Configuration::GetServerConnectionAddress() const noexcept
 {
     return s_ServerConnectionAddress;
 }
 
-int Configuration::GetServerConnectionPort() noexcept
+int Configuration::GetServerConnectionPort() const noexcept
 {
     return i_ServerConnectionPort;
 }
 
-std::string Configuration::GetServerCommunicationChannel() noexcept
+std::string Configuration::GetServerCommunicationChannel() const noexcept
 {
     return s_ServerCommunicationChannel;
 }
 
-MRH_Uint32 Configuration::GetServerTimeoutS() noexcept
+MRH_Uint32 Configuration::GetServerTimeoutS() const noexcept
 {
     return u32_ServerTimeoutS;
+}
+
+MRH_Uint32 Configuration::GetServerRetryWaitS() const noexcept
+{
+    return u32_ServerRetryWaitS;
 }

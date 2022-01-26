@@ -26,12 +26,15 @@
 #include <thread>
 #include <mutex>
 #include <atomic>
+#include <vector>
 
 // External
+#include <libmrhpsb/MRH_Callback.h>
 #include <libmrhsrv.h>
 
 // Project
 #include "../SpeechMethod.h"
+#include "../../Configuration.h"
 
 
 class Server : public SpeechMethod
@@ -44,9 +47,11 @@ public:
     
     /**
      *  Default constructor.
+     *
+     *  \param c_Configuration The configuration to construct with.
      */
     
-    Server();
+    Server(Configuration const& c_Configuration) noexcept;
     
     /**
      *  Default destructor.
@@ -107,46 +112,79 @@ public:
 private:
     
     //*************************************************************************************
-    // Update
+    // Types
+    //*************************************************************************************
+
+    enum ConnectionState
+    {
+        // Server Connection
+        CONNECT_CONNECTION = 0,
+        CONNECT_COMMUNICATION = 1,
+        
+        // Authentication
+        AUTH_SEND_REQUEST_CONNECTION = 2,
+        AUTH_SEND_REQUEST_COMMUNICATION = 3,
+        AUTH_RECIEVE_CHALLENGE_CONNECTION = 4,
+        AUTH_RECIEVE_CHALLENGE_COMMUNICATION = 5,
+        AUTH_SEND_PROOF_CONNECTION = 6,
+        AUTH_SEND_PROOF_COMMUNICATION = 7,
+        AUTH_RECIEVE_RESULT_CONNECTION,
+        AUTH_RECIEVE_RESULT_COMMUNICATION,
+        
+        // Channel
+        CHANNEL_SEND_REQUEST,
+        CHANNEL_RECIEVE_RESPONSE,
+        
+        // Client Pairing
+        CLIENT_RECIEVE_REQUEST,
+        CLIENT_SEND_CHALLENGE,
+        CLIENT_RECIEVE_PROOF,
+        CLIENT_SEND_RESULT,
+        
+        // Exchange Text
+        EXCHANGE_TEXT,
+        
+        // Bounds
+        CONNECTION_STATE_MAX = EXCHANGE_TEXT,
+        
+        CONNECTION_STATE_COUNT = CONNECTION_STATE_MAX + 1
+    };
+    
+    //*************************************************************************************
+    // Client
     //*************************************************************************************
     
     /**
-     *  Update the server communication.
+     *  Update the location platform client.
      *
-     *  \param p_Instance The server instance to update with.
+     *  \param p_Instance The instance to update with.
      */
     
-    static void Update(Server* p_Instance) noexcept;
-    
-    //*************************************************************************************
-    // Listen
-    //*************************************************************************************
+    static void ClientUpdate(Server* p_Instance) noexcept;
     
     /**
-     *  Recieve a message from the server.
+     *  Get the next connection state.
+     *
+     *  \param e_State The current connection state.
+     *  \param b_Failed If the current state failed or not.
+     *
+     *  \return The next connection state.
+     */
+    
+    static ConnectionState NextState(ConnectionState e_State, bool b_Failed) noexcept;
+    
+    /**
+     *  Recieve a message from a server.
      *
      *  \param p_Server The server to recieve from.
-     *  \param i_State The current client state.
+     *  \param v_Message The wanted messages.
+     *  \param p_Buffer The buffer used to store a wanted message.
+     *  \param p_Password The password to use for message decryption.
      *
-     *  \return The next state the client moved to, -1 on no message.
+     *  \return The first matching recieved message on success, MRH_SRV_CS_MSG_UNK on failure.
      */
     
-    int RecieveMessage(MRH_Srv_Server* p_Server, int i_State) noexcept;
-    
-    //*************************************************************************************
-    // Say
-    //*************************************************************************************
-    
-    /**
-     *  Send a message from the server.
-     *
-     *  \param p_Server The server to recieve from.
-     *  \param i_State The current client state.
-     *
-     *  \return true if a message was sent, false if not.
-     */
-    
-    bool SendMessage(MRH_Srv_Server* p_Server, int i_State) noexcept;
+    static MRH_Srv_NetMessage RecieveServerMessage(MRH_Srv_Server* p_Server, std::vector<MRH_Srv_NetMessage> v_Message, uint8_t* p_Buffer, const char* p_Password) noexcept;
     
     //*************************************************************************************
     // Data
@@ -154,10 +192,10 @@ private:
     
     // Thread
     std::thread c_Thread;
-    std::atomic<bool> b_Run;
+    std::atomic<bool> b_RunThread;
     
     // Connection
-    std::atomic<bool> b_AppPaired;
+    std::atomic<ConnectionState> e_ConnectionState;
     
     char p_AccountMail[MRH_SRV_SIZE_ACCOUNT_MAIL];
     char p_AccountPassword[MRH_SRV_SIZE_ACCOUNT_PASSWORD];
@@ -172,10 +210,14 @@ private:
     char p_ComServerAddress[MRH_SRV_SIZE_SERVER_ADDRESS];
     int i_ComServerPort;
     
-    // Messages
-    std::mutex c_RecieveMutex;
-    std::list<std::string> l_Recieve;
+    MRH_Uint32 u32_TimeoutS;
+    MRH_Uint32 u32_ConnectionRetryS;
     
+    // Recieved
+    std::mutex c_RecievedMutex;
+    std::list<std::string> l_Recieved;
+    
+    // Send
     std::mutex c_SendMutex;
     std::list<std::string> l_Send;
     

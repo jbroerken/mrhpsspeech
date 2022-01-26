@@ -33,12 +33,17 @@
 // Constructor / Destructor
 //*************************************************************************************
 
-AudioStream::AudioStream() : c_AudioStream("speech_audio"),
-                             c_RecordedAudio(Configuration::Singleton().GetVoiceRecordingKHz(),
-                                             Configuration::Singleton().GetVoiceRecordingStorageS(),
-                                             false),
-                             b_RecordingActive(false),
-                             b_PlaybackActive(false)
+AudioStream::AudioStream(Configuration const& c_Configuration) : c_AudioStream("speech_audio"),
+                                                                 c_RecordedAudio(c_Configuration.GetVoiceRecordingKHz(),
+                                                                                 c_Configuration.GetVoiceRecordingStorageS(),
+                                                                                 false),
+                                                                 b_RecordingActive(false),
+                                                                 b_PlaybackActive(false),
+                                                                 s_TriggerKeyPhrase(c_Configuration.GetVoiceTriggerKeyphrase()),
+                                                                 u32_TriggerTimeoutS(c_Configuration.GetVoiceTriggerTimeoutS()),
+                                                                 u32_RecordingKHz(c_Configuration.GetVoiceRecordingKHz()),
+                                                                 u32_PlaybackKHz(c_Configuration.GetVoicePlaybackKHz())
+
 {}
 
 AudioStream::~AudioStream() noexcept
@@ -59,10 +64,10 @@ void AudioStream::UpdateStream() noexcept
     if (c_AudioStream.GetConnected() == true && b_LastState == false)
     {
         // Send format on new connection
-        MessageOpCode::AUDIO_S_AUDIO_INFO_DATA c_OpCode(Configuration::Singleton().GetVoiceRecordingKHz(),
-                                                        Configuration::Singleton().GetVoicePlaybackKHz(),
-                                                        Configuration::Singleton().GetVoiceTriggerTimeoutS(),
-                                                        Configuration::Singleton().GetVoiceTriggerKeyphrase());
+        MessageOpCode::AUDIO_S_AUDIO_INFO_DATA c_OpCode(u32_RecordingKHz,
+                                                        u32_PlaybackKHz,
+                                                        u32_TriggerTimeoutS,
+                                                        s_TriggerKeyPhrase);
         
         c_AudioStream.Send(c_OpCode.v_Data);
         

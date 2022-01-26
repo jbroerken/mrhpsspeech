@@ -42,9 +42,9 @@
 // Constructor / Destructor
 //*************************************************************************************
 
-Speech::Speech() : e_Method(VOICE),
-                   b_Update(true),
-                   b_MethodSelected(false)
+Speech::Speech(Configuration const& c_Configuration) : e_Method(VOICE),
+                                                       b_Update(true),
+                                                       b_MethodSelected(false)
 {
     // Add methods
     for (size_t i = 0; i < METHOD_COUNT; ++i)
@@ -60,12 +60,12 @@ Speech::Speech() : e_Method(VOICE),
                     break;
                 case MRH_SRV:
 #if MRH_SPEECH_USE_METHOD_SERVER > 0
-                    m_Method.insert(std::make_pair(MRH_SRV, new class Server()));
+                    m_Method.insert(std::make_pair(MRH_SRV, new class Server(c_Configuration)));
 #endif
                     break;
                 case VOICE:
 #if MRH_SPEECH_USE_METHOD_VOICE > 0
-                    m_Method.insert(std::make_pair(VOICE, new class Voice()));
+                    m_Method.insert(std::make_pair(VOICE, new class Voice(c_Configuration)));
 #endif
                     break;
             }
@@ -87,7 +87,7 @@ Speech::Speech() : e_Method(VOICE),
     // Run
     try
     {
-        c_Thread = std::thread(Update, this);
+        c_Thread = std::thread(Update, this, c_Configuration.GetServiceMethodWaitMS());
     }
     catch (std::exception& e)
     {
@@ -110,13 +110,12 @@ Speech::~Speech() noexcept
 // Update
 //*************************************************************************************
 
-void Speech::Update(Speech* p_Instance) noexcept
+void Speech::Update(Speech* p_Instance, MRH_Uint32 u32_MethodWaitMS) noexcept
 {
     // Set starting method
     MRH_PSBLogger& c_Logger = MRH_PSBLogger::Singleton();
     OutputStorage& c_OutputStorage = p_Instance->c_OutputStorage;
     SpeechMethod* p_Method = NULL;
-    MRH_Uint32 u32_MethodWaitMS = Configuration::Singleton().GetServiceMethodWaitMS();
     
     while (p_Instance->b_Update == true)
     {

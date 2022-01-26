@@ -33,6 +33,7 @@
 // Project
 #include "./AudioTrack.h"
 #include "../MessageStream/MessageStream.h"
+#include "../../../Configuration.h"
 
 
 class AudioStream
@@ -45,9 +46,11 @@ public:
     
     /**
      *  Default constructor.
+     *
+     *  \param c_Configuration The configuration to use.
      */
     
-    AudioStream();
+    AudioStream(Configuration const& c_Configuration);
     
     /**
      *  Default destructor.
@@ -147,6 +150,12 @@ private:
     
     bool b_RecordingActive;
     bool b_PlaybackActive;
+    
+    std::string s_TriggerKeyPhrase;
+    MRH_Uint32 u32_TriggerTimeoutS;
+    MRH_Uint32 u32_RecordingKHz;
+    MRH_Uint32 u32_PlaybackKHz;
+    
     
 protected:
     
