@@ -29,9 +29,7 @@
 // External
 
 // Project
-#include "./OutputStorage.h"
-#include "./SpeechMethod.h"
-#include "../Configuration.h"
+#include "./Source/NetServer.h"
 
 
 class Speech
@@ -123,6 +121,8 @@ private:
     std::atomic<bool> b_Update;
     
     OutputStorage c_OutputStorage;
+    
+    NetServer c_NetServer;
     
     std::map<Method, SpeechMethod*> m_Method;
     std::atomic<Method> e_Method; // Separate for thread safety

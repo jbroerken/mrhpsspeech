@@ -1,5 +1,5 @@
 /**
- *  Server.h
+ *  NetServer.h
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -19,8 +19,8 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef Server_h
-#define Server_h
+#ifndef NetServer_h
+#define NetServer_h
 
 // C / C++
 #include <thread>
@@ -33,11 +33,11 @@
 #include <libmrhsrv.h>
 
 // Project
-#include "../SpeechMethod.h"
 #include "../../Configuration.h"
+#include "../OutputStorage.h"
 
 
-class Server : public SpeechMethod
+class NetServer
 {
 public:
     
@@ -51,63 +51,55 @@ public:
      *  \param c_Configuration The configuration to construct with.
      */
     
-    Server(Configuration const& c_Configuration) noexcept;
+    NetServer(Configuration const& c_Configuration) noexcept;
     
     /**
      *  Default destructor.
      */
     
-    ~Server() noexcept;
+    ~NetServer() noexcept;
     
     //*************************************************************************************
     // Switch
     //*************************************************************************************
     
     /**
-     *  Start speech method.
+     *  Reset the currently stored input and output.
      */
     
-    void Start() override;
-    
-    /**
-     *  Stop speech method.
-     */
-    
-    void Stop() override;
+    void Reset() noexcept;
     
     //*************************************************************************************
-    // Listen
+    // Exchange
     //*************************************************************************************
     
     /**
-     *  Listen to speech input.
-     */
-    
-    void Listen() override;
-    
-    //*************************************************************************************
-    // Say
-    //*************************************************************************************
-    
-    /**
-     *  Perform speech output.
+     *  Retrieve recieved input from the server.
      *
-     *  \param c_OutputStorage The output storage to use.
+     *  \param u32_StringID The string id to use for the first input.
+     *
+     *  \return The new string id after sending.
      */
     
-    void Say(OutputStorage& c_OutputStorage) override;
+    MRH_Uint32 Retrieve(MRH_Uint32 u32_StringID);
+    
+    /**
+     *  Add output to send to the server.
+     */
+    
+    void Send(OutputStorage& c_OutputStorage);
     
     //*************************************************************************************
     // Getters
     //*************************************************************************************
     
     /**
-     *  Check if this speech method is usable.
+     *  Check if a app client is connected.
      *
-     *  \return true if usable, false if not.
+     *  \return true if connected, false if not.
      */
     
-    bool IsUsable() noexcept override;
+    bool GetAppClientConnected() const noexcept;
     
 private:
     
@@ -160,7 +152,7 @@ private:
      *  \param p_Instance The instance to update with.
      */
     
-    static void ClientUpdate(Server* p_Instance) noexcept;
+    static void ClientUpdate(NetServer* p_Instance) noexcept;
     
     /**
      *  Get the next connection state.
@@ -225,4 +217,4 @@ protected:
 
 };
 
-#endif /* Server_h */
+#endif /* NetServer_h */

@@ -1,5 +1,5 @@
 /**
- *  Server.cpp
+ *  NetServer.cpp
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -25,15 +25,16 @@
 #include <libmrhpsb/MRH_PSBLogger.h>
 
 // Project
-#include "./Server.h"
+#include "./NetServer.h"
+#include "../SpeechEvent.h"
 
 
 //*************************************************************************************
 // Constructor / Destructor
 //*************************************************************************************
 
-Server::Server(Configuration const& c_Configuration) noexcept : e_ConnectionState(CONNECT_CONNECTION),
-                                                                b_RunThread(true)
+NetServer::NetServer(Configuration const& c_Configuration) noexcept : e_ConnectionState(CONNECT_CONNECTION),
+                                                                      b_RunThread(true)
 {
     // Grab connection info
     memset(p_AccountMail, '\0', MRH_SRV_SIZE_ACCOUNT_MAIL);
@@ -89,17 +90,17 @@ Server::Server(Configuration const& c_Configuration) noexcept : e_ConnectionStat
     }
 }
 
-Server::~Server() noexcept
+NetServer::~NetServer() noexcept
 {
     b_RunThread = false;
     c_Thread.join();
 }
 
 //*************************************************************************************
-// Switch
+// Reset
 //*************************************************************************************
 
-void Server::Start()
+void NetServer::Reset() noexcept
 {
     std::lock_guard<std::mutex> c_RecieveGuard(c_RecievedMutex);
     l_Recieved.clear();
@@ -108,14 +109,11 @@ void Server::Start()
     l_Send.clear();
 }
 
-void Server::Stop()
-{}
-
 //*************************************************************************************
 // Client
 //*************************************************************************************
 
-void Server::ClientUpdate(Server* p_Instance) noexcept
+void NetServer::ClientUpdate(NetServer* p_Instance) noexcept
 {
     MRH_PSBLogger& c_Logger = MRH_PSBLogger::Singleton();
     
@@ -683,7 +681,7 @@ void Server::ClientUpdate(Server* p_Instance) noexcept
     MRH_SRV_Destroy(p_Context);
 }
 
-Server::ConnectionState Server::NextState(ConnectionState e_State, bool b_Failed) noexcept
+NetServer::ConnectionState NetServer::NextState(ConnectionState e_State, bool b_Failed) noexcept
 {
     switch (e_State)
     {
@@ -737,7 +735,7 @@ Server::ConnectionState Server::NextState(ConnectionState e_State, bool b_Failed
     }
 }
 
-MRH_Srv_NetMessage Server::RecieveServerMessage(MRH_Srv_Server* p_Server, std::vector<MRH_Srv_NetMessage> v_Message, uint8_t* p_Buffer, const char* p_Password) noexcept
+MRH_Srv_NetMessage NetServer::RecieveServerMessage(MRH_Srv_Server* p_Server, std::vector<MRH_Srv_NetMessage> v_Message, uint8_t* p_Buffer, const char* p_Password) noexcept
 {
     MRH_Srv_NetMessage e_Message;
     
@@ -759,10 +757,10 @@ MRH_Srv_NetMessage Server::RecieveServerMessage(MRH_Srv_Server* p_Server, std::v
 }
 
 //*************************************************************************************
-// Say
+// Exchange
 //*************************************************************************************
 
-void Server::Listen()
+MRH_Uint32 NetServer::Retrieve(MRH_Uint32 u32_StringID)
 {
     while (true)
     {
@@ -773,9 +771,11 @@ void Server::Listen()
             break;
         }
         
+        ++u32_StringID;
+        
         try
         {
-            SendInput(l_Recieved.front());
+            SpeechEvent::InputRecieved(u32_StringID, l_Recieved.front());
             l_Recieved.pop_front();
         }
         catch (Exception& e)
@@ -785,13 +785,11 @@ void Server::Listen()
                                            "Server.cpp", __LINE__);
         }
     }
+    
+    return u32_StringID;
 }
 
-//*************************************************************************************
-// Say
-//*************************************************************************************
-
-void Server::Say(OutputStorage& c_OutputStorage)
+void NetServer::Send(OutputStorage& c_OutputStorage)
 {
     if (e_ConnectionState != EXCHANGE_TEXT)
     {
@@ -808,7 +806,7 @@ void Server::Say(OutputStorage& c_OutputStorage)
         
         try
         {
-            OutputPerformed(String.u32_StringID, String.u32_GroupID);
+            SpeechEvent::OutputPerformed(String.u32_StringID, String.u32_GroupID);
         }
         catch (Exception& e)
         {
@@ -823,7 +821,7 @@ void Server::Say(OutputStorage& c_OutputStorage)
 // Getters
 //*************************************************************************************
 
-bool Server::IsUsable() noexcept
+bool NetServer::GetAppClientConnected() const noexcept
 {
     return e_ConnectionState == EXCHANGE_TEXT ? true : false;
 }

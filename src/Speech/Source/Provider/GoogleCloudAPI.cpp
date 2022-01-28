@@ -1,5 +1,5 @@
 /**
- *  GoogleSTT.cpp
+ *  GoogleCloudAPI.cpp
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -23,15 +23,23 @@
 
 // External
 #include <google/cloud/speech/v1/cloud_speech.grpc.pb.h>
+#include <google/cloud/texttospeech/v1/cloud_tts.grpc.pb.h>
+#include <google/longrunning/operations.grpc.pb.h>
 #include <grpcpp/grpcpp.h>
 #include <libmrhpsb/MRH_PSBLogger.h>
 
 // Project
-#include "./GoogleSTT.h"
+#include "./GoogleCloudAPI.h"
 #include "../../../Configuration.h"
 
 // Pre-defined
 #define AUDIO_WRITE_SIZE_ELEMENTS 32 * 1024 // Google recommends 64 * 1024 in bytes, so /2 for PCM16 elements
+
+using google::cloud::texttospeech::v1::TextToSpeech;
+using google::cloud::texttospeech::v1::SynthesizeSpeechRequest;
+using google::cloud::texttospeech::v1::SynthesizeSpeechResponse;
+using google::cloud::texttospeech::v1::AudioEncoding;
+using google::cloud::texttospeech::v1::SsmlVoiceGender;
 
 using google::cloud::speech::v1::Speech;
 using google::cloud::speech::v1::RecognizeRequest;
@@ -41,58 +49,13 @@ using google::cloud::speech::v1::StreamingRecognitionResult;
 
 
 //*************************************************************************************
-// Constructor / Destructor
-//*************************************************************************************
-
-GoogleSTT::GoogleSTT(Configuration const& c_Configuration) noexcept : s_LangCode(c_Configuration.GetVoiceGoogleLanguageCode())
-{}
-
-GoogleSTT::~GoogleSTT() noexcept
-{}
-
-//*************************************************************************************
-// Reset
-//*************************************************************************************
-
-void GoogleSTT::ResetAudio() noexcept
-{
-    c_Audio.first = 0;
-    c_Audio.second = {};
-}
-
-//*************************************************************************************
-// Audio
-//*************************************************************************************
-
-void GoogleSTT::AddAudio(AudioTrack const& c_Audio) noexcept
-{
-    // Audio empty?
-    if (c_Audio.GetSampleCount() == 0)
-    {
-        return;
-    }
-    
-    // New KHz?
-    if (this->c_Audio.first != c_Audio.u32_KHz)
-    {
-        this->c_Audio.first = c_Audio.u32_KHz;
-        this->c_Audio.second = {};
-    }
-    
-    // Add audio
-    this->c_Audio.second.insert(this->c_Audio.second.end(),
-                                c_Audio.GetBufferConst(),
-                                c_Audio.GetBufferConst() + c_Audio.GetSampleCount());
-}
-
-//*************************************************************************************
 // Transcribe
 //*************************************************************************************
 
-std::string GoogleSTT::Transcribe()
+std::string GoogleCloudAPI::Transcribe(AudioBuffer const& c_Audio, std::string s_LangCode)
 {
     // Audio available?
-    if (c_Audio.first == 0 || c_Audio.second.size() == 0)
+    if (c_Audio.GetSampleCount() == 0)
     {
         throw Exception("No audio to transcribe added!");
     }
@@ -119,14 +82,14 @@ std::string GoogleSTT::Transcribe()
     // Set recognition configuration
     auto* p_Config = c_RecognizeRequest.mutable_config();
     p_Config->set_language_code(s_LangCode);
-    p_Config->set_sample_rate_hertz(c_Audio.first);
+    p_Config->set_sample_rate_hertz(c_Audio.GetKHz());
     p_Config->set_encoding(RecognitionConfig::LINEAR16);
     p_Config->set_profanity_filter(true);
     p_Config->set_audio_channel_count(1); // Always mono
     
     // Now add the audio
-    c_RecognizeRequest.mutable_audio()->set_content(c_Audio.second.data(),
-                                                    c_Audio.second.size() * sizeof(MRH_Sint16)); // Byte len
+    c_RecognizeRequest.mutable_audio()->set_content(c_Audio.GetBuffer(),
+                                                    c_Audio.GetSampleCount() * sizeof(MRH_Sint16)); // Byte len
     
     /**
      *  Transcribe
@@ -167,16 +130,90 @@ std::string GoogleSTT::Transcribe()
         }
     }
     
-    ResetAudio(); // Clear old
-    
     return s_Transcipt;
 }
 
 //*************************************************************************************
-// Getters
+// Synthesise
 //*************************************************************************************
 
-bool GoogleSTT::GetAudioAvailable() noexcept
+void GoogleCloudAPI::Synthesise(AudioBuffer& c_Audio, std::string const& s_String, std::string s_LangCode, MRH_Uint8 u8_VoiceGender)
 {
-    return (c_Audio.first != 0 && c_Audio.second.size() > 0) ? true : false;
+    if (s_String.size() == 0)
+    {
+        throw Exception("Empty string given!");
+    }
+    
+    SsmlVoiceGender c_VoiceGender = SsmlVoiceGender::FEMALE;
+    
+    if (u8_VoiceGender > 0)
+    {
+        c_VoiceGender = SsmlVoiceGender::MALE;
+    }
+    
+    /**
+     *  Credentials Setup
+     */
+    
+    // Setup google connection with credentials for this request
+    auto c_Credentials = grpc::GoogleDefaultCredentials();
+    auto c_CloudChannel = grpc::CreateChannel("texttospeech.googleapis.com", c_Credentials);
+    std::unique_ptr<TextToSpeech::Stub> p_TextToSpeech(TextToSpeech::NewStub(c_CloudChannel));
+    
+    /**
+     *  Create request
+     */
+    
+    // Define our request to use for config and audio
+    SynthesizeSpeechRequest c_SynthesizeRequest;
+    
+    // Set recognition configuration
+    auto* p_AudioConfig = c_SynthesizeRequest.mutable_audio_config();
+    p_AudioConfig->set_audio_encoding(AudioEncoding::LINEAR16);
+    p_AudioConfig->set_sample_rate_hertz(c_Audio.GetKHz());
+    
+    // Set output voice info
+    auto* p_VoiceConfig = c_SynthesizeRequest.mutable_voice();
+    p_VoiceConfig->set_ssml_gender(c_VoiceGender);
+    p_VoiceConfig->set_language_code(s_LangCode);
+    
+    // Set the string
+    c_SynthesizeRequest.mutable_input()->set_text(s_String);
+    
+    /**
+     *  Synthesize
+     */
+    
+    grpc::ClientContext c_Context;
+    SynthesizeSpeechResponse c_SynthesizeResponse;
+    grpc::Status c_RPCStatus = p_TextToSpeech->SynthesizeSpeech(&c_Context,
+                                                                c_SynthesizeRequest,
+                                                                &c_SynthesizeResponse);
+    
+    if (c_RPCStatus.ok() == false)
+    {
+        throw Exception("Failed to synthesise: GRPC streamer error: " + c_RPCStatus.error_message());
+    }
+    
+    /**
+     *  Add Synthesized
+     */
+    
+    // Grab the synth data
+    MRH_Sint16* p_Buffer = (MRH_Sint16*)c_SynthesizeResponse.audio_content().data();
+    size_t us_Elements;
+    
+    if (p_Buffer == NULL || (us_Elements = c_SynthesizeResponse.audio_content().size() / sizeof(MRH_Sint16)) == 0)
+    {
+        throw Exception("Invalid synthesized audio!");
+    }
+    
+    try
+    {
+        c_Audio.AddAudio(p_Buffer, us_Elements);
+    }
+    catch (...)
+    {
+        throw;
+    }
 }

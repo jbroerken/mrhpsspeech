@@ -1,5 +1,5 @@
 /**
- *  GoogleTTS.h
+ *  GoogleCloudAPI.h
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -19,8 +19,8 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef GoogleTTS_h
-#define GoogleTTS_h
+#ifndef GoogleCloudAPI_h
+#define GoogleCloudAPI_h
 
 // C / C++
 #include <string>
@@ -28,31 +28,25 @@
 // External
 
 // Project
-#include "./AudioTrack.h"
-#include "../../../Configuration.h"
+#include "../Audio/AudioBuffer.h"
 
 
-class GoogleTTS
+namespace GoogleCloudAPI
 {
-public:
-    
     //*************************************************************************************
-    // Constructor / Destructor
+    // Transcribe
     //*************************************************************************************
     
     /**
-     *  Default constructor.
+     *  Transcribe audio to a string.
      *
-     *  \param c_Configuration The configuration to use.
+     *  \param c_Audio The audio to transcribe.
+     *  \param s_LangCode The language code for the transcription.
+     *
+     *  \return The transcription result string.
      */
     
-    GoogleTTS(Configuration const& c_Configuration);
-    
-    /**
-     *  Default destructor.
-     */
-    
-    ~GoogleTTS() noexcept;
+    std::string Transcribe(AudioBuffer const& c_Audio, std::string s_LangCode);
     
     //*************************************************************************************
     // Synthesise
@@ -61,24 +55,13 @@ public:
     /**
      *  Synthesise a string to audio.
      *
+     *  \param c_Audio The audio buffer to store the synthesized audio in.
      *  \param s_String The UTF-8 string to synthesise.
+     *  \param s_LangCode The language code for the transcription.
+     *  \param u8_VoiceGender The voice gender to use for spoken audio.
      */
     
-    AudioTrack const& Synthesise(std::string const& s_String);
-    
-private:
-    
-    //*************************************************************************************
-    // Data
-    //*************************************************************************************
-    
-    AudioTrack c_Audio; // Result
-    
-    std::string s_LangCode;
-    MRH_Uint32 u32_VoiceGender;
-    
-protected:
-    
+    void Synthesise(AudioBuffer& c_Audio, std::string const& s_String, std::string s_LangCode, MRH_Uint8 u8_VoiceGender);
 };
 
-#endif /* GoogleTTS_h */
+#endif /* GoogleCloudAPI_h */

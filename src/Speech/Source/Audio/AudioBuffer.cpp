@@ -1,5 +1,5 @@
 /**
- *  AudioTrack.cpp
+ *  AudioBuffer.cpp
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -20,58 +20,55 @@
  */
 
 // C / C++
-#include <cmath>
 #include <cstring>
 
 // External
 
 // Project
-#include "./AudioTrack.h"
+#include "./AudioBuffer.h"
 
 
 //*************************************************************************************
 // Constructor / Destructor
 //*************************************************************************************
 
-AudioTrack::AudioTrack(MRH_Uint32 u32_KHz,
-                       MRH_Uint8 u8_StorageSizeS,
-                       bool b_CanGrow) : u32_KHz(u32_KHz),
-                                         b_CanGrow(b_CanGrow)
-{
-    // Create all chunks needed
-    size_t us_TotalSize = u8_StorageSizeS * u32_KHz;
-    
-    v_Samples.insert(v_Samples.end(),
-                     us_TotalSize,
-                     0);
-}
+AudioBuffer::AudioBuffer(MRH_Uint32 u32_KHz) noexcept : us_SampleCount(0),
+                                                        u32_KHz(u32_KHz)
+{}
 
-AudioTrack::~AudioTrack() noexcept
+AudioBuffer::~AudioBuffer() noexcept
 {}
 
 //*************************************************************************************
-// Update
+// Clear
 //*************************************************************************************
 
-void AudioTrack::Clear() noexcept
+void AudioBuffer::Clear(MRH_Uint32 u32_KHz) noexcept
 {
     // Set the count, no vector modify
     us_SampleCount = 0;
+    
+    // Update KHz
+    this->u32_KHz = u32_KHz;
 }
 
-void AudioTrack::AddAudio(const MRH_Sint16* p_Buffer, size_t us_Elements)
+//*************************************************************************************
+// Add
+//*************************************************************************************
+
+void AudioBuffer::AddAudio(const MRH_Sint16* p_Buffer, size_t us_Elements)
 {
-    if (v_Samples.size() < us_Elements)
+    if (v_Samples.size() < (us_SampleCount + us_Elements))
     {
-        if (b_CanGrow == true)
+        try
         {
             v_Samples.insert(v_Samples.end(),
-                             us_Elements - v_Samples.size(),
+                             (us_SampleCount + us_Elements) - v_Samples.size(),
                              0);
         }
-        else
+        catch (...)
         {
-            throw Exception("Audio buffer missing space for new audio!");
+            throw;
         }
     }
     
@@ -82,21 +79,33 @@ void AudioTrack::AddAudio(const MRH_Sint16* p_Buffer, size_t us_Elements)
     us_SampleCount += us_Elements;
 }
 
+void AudioBuffer::AddAudio(std::vector<MRH_Sint16> const& v_Buffer)
+{
+    try
+    {
+        AddAudio(&(v_Buffer[0]), v_Buffer.size());
+    }
+    catch (...)
+    {
+        throw;
+    }
+}
+
 //*************************************************************************************
 // Getters
 //*************************************************************************************
 
-MRH_Sint16* AudioTrack::GetBuffer() noexcept
+const MRH_Sint16* AudioBuffer::GetBuffer() const noexcept
 {
     return &(v_Samples[0]);
 }
 
-const MRH_Sint16* AudioTrack::GetBufferConst() const noexcept
-{
-    return &(v_Samples[0]);
-}
-
-size_t AudioTrack::GetSampleCount() const noexcept
+size_t AudioBuffer::GetSampleCount() const noexcept
 {
     return us_SampleCount;
+}
+
+MRH_Uint32 AudioBuffer::GetKHz() const noexcept
+{
+    return u32_KHz;
 }
