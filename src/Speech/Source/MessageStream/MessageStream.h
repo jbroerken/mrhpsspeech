@@ -47,11 +47,9 @@ public:
     
     /**
      *  Default constructor.
-     *
-     *  \param s_Channel The name identifier of the stream channel.
      */
     
-    MessageStream(std::string const& s_Channel);
+    MessageStream();
     
     /**
      *  Default destructor.
@@ -162,7 +160,6 @@ private:
     std::thread c_Thread;
     std::atomic<bool> b_Update;
     
-    const std::string s_Channel;
     int i_ConnectionFD;
     std::atomic<bool> b_ClientConnected;
     

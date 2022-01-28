@@ -36,11 +36,9 @@
 #include "./MessageStream.h"
 
 // Pre-defined
-#ifndef MRH_SPEECH_MESSAGE_STREAM_SOCKET_DIR
-    #define MRH_SPEECH_MESSAGE_STREAM_SOCKET_DIR "/tmp/mrh/"
+#ifndef MRH_SPEECH_MESSAGE_STREAM_SOCKET_PATH
+    #define MRH_SPEECH_MESSAGE_STREAM_SOCKET_PATH "/tmp/mrh/mrhpsspeech.sock"
 #endif
-#define MRH_SPEECH_MESSAGE_STREAM_SOCKET_PREFIX "mrhpsspeech_"
-#define MRH_SPEECH_MESSAGE_STREAM_SOCKET_EXT ".sock"
 
 #define MRH_SPEECH_CLIENT_TIMEOUT_S 300
 
@@ -49,19 +47,12 @@
 // Constructor / Destructor
 //*************************************************************************************
 
-MessageStream::MessageStream(std::string const& s_Channel) : b_Update(true),
-                                                             s_Channel(s_Channel),
-                                                             i_ConnectionFD(-1),
-                                                             b_ClientConnected(false)
+MessageStream::MessageStream() : b_Update(true),
+                                 i_ConnectionFD(-1),
+                                 b_ClientConnected(false)
 {
-    // Create socket path
-    std::string s_SocketPath = MRH_SPEECH_MESSAGE_STREAM_SOCKET_DIR
-                               MRH_SPEECH_MESSAGE_STREAM_SOCKET_PREFIX +
-                               s_Channel +
-                               MRH_SPEECH_MESSAGE_STREAM_SOCKET_EXT;
-    
     // @NOTE: No error check, might be closed correctly last time
-    unlink(s_SocketPath.c_str());
+    unlink(MRH_SPEECH_MESSAGE_STREAM_SOCKET_PATH);
     
     // Create a file descriptor first
 #ifdef __APPLE__
@@ -73,9 +64,7 @@ MessageStream::MessageStream(std::string const& s_Channel) : b_Update(true),
     if ((i_ConnectionFD = socket(AF_UNIX, SOCK_SEQPACKET, 0)) < 0)
 #endif
     {
-        throw Exception("Failed to create " +
-                        s_Channel +
-                        " connection socket: " +
+        throw Exception("Failed to create connection socket: " +
                         std::string(std::strerror(errno)) +
                         " (" +
                         std::to_string(errno) +
@@ -86,15 +75,13 @@ MessageStream::MessageStream(std::string const& s_Channel) : b_Update(true),
     struct sockaddr_un c_Address;
     memset(&c_Address, '\0', sizeof(c_Address));
     c_Address.sun_family = AF_UNIX;
-    strcpy(c_Address.sun_path, s_SocketPath.c_str());
+    strcpy(c_Address.sun_path, MRH_SPEECH_MESSAGE_STREAM_SOCKET_PATH);
     
     if (bind(i_ConnectionFD, (struct sockaddr*)&c_Address, sizeof(c_Address)) < 0 ||
         listen(i_ConnectionFD, 1) < 0) // 1 = Connection backlog, only 1 is allowed
     {
         close(i_ConnectionFD);
-        throw Exception("Failed to setup " +
-                        s_Channel +
-                        " connection socket: " +
+        throw Exception("Failed to setup connection socket: " +
                         std::string(std::strerror(errno)) +
                         " (" +
                         std::to_string(errno) +
@@ -109,16 +96,12 @@ MessageStream::MessageStream(std::string const& s_Channel) : b_Update(true),
     catch (std::exception& e)
     {
         close(i_ConnectionFD);
-        throw Exception("Failed to start " +
-                        s_Channel +
-                        " update thread: " +
+        throw Exception("Failed to start update thread: " +
                         std::string(e.what()));
     }
     
-    MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, s_Channel +
-                                                        " socket now available at " +
-                                                        std::string(s_SocketPath) +
-                                                        ".",
+    MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, MRH_SPEECH_MESSAGE_STREAM_SOCKET_PATH
+                                                        " socket now available.",
                                    "MessageStream.cpp", __LINE__);
 }
 
@@ -313,9 +296,7 @@ int MessageStream::AcceptConnection() noexcept
     {
         if (errno != EAGAIN && errno != EWOULDBLOCK)
         {
-            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Client connection failed on channel " +
-                                                                 s_Channel +
-                                                                 ": " +
+            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Client connection failed on channel: " +
                                                                  std::string(std::strerror(errno)) +
                                                                  " (" +
                                                                  std::to_string(errno) +
@@ -327,9 +308,7 @@ int MessageStream::AcceptConnection() noexcept
     }
     else if (fcntl(i_SocketFD, F_SETFL, fcntl(i_SocketFD, F_GETFL, 0) | O_NONBLOCK) < 0)
     {
-        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Client socket setup failed on channel " +
-                                                             s_Channel +
-                                                             ": " +
+        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Client socket setup failed: " +
                                                              std::string(std::strerror(errno)) +
                                                              " (" +
                                                              std::to_string(errno) +
@@ -339,8 +318,7 @@ int MessageStream::AcceptConnection() noexcept
         return CloseConnection(i_SocketFD);
     }
     
-    MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, "Client connection accepted on channel " +
-                                                        s_Channel,
+    MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, "Client connection accepted.",
                                    "MessageStream.cpp", __LINE__);
     return i_SocketFD;
 }
@@ -349,9 +327,7 @@ int MessageStream::CloseConnection(int i_SocketFD) noexcept
 {
     if (i_SocketFD != -1)
     {
-        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, "Client connection closed on channel " +
-                                                            s_Channel +
-                                                            " for socket " +
+        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, "Client connection closed for socket " +
                                                             std::to_string(i_SocketFD),
                                        "MessageStream.cpp", __LINE__);
         

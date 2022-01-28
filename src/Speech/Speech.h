@@ -22,6 +22,9 @@
 #ifndef Speech_h
 #define Speech_h
 
+#define MRH_SPEECH_USE_LOCAL_STREAM 1
+#define MRH_SPEECH_USE_NET_SERVER 1
+
 // C / C++
 #include <thread>
 #include <atomic>
@@ -29,7 +32,16 @@
 // External
 
 // Project
+#if MRH_SPEECH_USE_LOCAL_STREAM > 0
+#include "./Source/LocalStream.h"
+#endif
+#if MRH_SPEECH_USE_NET_SERVER > 0
 #include "./Source/NetServer.h"
+#endif
+#if MRH_SPEECH_USE_NET_SERVER <= 0 && MRH_SPEECH_USE_LOCAL_STREAM <= 0
+#include "./OutputStorage.h"
+#include "../Configuration.h"
+#endif
 
 
 class Speech
@@ -40,14 +52,12 @@ public:
     // Types
     //*************************************************************************************
     
-    // The order is important! Lower numbers are used before higher ones (std::map)
     enum Method
     {
-        CLI = 0,
-        MRH_SRV = 1,
-        VOICE = 2,
+        LOCAL = 0,
+        REMOTE = 1,
         
-        METHOD_MAX = VOICE,
+        METHOD_MAX = REMOTE,
         
         METHOD_COUNT = METHOD_MAX + 1
     };
@@ -108,7 +118,7 @@ private:
      *  Update speech methods.
      *
      *  \param p_Instance The speech instance to update.
-     *  \param u32_MethodWaitMS The wait time between each method update.
+     *  \param u32_MethodWaitMS The wait time b etween each method update.
      */
     
     static void Update(Speech* p_Instance, MRH_Uint32 u32_MethodWaitMS) noexcept;
@@ -122,9 +132,13 @@ private:
     
     OutputStorage c_OutputStorage;
     
+#if MRH_SPEECH_USE_LOCAL_STREAM > 0
+    LocalStream c_LocalStream;
+#endif
+#if MRH_SPEECH_USE_NET_SERVER > 0
     NetServer c_NetServer;
+#endif
     
-    std::map<Method, SpeechMethod*> m_Method;
     std::atomic<Method> e_Method; // Separate for thread safety
     std::atomic<bool> b_MethodSelected;
     

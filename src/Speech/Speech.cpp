@@ -26,65 +26,22 @@
 
 // Project
 #include "./Speech.h"
-#include "../Configuration.h"
-#if MRH_SPEECH_USE_METHOD_CLI > 0
-#include "./Method/CLI.h"
-#endif
-#if MRH_SPEECH_USE_METHOD_SERVER > 0
-#include "./Method/Server.h"
-#endif
-#if MRH_SPEECH_USE_METHOD_VOICE > 0
-#include "./Method/Voice.h"
-#endif
 
 
 //*************************************************************************************
 // Constructor / Destructor
 //*************************************************************************************
 
-Speech::Speech(Configuration const& c_Configuration) : e_Method(VOICE),
+Speech::Speech(Configuration const& c_Configuration) : c_LocalStream(c_Configuration),
+                                                       c_NetServer(c_Configuration),
+                                                       e_Method(LOCAL),
                                                        b_Update(true),
                                                        b_MethodSelected(false)
 {
-    // Add methods
-    for (size_t i = 0; i < METHOD_COUNT; ++i)
-    {
-        try
-        {
-            switch (i)
-            {
-                case CLI:
-#if MRH_SPEECH_USE_METHOD_CLI > 0
-                    m_Method.insert(std::make_pair(CLI, new class CLI()));
+#if MRH_SPEECH_USE_NET_SERVER <= 0 && MRH_SPEECH_USE_LOCAL_STREAM <= 0
+    throw Exception("No usable speech methods!");
 #endif
-                    break;
-                case MRH_SRV:
-#if MRH_SPEECH_USE_METHOD_SERVER > 0
-                    m_Method.insert(std::make_pair(MRH_SRV, new class Server(c_Configuration)));
-#endif
-                    break;
-                case VOICE:
-#if MRH_SPEECH_USE_METHOD_VOICE > 0
-                    m_Method.insert(std::make_pair(VOICE, new class Voice(c_Configuration)));
-#endif
-                    break;
-            }
-        }
-        catch (std::exception& e)
-        {
-            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "Failed to add method: " +
-                                                                   std::string(e.what()),
-                                           "Speech.cpp", __LINE__);
-        }
-    }
     
-    // Can we do anything?
-    if (m_Method.size() == 0)
-    {
-        throw Exception("No usable speech methods!");
-    }
-    
-    // Run
     try
     {
         c_Thread = std::thread(Update, this, c_Configuration.GetServiceMethodWaitMS());
@@ -99,11 +56,6 @@ Speech::~Speech() noexcept
 {
     b_Update = false;
     c_Thread.join();
-    
-    for (auto& Method : m_Method)
-    {
-        delete Method.second;
-    }
 }
 
 //*************************************************************************************
@@ -112,89 +64,50 @@ Speech::~Speech() noexcept
 
 void Speech::Update(Speech* p_Instance, MRH_Uint32 u32_MethodWaitMS) noexcept
 {
-    // Set starting method
+    // Set used objects
     MRH_PSBLogger& c_Logger = MRH_PSBLogger::Singleton();
     OutputStorage& c_OutputStorage = p_Instance->c_OutputStorage;
-    SpeechMethod* p_Method = NULL;
+    
+    LocalStream& c_LocalStream = p_Instance->c_LocalStream;
+    NetServer& c_NetServer = p_Instance->c_NetServer;
+    
+    // Shared default string id
+    MRH_Uint32 u32_StringID = 0;
     
     while (p_Instance->b_Update == true)
     {
-        // Grab the method to use
-        // NOTE: We check the method each time for all even if the current one is
-        //       valid to catch cli connections, etc.
-        for (auto& Method : p_Instance->m_Method)
-        {
-            // Is this method usable?
-            if (Method.second == p_Method)
-            {
-                // Reset if no longer usable
-                if (Method.second->IsUsable() == false)
-                {
-                    p_Method = NULL;
-                    p_Instance->e_Method = VOICE; // Default
-                }
-                
-                continue;
-            }
-            else if (Method.second->IsUsable() == false) // Other method than current
-            {
-                continue;
-            }
-            
-            // Switch methods
-            if (p_Method != NULL)
-            {
-                p_Method->Stop();
-            }
-            
-            Method.second->Start();
-            
-            // Set the new method
-            c_Logger.Log(MRH_PSBLogger::INFO, "Set speech method in use to " +
-                                              std::to_string(Method.first),
-                         "Speech.cpp", __LINE__);
-            p_Method = Method.second;
-            
-            // Set used speech method
-            p_Instance->e_Method = Method.first;
-            
-            // Method set, end
-            break;
-        }
-        
-        // No method?
-        if (p_Method == NULL)
-        {
-            // No longer selected
-            if (p_Instance->b_MethodSelected == true)
-            {
-                p_Instance->b_MethodSelected = false;
-            }
-            
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-            continue;
-        }
-        else if (p_Instance->b_MethodSelected == false)
-        {
-            p_Instance->b_MethodSelected = true;
-        }
-        
         // Wait a bit for data
         // @NOTE: We ALWAYS wait - we want servers and audio devices to have sent
         //        some data when calling Listen()
         std::this_thread::sleep_for(std::chrono::milliseconds(u32_MethodWaitMS));
         
-        // Exchange data
+        /**
+         *  Net Server
+         */
+        
+#if MRH_SPEECH_USE_NET_SERVER > 0
+        // Connected?
+        if (c_NetServer.GetAppClientConnected() == true)
+        {
+            if (p_Instance->e_Method != REMOTE)
+            {
+                p_Instance->e_Method = REMOTE;
+            }
+        }
+        
         try
         {
-            p_Method->Listen();
-            p_Method->Say(c_OutputStorage);
+            // Retrieve messages
+            u32_StringID = c_NetServer.Retrieve(u32_StringID);
         }
         catch (Exception& e)
         {
-            c_Logger.Log(MRH_PSBLogger::WARNING, e.what(),
+            c_Logger.Log(MRH_PSBLogger::ERROR, e.what(),
                          "Speech.cpp", __LINE__);
         }
+        
+        
+#endif
     }
 }
 
