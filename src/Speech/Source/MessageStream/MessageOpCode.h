@@ -70,9 +70,8 @@ namespace MessageOpCode
         
         AUDIO_CS_AUDIO = 3,                     // Audio data recorded / to play
         
-        AUDIO_C_PLAYBACK_FINISHED = 4,          // Finished audio playback
+        AUDIO_C_PLAYBACK_FINISHED = 4,          // FinishMessageOpCode::STRING_CS_STRING_DATA
         
-        AUDIO_S_AUDIO_INFO = 5,                 // Audio info to use for playback and recording
         AUDIO_S_START_RECORDING = 6,            // Start recording audio
         AUDIO_S_STOP_RECORDING = 7,             // Stop recording audio
         
@@ -253,88 +252,6 @@ namespace MessageOpCode
          */
         
         MRH_Uint32 GetSampleCount() noexcept;
-        
-    private:
-        
-    protected:
-        
-    };
-    
-    //*************************************************************************************
-    // OpCode Data - AUDIO_S_AUDIO_INFO
-    //*************************************************************************************
-    
-    class AUDIO_S_AUDIO_INFO_DATA : public OpCodeData
-    {
-    public:
-        
-        //*************************************************************************************
-        // Constructor / Destructor
-        //*************************************************************************************
-        
-        /**
-         *  Data constructor.
-         *
-         *  \param v_Data The data for the opcode.
-         */
-        
-        AUDIO_S_AUDIO_INFO_DATA(std::vector<MRH_Uint8>& v_Data) noexcept;
-        
-        /**
-         *  Value constructor.
-         *
-         *  \param u32_RecordingKHz The recording sample KHz.
-         *  \param u32_PlaybackKHz The playback sample KHz.
-         *  \param u32_TriggerTimeoutS The timeout for recognizing a trigger.
-         *  \param s_TriggerKeyphrase The key phrase to listen to.
-         */
-        
-        AUDIO_S_AUDIO_INFO_DATA(MRH_Uint32 u32_RecordingKHz,
-                                MRH_Uint32 u32_PlaybackKHz,
-                                MRH_Uint32 u32_TriggerTimeoutS,
-                                std::string const& s_TriggerKeyphrase) noexcept;
-        
-        /**
-         *  Default destructor.
-         */
-        
-        ~AUDIO_S_AUDIO_INFO_DATA() noexcept;
-        
-        //*************************************************************************************
-        // Getters
-        //*************************************************************************************
-        
-        /**
-         *  Get the KHz used for recording.
-         *
-         *  \return The KHz used for recording.
-         */
-        
-        MRH_Uint32 GetRecordingKHz() noexcept;
-        
-        /**
-         *  Get the KHz used for playback.
-         *
-         *  \return The KHz used for playback.
-         */
-        
-        MRH_Uint32 GetPlaybackKHz() noexcept;
-        
-        /**
-         *  Get the trigger timeout in seconds.
-         *
-         *  \return The trigger timeout in seconds.
-         */
-        
-        MRH_Uint32 GetTriggerTimeoutS() noexcept;
-        
-        /**
-         *  Get the trigger keyphrase.
-         *
-         *  \return The trigger keyphrase.
-         */
-        
-        std::string GetTriggerKeyphrase() noexcept;
         
     private:
         

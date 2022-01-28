@@ -40,19 +40,21 @@ namespace
         // Block Name
         BLOCK_SERVICE = 0,
         BLOCK_VOICE = 1,
-        BLOCK_SERVER = 2,
+        BLOCK_GOOGLE_API = 2,
+        BLOCK_SERVER = 3,
         
         // Service Key
-        SERVICE_METHOD_WAIT_MS = 3,
+        SERVICE_METHOD_WAIT_MS = 4,
         
         // Voice Key
-        VOICE_TRIGGER_KEYPHRASE = 4,
-        VOICE_TRIGGER_TIMEOUT_S = 5,
-        VOICE_RECORDING_KHZ = 6,
-        VOICE_RECORDING_STORAGE_S = 7,
-        VOICE_PLAYBACK_KHZ,
-        VOICE_GOOGLE_API_LANGUAGE_CODE,
-        VOICE_GOOGLE_API_VOICE_GENDER,
+        VOICE_RECORDING_KHZ = 5,
+        VOICE_PLAYBACK_KHZ = 6,
+        VOICE_RECORDING_TIMEOUT_S = 7,
+        VOICE_API_PROVIDER,
+        
+        // Google API Key
+        GOOGLE_API_LANGUAGE_CODE,
+        GOOGLE_API_VOICE_GENDER,
         
         // Server Key
         SERVER_ACCOUNT_MAIL,
@@ -76,19 +78,21 @@ namespace
         // Block Name
         "Service",
         "Voice",
+        "Google Cloud API",
         "Server",
         
         // Service Key
         "MethodWaitMS",
         
         // Voice Key
-        "Keyphrase",
-        "TimeoutS",
         "RecordingKHz",
-        "RecordingStorageS",
         "PlaybackKHz",
-        "GoogleLanguageCode",
-        "GoogleVoiceGender",
+        "RecordingTimeoutS",
+        "APIProvider",
+        
+        // Google API Key
+        "LanguageCode",
+        "VoiceGender",
         
         // Server Key
         "AccountMail",
@@ -109,13 +113,12 @@ namespace
 //*************************************************************************************
 
 Configuration::Configuration() noexcept : u32_ServiceMethodWaitMS(100),
-                                          s_VoiceTriggerKeyphrase("Hey Mamao"),
-                                          u32_VoiceTriggerTimeoutS(30),
                                           u32_VoiceRecordingKHz(16000),
-                                          u32_VoiceRecordingStorageS(5),
                                           u32_VoicePlaybackKHz(16000),
-                                          s_VoiceGoogleLangCode("en"),
-                                          u32_VoiceGoogleVoiceGender(0),
+                                          u32_VoiceRecordingTimeoutS(3),
+                                          u8_VoiceAPIProvider(0),
+                                          s_GoogleLangCode("en"),
+                                          u32_GoogleVoiceGender(0),
                                           s_ServerAccountMail(""),
                                           s_ServerAccountPassword(""),
                                           s_ServerDeviceKey(""),
@@ -138,13 +141,15 @@ Configuration::Configuration() noexcept : u32_ServiceMethodWaitMS(100),
             }
             else if (Block.GetName().compare(p_Identifier[BLOCK_VOICE]) == 0)
             {
-                s_VoiceTriggerKeyphrase = Block.GetValue(p_Identifier[VOICE_TRIGGER_KEYPHRASE]);
-                u32_VoiceTriggerTimeoutS = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[VOICE_TRIGGER_TIMEOUT_S])));
                 u32_VoiceRecordingKHz = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[VOICE_RECORDING_KHZ])));
-                u32_VoiceRecordingStorageS = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[VOICE_RECORDING_STORAGE_S])));
                 u32_VoicePlaybackKHz = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[VOICE_PLAYBACK_KHZ])));
-                s_VoiceGoogleLangCode = Block.GetValue(p_Identifier[VOICE_GOOGLE_API_LANGUAGE_CODE]);
-                u32_VoiceGoogleVoiceGender = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[VOICE_GOOGLE_API_VOICE_GENDER])));
+                u32_VoiceRecordingTimeoutS = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[VOICE_RECORDING_TIMEOUT_S])));
+                u8_VoiceAPIProvider = static_cast<MRH_Uint8>(std::stoull(Block.GetValue(p_Identifier[VOICE_API_PROVIDER])));
+            }
+            else if (Block.GetName().compare(p_Identifier[BLOCK_GOOGLE_API]) == 0)
+            {
+                s_GoogleLangCode = Block.GetValue(p_Identifier[GOOGLE_API_LANGUAGE_CODE]);
+                u32_GoogleVoiceGender = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[GOOGLE_API_VOICE_GENDER])));
             }
             else if (Block.GetName().compare(p_Identifier[BLOCK_SERVER]) == 0)
             {
@@ -178,24 +183,9 @@ MRH_Uint32 Configuration::GetServiceMethodWaitMS() const noexcept
     return u32_ServiceMethodWaitMS;
 }
 
-std::string Configuration::GetVoiceTriggerKeyphrase() const noexcept
-{
-    return s_VoiceTriggerKeyphrase;
-}
-
-MRH_Uint32 Configuration::GetVoiceTriggerTimeoutS() const noexcept
-{
-    return u32_VoiceTriggerTimeoutS;
-}
-
 MRH_Uint32 Configuration::GetVoiceRecordingKHz() const noexcept
 {
     return u32_VoiceRecordingKHz;
-}
-
-MRH_Uint32 Configuration::GetVoiceRecordingStorageS() const noexcept
-{
-    return u32_VoiceRecordingStorageS;
 }
 
 MRH_Uint32 Configuration::GetVoicePlaybackKHz() const noexcept
@@ -203,14 +193,24 @@ MRH_Uint32 Configuration::GetVoicePlaybackKHz() const noexcept
     return u32_VoicePlaybackKHz;
 }
 
-std::string Configuration::GetVoiceGoogleLanguageCode() const noexcept
+MRH_Uint32 Configuration::GetVoiceRecordingTimeoutS() const noexcept
 {
-    return s_VoiceGoogleLangCode;
+    return u32_VoiceRecordingTimeoutS;
 }
 
-MRH_Uint32 Configuration::GetVoiceGoogleVoiceGender() const noexcept
+MRH_Uint8 Configuration::GetVoiceAPIProvider() const noexcept
 {
-    return u32_VoiceGoogleVoiceGender;
+    return u8_VoiceAPIProvider;
+}
+
+std::string Configuration::GetGoogleLanguageCode() const noexcept
+{
+    return s_GoogleLangCode;
+}
+
+MRH_Uint32 Configuration::GetGoogleVoiceGender() const noexcept
+{
+    return u32_GoogleVoiceGender;
 }
 
 std::string Configuration::GetServerAccountMail() const noexcept

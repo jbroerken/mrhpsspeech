@@ -757,7 +757,7 @@ MRH_Srv_NetMessage NetServer::RecieveServerMessage(MRH_Srv_Server* p_Server, std
 }
 
 //*************************************************************************************
-// Exchange
+// Retrieve
 //*************************************************************************************
 
 MRH_Uint32 NetServer::Retrieve(MRH_Uint32 u32_StringID)
@@ -771,12 +771,12 @@ MRH_Uint32 NetServer::Retrieve(MRH_Uint32 u32_StringID)
             break;
         }
         
-        ++u32_StringID;
-        
         try
         {
             SpeechEvent::InputRecieved(u32_StringID, l_Recieved.front());
             l_Recieved.pop_front();
+            
+            ++u32_StringID;
         }
         catch (Exception& e)
         {
@@ -788,6 +788,10 @@ MRH_Uint32 NetServer::Retrieve(MRH_Uint32 u32_StringID)
     
     return u32_StringID;
 }
+
+//*************************************************************************************
+// Send
+//*************************************************************************************
 
 void NetServer::Send(OutputStorage& c_OutputStorage)
 {

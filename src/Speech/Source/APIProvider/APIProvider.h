@@ -28,20 +28,36 @@
 
 // Project
 
+// Pre-defined
+#ifndef MRH_API_PROVIDER_CLI
+    #define MRH_API_PROVIDER_CLI 0
+#endif
+
 
 //*************************************************************************************
-// Types
+// API Provider
 //*************************************************************************************
 
-typedef enum
-{
-    GOOGLE_CLOUD_API = 0,
+#if MRH_API_PROVIDER_CLI <= 0
+
+    // Google Cloud API
+    #ifndef MRH_API_PROVIDER_GOOGLE_CLOUD_API
+        #define MRH_API_PROVIDER_GOOGLE_CLOUD_API 1
+    #endif
+
+    // Enumeration
+    // @NOTE: Keep #define excluded in list for switch cases
+    typedef enum
+    {
+        GOOGLE_CLOUD_API = 0,
+        
+        API_PROVIDER_MAX = GOOGLE_CLOUD_API,
     
-    API_PROVIDER_MAX = GOOGLE_CLOUD_API,
-    
-    API_PROVIDER_COUNT = API_PROVIDER_MAX + 1
-    
-}APIProvider;
+        API_PROVIDER_COUNT = API_PROVIDER_MAX + 1
+
+    }APIProvider;
+
+#endif
 
 
 #endif /* APIProvider_h */

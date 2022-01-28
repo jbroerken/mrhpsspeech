@@ -60,7 +60,7 @@ public:
     ~NetServer() noexcept;
     
     //*************************************************************************************
-    // Switch
+    // Reset
     //*************************************************************************************
     
     /**
@@ -70,7 +70,7 @@ public:
     void Reset() noexcept;
     
     //*************************************************************************************
-    // Exchange
+    // Retrieve
     //*************************************************************************************
     
     /**
@@ -78,13 +78,19 @@ public:
      *
      *  \param u32_StringID The string id to use for the first input.
      *
-     *  \return The new string id after sending.
+     *  \return The new string id after retrieving.
      */
     
     MRH_Uint32 Retrieve(MRH_Uint32 u32_StringID);
     
+    //*************************************************************************************
+    // Send
+    //*************************************************************************************
+    
     /**
      *  Add output to send to the server.
+     *
+     *  \param c_OutputStorage The output storage to send from.
      */
     
     void Send(OutputStorage& c_OutputStorage);

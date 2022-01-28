@@ -1,5 +1,5 @@
 /**
- *  LocalStream.h
+ *  CLIStream.h
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -19,26 +19,21 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef LocalStream_h
-#define LocalStream_h
+#ifndef CLIStream_h
+#define CLIStream_h
 
 // C / C++
-#include <thread>
-#include <mutex>
-#include <atomic>
-#include <vector>
 
 // External
 #include <libmrhpsb/MRH_Callback.h>
 
 // Project
 #include "./MessageStream/MessageStream.h"
-#include "./Audio/AudioBuffer.h"
 #include "../../Configuration.h"
 #include "../OutputStorage.h"
 
 
-class LocalStream
+class CLIStream
 {
 public:
     
@@ -48,44 +43,39 @@ public:
     
     /**
      *  Default constructor.
-     *
-     *  \param c_Configuration The configuration to construct with.
      */
     
-    LocalStream(Configuration const& c_Configuration);
+    CLIStream();
     
     /**
      *  Default destructor.
      */
     
-    ~LocalStream() noexcept;
+    ~CLIStream() noexcept;
     
     //*************************************************************************************
-    // Switch
-    //*************************************************************************************
-    
-    /**
-     *  Reset the currently stored input and output.
-     */
-    
-    void Reset() noexcept;
-    
-    //*************************************************************************************
-    // Exchange
+    // Retrieve
     //*************************************************************************************
     
     /**
-     *  Retrieve recieved input from the server.
+     *  Retrieve recieved data from the local stream.
      *
      *  \param u32_StringID The string id to use for the first input.
+     *  \param b_DiscardInput If recieved input should be discarded.
      *
-     *  \return The new string id after sending.
+     *  \return The new string id after retrieving.
      */
     
-    MRH_Uint32 Retrieve(MRH_Uint32 u32_StringID);
+    MRH_Uint32 Retrieve(MRH_Uint32 u32_StringID, bool b_DiscardInput);
+    
+    //*************************************************************************************
+    // Send
+    //*************************************************************************************
     
     /**
-     *  Add output to send to the server.
+     *  Add output to send to the local stream.
+     *
+     *  \param c_OutputStorage The output storage to send from.
      */
     
     void Send(OutputStorage& c_OutputStorage);
@@ -96,13 +86,11 @@ private:
     // Data
     //*************************************************************************************
     
+    // Stream
     MessageStream c_Stream;
-    
-    AudioBuffer c_Input;
-    AudioBuffer c_Output;
     
 protected:
 
 };
 
-#endif /* LocalStream_h */
+#endif /* CLIStream_h */

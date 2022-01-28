@@ -64,36 +64,12 @@ public:
     MRH_Uint32 GetServiceMethodWaitMS() const noexcept;
 
     /**
-     *  Get the voice trigger key phrase to start listening.
-     *
-     *  \return The trigger key phrase.
-     */
-
-    std::string GetVoiceTriggerKeyphrase() const noexcept;
-    
-    /**
-     *  Get the voice trigger recognized timout in seconds.
-     *
-     *  \return The trigger recognized reset timeout.
-     */
-    
-    MRH_Uint32 GetVoiceTriggerTimeoutS() const noexcept;
-    
-    /**
      *  Get the voice recording KHz.
      *
      *  \return The recording KHz.
      */
     
     MRH_Uint32 GetVoiceRecordingKHz() const noexcept;
-    
-    /**
-     *  Get the voice recording sample storage size.
-     *
-     *  \return The recording sample storage size.
-     */
-    
-    MRH_Uint32 GetVoiceRecordingStorageS() const noexcept;
     
     /**
      *  Get the voice playback KHz.
@@ -104,12 +80,28 @@ public:
     MRH_Uint32 GetVoicePlaybackKHz() const noexcept;
     
     /**
+     *  Get the voice recording timeout in seconds.
+     *
+     *  \return The voice recording timeout in seconds.
+     */
+    
+    MRH_Uint32 GetVoiceRecordingTimeoutS() const noexcept;
+    
+    /**
+     *  Get the voice api provider.
+     *
+     *  \return The voice api provider.
+     */
+    
+    MRH_Uint8 GetVoiceAPIProvider() const noexcept;
+    
+    /**
      *  Get the voice google cloud api language code.
      *
      *  \return The google cloud api language code.
      */
     
-    std::string GetVoiceGoogleLanguageCode() const noexcept;
+    std::string GetGoogleLanguageCode() const noexcept;
     
     /**
      *  Get the voice google cloud api voice gender.
@@ -117,7 +109,7 @@ public:
      *  \return The google cloud api voice gender.
      */
     
-    MRH_Uint32 GetVoiceGoogleVoiceGender() const noexcept;
+    MRH_Uint32 GetGoogleVoiceGender() const noexcept;
     
     /**
      *  Get the server account mail.
@@ -201,13 +193,14 @@ private:
     MRH_Uint32 u32_ServiceMethodWaitMS;
     
     // Voice
-    std::string s_VoiceTriggerKeyphrase;
-    MRH_Uint32 u32_VoiceTriggerTimeoutS;
     MRH_Uint32 u32_VoiceRecordingKHz;
-    MRH_Uint32 u32_VoiceRecordingStorageS;
     MRH_Uint32 u32_VoicePlaybackKHz;
-    std::string s_VoiceGoogleLangCode;
-    MRH_Uint32 u32_VoiceGoogleVoiceGender;
+    MRH_Uint32 u32_VoiceRecordingTimeoutS;
+    MRH_Uint8 u8_VoiceAPIProvider;
+    
+    // Google API
+    std::string s_GoogleLangCode;
+    MRH_Uint32 u32_GoogleVoiceGender;
     
     // Server
     std::string s_ServerAccountMail;

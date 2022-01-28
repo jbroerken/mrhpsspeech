@@ -32,10 +32,12 @@
 // Constructor / Destructor
 //*************************************************************************************
 
-Speech::Speech(Configuration const& c_Configuration) : c_LocalStream(c_Configuration),
+Speech::Speech(Configuration const& c_Configuration) : b_Update(true),
+#if MRH_SPEECH_USE_LOCAL_STREAM > 0 && MRH_API_PROVIDER_CLI <= 0
+                                                       c_AudioStream(c_Configuration),
+#endif
                                                        c_NetServer(c_Configuration),
                                                        e_Method(LOCAL),
-                                                       b_Update(true),
                                                        b_MethodSelected(false)
 {
 #if MRH_SPEECH_USE_NET_SERVER <= 0 && MRH_SPEECH_USE_LOCAL_STREAM <= 0
@@ -68,8 +70,17 @@ void Speech::Update(Speech* p_Instance, MRH_Uint32 u32_MethodWaitMS) noexcept
     MRH_PSBLogger& c_Logger = MRH_PSBLogger::Singleton();
     OutputStorage& c_OutputStorage = p_Instance->c_OutputStorage;
     
-    LocalStream& c_LocalStream = p_Instance->c_LocalStream;
+    // Select sources
+#if MRH_SPEECH_USE_LOCAL_STREAM > 0
+#if MRH_API_PROVIDER_CLI > 0
+    CLIStream& c_Stream = p_Instance->c_CLIStream;
+#else
+    AudioStream& c_Stream = p_Instance->c_AudioStream;
+#endif
+#endif
+#if MRH_SPEECH_USE_NET_SERVER > 0
     NetServer& c_NetServer = p_Instance->c_NetServer;
+#endif
     
     // Shared default string id
     MRH_Uint32 u32_StringID = 0;
@@ -106,7 +117,11 @@ void Speech::Update(Speech* p_Instance, MRH_Uint32 u32_MethodWaitMS) noexcept
                          "Speech.cpp", __LINE__);
         }
         
-        
+        // Stop voice exchange if connected
+        if (p_Instance->e_Method == REMOTE)
+        {
+            continue;
+        }
 #endif
     }
 }
