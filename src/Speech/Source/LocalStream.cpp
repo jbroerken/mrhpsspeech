@@ -230,30 +230,29 @@ MRH_Uint32 LocalStream::Retrieve(MRH_Uint32 u32_StringID, bool b_DiscardInput)
 #if MRH_API_PROVIDER_CLI > 0
 void LocalStream::Send(OutputStorage& c_OutputStorage)
 {
-    if (c_OutputStorage.GetFinishedAvailable() == false)
+    if (c_Stream.GetConnected() == false)
     {
-        return;
-    }
-    else if (c_Stream.GetConnected() == false)
-    {
-        throw Exception("Stream is not connected!");
+        throw Exception("CLI stream is not connected!");
     }
     
-    // Nothing sent, send next output
-    try
+    // Send all waiting output
+    while (c_OutputStorage.GetFinishedAvailable() == false)
     {
-        auto String = c_OutputStorage.GetFinishedString();
-        
-        // Send over CLI
-        c_Stream.Send(MessageOpCode::STRING_CS_STRING_DATA(String.s_String).v_Data);
-        
-        // Immediatly inform of performed
-        SpeechEvent::OutputPerformed(String.u32_StringID,
-                                     String.u32_GroupID);
-    }
-    catch (Exception& e)
-    {
-        throw;
+        try
+        {
+            auto String = c_OutputStorage.GetFinishedString();
+            
+            // Send over CLI
+            c_Stream.Send(MessageOpCode::STRING_CS_STRING_DATA(String.s_String).v_Data);
+            
+            // Immediatly inform of performed
+            SpeechEvent::OutputPerformed(String.u32_StringID,
+                                         String.u32_GroupID);
+        }
+        catch (Exception& e)
+        {
+            throw;
+        }
     }
 }
 #else
@@ -265,7 +264,7 @@ void LocalStream::Send(OutputStorage& c_OutputStorage)
     }
     else if (c_Stream.GetConnected() == false)
     {
-        throw Exception("Stream is not connected!");
+        throw Exception("Audio stream is not connected!");
     }
     
     // Check if output is currently being sent
