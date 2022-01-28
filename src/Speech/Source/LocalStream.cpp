@@ -1,5 +1,5 @@
 /**
- *  AudioStream.cpp
+ *  LocalStream.cpp
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -25,8 +25,10 @@
 #include <libmrhpsb/MRH_PSBLogger.h>
 
 // Project
-#include "./AudioStream.h"
+#include "./LocalStream.h"
+#if MRH_API_PROVIDER_CLI <= 0
 #include "./APIProvider/GoogleCloudAPI.h"
+#endif
 #include "../SpeechEvent.h"
 
 
@@ -34,7 +36,10 @@
 // Constructor / Destructor
 //*************************************************************************************
 
-AudioStream::AudioStream(Configuration const& c_Configuration) : c_Input(c_Configuration.GetVoiceRecordingKHz()),
+#if MRH_API_PROVIDER_CLI > 0
+LocalStream::LocalStream(Configuration const& c_Configuration)
+#else
+LocalStream::LocalStream(Configuration const& c_Configuration) : c_Input(c_Configuration.GetVoiceRecordingKHz()),
                                                                  u32_RecordingTimeoutS(c_Configuration.GetVoiceRecordingTimeoutS()),
                                                                  u64_LastAudioTimePointS(time(NULL)),
                                                                  c_Output(c_Configuration.GetVoicePlaybackKHz()),
@@ -44,30 +49,69 @@ AudioStream::AudioStream(Configuration const& c_Configuration) : c_Input(c_Confi
                                                                  s_GoogleLangCode(c_Configuration.GetGoogleLanguageCode()),
                                                                  u8_GoogleVoiceGender(c_Configuration.GetGoogleVoiceGender())
 #endif
+#endif
 {}
 
-AudioStream::~AudioStream() noexcept
+LocalStream::~LocalStream() noexcept
 {}
 
 //*************************************************************************************
 // Recording
 //*************************************************************************************
 
-void AudioStream::StartRecording() noexcept
+#if MRH_API_PROVIDER_CLI <= 0
+void LocalStream::StartRecording() noexcept
 {
     c_Stream.Send({ MessageOpCode::AUDIO_S_STOP_RECORDING });
 }
 
-void AudioStream::StopRecording() noexcept
+void LocalStream::StopRecording() noexcept
 {
     c_Stream.Send({ MessageOpCode::AUDIO_S_START_RECORDING });
 }
+#endif
 
 //*************************************************************************************
 // Listen
 //*************************************************************************************
 
-MRH_Uint32 AudioStream::Retrieve(MRH_Uint32 u32_StringID, bool b_DiscardInput)
+#if MRH_API_PROVIDER_CLI > 0
+MRH_Uint32 LocalStream::Retrieve(MRH_Uint32 u32_StringID, bool b_DiscardInput)
+{
+    // No client or data, do nothing
+    if (c_Stream.GetConnected() == false)
+    {
+        return u32_StringID;
+    }
+    
+    // Recieve data
+    MessageOpCode::STRING_CS_STRING_DATA c_OpCode("");
+    
+    // Recieve as many as possible!
+    while (c_Stream.Recieve(c_OpCode.v_Data) == true)
+    {
+        // Is this a usable opcode for cli?
+        if (c_OpCode.GetOpCode() != MessageOpCode::STRING_CS_STRING)
+        {
+            break;
+        }
+        
+        try
+        {
+            SpeechEvent::InputRecieved(u32_StringID, c_OpCode.GetString());
+            ++u32_StringID;
+        }
+        catch (Exception& e)
+        {
+            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, e.what(),
+                                           "CLIStream.cpp", __LINE__);
+        }
+    }
+    
+    return u32_StringID;
+}
+#else
+MRH_Uint32 LocalStream::Retrieve(MRH_Uint32 u32_StringID, bool b_DiscardInput)
 {
     // No client or data, do nothing
     if (c_Stream.GetConnected() == false)
@@ -94,7 +138,7 @@ MRH_Uint32 AudioStream::Retrieve(MRH_Uint32 u32_StringID, bool b_DiscardInput)
                 /**
                  *  Input
                  */
-                    
+                
                 case MessageOpCode::AUDIO_CS_AUDIO:
                 {
                     // @NOTE: Messages are sent / recieved in sequence
@@ -147,10 +191,10 @@ MRH_Uint32 AudioStream::Retrieve(MRH_Uint32 u32_StringID, bool b_DiscardInput)
     // Got data, should we transcribe?
     if (b_DiscardInput == false)
     {
+        std::string s_Input;
+        
         try
         {
-            std::string s_Input;
-            
             switch (e_APIProvider)
             {
 #if MRH_API_PROVIDER_GOOGLE_CLOUD_API > 0
@@ -159,7 +203,6 @@ MRH_Uint32 AudioStream::Retrieve(MRH_Uint32 u32_StringID, bool b_DiscardInput)
                                                          s_GoogleLangCode);
                     break;
 #endif
-                    
                 default:
                     throw Exception("Unknown API provider!");
             }
@@ -170,8 +213,7 @@ MRH_Uint32 AudioStream::Retrieve(MRH_Uint32 u32_StringID, bool b_DiscardInput)
         }
         catch (Exception& e)
         {
-            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, e.what(),
-                                           "LocalStream.cpp", __LINE__);
+            throw;
         }
     }
           
@@ -179,12 +221,43 @@ MRH_Uint32 AudioStream::Retrieve(MRH_Uint32 u32_StringID, bool b_DiscardInput)
     c_Input.Clear(c_Input.GetKHz());
     return u32_StringID;
 }
+#endif
 
 //*************************************************************************************
 // Send
 //*************************************************************************************
 
-void AudioStream::Send(OutputStorage& c_OutputStorage)
+#if MRH_API_PROVIDER_CLI > 0
+void LocalStream::Send(OutputStorage& c_OutputStorage)
+{
+    if (c_OutputStorage.GetFinishedAvailable() == false)
+    {
+        return;
+    }
+    else if (c_Stream.GetConnected() == false)
+    {
+        throw Exception("Stream is not connected!");
+    }
+    
+    // Nothing sent, send next output
+    try
+    {
+        auto String = c_OutputStorage.GetFinishedString();
+        
+        // Send over CLI
+        c_Stream.Send(MessageOpCode::STRING_CS_STRING_DATA(String.s_String).v_Data);
+        
+        // Immediatly inform of performed
+        SpeechEvent::OutputPerformed(String.u32_StringID,
+                                     String.u32_GroupID);
+    }
+    catch (Exception& e)
+    {
+        throw;
+    }
+}
+#else
+void LocalStream::Send(OutputStorage& c_OutputStorage)
 {
     if (c_OutputStorage.GetFinishedAvailable() == false)
     {
@@ -219,7 +292,6 @@ void AudioStream::Send(OutputStorage& c_OutputStorage)
                                            u8_GoogleVoiceGender);
                 break;
 #endif
-                
             default:
                 throw Exception("Unknown API provider!");
         }
@@ -241,3 +313,4 @@ void AudioStream::Send(OutputStorage& c_OutputStorage)
         throw;
     }
 }
+#endif

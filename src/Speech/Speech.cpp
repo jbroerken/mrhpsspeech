@@ -33,8 +33,8 @@
 //*************************************************************************************
 
 Speech::Speech(Configuration const& c_Configuration) : b_Update(true),
-#if MRH_SPEECH_USE_LOCAL_STREAM > 0 && MRH_API_PROVIDER_CLI <= 0
-                                                       c_AudioStream(c_Configuration),
+#if MRH_SPEECH_USE_LOCAL_STREAM > 0
+                                                       c_LocalStream(c_Configuration),
 #endif
                                                        c_NetServer(c_Configuration),
                                                        e_Method(LOCAL),
@@ -72,11 +72,7 @@ void Speech::Update(Speech* p_Instance, MRH_Uint32 u32_MethodWaitMS) noexcept
     
     // Select sources
 #if MRH_SPEECH_USE_LOCAL_STREAM > 0
-#if MRH_API_PROVIDER_CLI > 0
-    CLIStream& c_Stream = p_Instance->c_CLIStream;
-#else
-    AudioStream& c_Stream = p_Instance->c_AudioStream;
-#endif
+    LocalStream& c_Stream = p_Instance->c_LocalStream;
 #endif
 #if MRH_SPEECH_USE_NET_SERVER > 0
     NetServer& c_NetServer = p_Instance->c_NetServer;

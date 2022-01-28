@@ -97,19 +97,6 @@ NetServer::~NetServer() noexcept
 }
 
 //*************************************************************************************
-// Reset
-//*************************************************************************************
-
-void NetServer::Reset() noexcept
-{
-    std::lock_guard<std::mutex> c_RecieveGuard(c_RecievedMutex);
-    l_Recieved.clear();
-    
-    std::lock_guard<std::mutex> c_SendGuard(c_SendMutex);
-    l_Send.clear();
-}
-
-//*************************************************************************************
 // Client
 //*************************************************************************************
 
@@ -585,12 +572,20 @@ void NetServer::ClientUpdate(NetServer* p_Instance) noexcept
                                                   p_MessageBuffer,
                                                   p_Instance->p_DevicePassword);
                 
+                // Did the app client disconnect?
                 if (e_Recieved == MRH_SRV_S_MSG_PARTNER_CLOSED)
                 {
                     c_Logger.Log(MRH_PSBLogger::INFO, "App client disconnected!",
                                  "Server.cpp", __LINE__);
                     
-                    // @NOTE: Current send / recieved gets cleared on reset!
+                    // Reset current messages
+                    std::lock_guard<std::mutex> c_RecieveGuard(p_Instance->c_RecievedMutex);
+                    p_Instance->l_Recieved.clear();
+                    
+                    std::lock_guard<std::mutex> c_SendGuard(p_Instance->c_SendMutex);
+                    p_Instance->l_Send.clear();
+                    
+                    // Wait for new connection
                     e_State = CLIENT_RECIEVE_REQUEST;
                     break;
                 }

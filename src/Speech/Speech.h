@@ -33,11 +33,7 @@
 
 // Project
 #if MRH_SPEECH_USE_LOCAL_STREAM > 0
-#if MRH_API_PROVIDER_CLI > 0
-#include "./Source/CLIStream.h"
-#else
-#include "./Source/AudioStream.h"
-#endif
+#include "./Source/LocalStream.h"
 #endif
 #if MRH_SPEECH_USE_NET_SERVER > 0
 #include "./Source/NetServer.h"
@@ -137,11 +133,7 @@ private:
     OutputStorage c_OutputStorage;
     
 #if MRH_SPEECH_USE_LOCAL_STREAM > 0
-#if MRH_API_PROVIDER_CLI > 0
-    CLIStream c_CLIStream;
-#else
-    AudioStream c_AudioStream;
-#endif
+    LocalStream c_LocalStream;
 #endif
 #if MRH_SPEECH_USE_NET_SERVER > 0
     NetServer c_NetServer;

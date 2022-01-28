@@ -1,5 +1,5 @@
 /**
- *  CLIStream.h
+ *  LocalStream.h
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -19,21 +19,29 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef CLIStream_h
-#define CLIStream_h
+#ifndef LocalStream_h
+#define LocalStream_h
 
 // C / C++
+#include <thread>
+#include <mutex>
+#include <atomic>
+#include <vector>
 
 // External
 #include <libmrhpsb/MRH_Callback.h>
 
 // Project
 #include "./MessageStream/MessageStream.h"
+#include "./APIProvider/APIProvider.h"
+#if MRH_API_PROVIDER_CLI <= 0
+#include "./Audio/AudioBuffer.h"
+#endif
 #include "../../Configuration.h"
 #include "../OutputStorage.h"
 
 
-class CLIStream
+class LocalStream
 {
 public:
     
@@ -43,15 +51,35 @@ public:
     
     /**
      *  Default constructor.
+     *
+     *  \param c_Configuration The configuration to construct with.
      */
     
-    CLIStream();
+    LocalStream(Configuration const& c_Configuration);
     
     /**
      *  Default destructor.
      */
     
-    ~CLIStream() noexcept;
+    ~LocalStream() noexcept;
+    
+    //*************************************************************************************
+    // Recording
+    //*************************************************************************************
+    
+#if MRH_API_PROVIDER_CLI <= 0
+    /**
+     *  Start recording.
+     */
+    
+    void StartRecording() noexcept;
+    
+    /**
+     *  Stop recording.
+     */
+    
+    void StopRecording() noexcept;
+#endif
     
     //*************************************************************************************
     // Retrieve
@@ -89,8 +117,28 @@ private:
     // Stream
     MessageStream c_Stream;
     
+#if MRH_API_PROVIDER_CLI <= 0
+    // Input
+    AudioBuffer c_Input;
+    MRH_Uint32 u32_RecordingTimeoutS;
+    MRH_Uint64 u64_LastAudioTimePointS;
+    
+    // Output
+    AudioBuffer c_Output;
+    bool b_OutputSet;
+    MRH_Uint32 u32_OutputID;
+    MRH_Uint32 u32_OutputGroup;
+    
+    // Google Cloud API
+    APIProvider e_APIProvider;
+#if MRH_API_PROVIDER_GOOGLE_CLOUD_API > 0
+    std::string s_GoogleLangCode;
+    MRH_Uint8 u8_GoogleVoiceGender;
+#endif
+#endif
+    
 protected:
 
 };
 
-#endif /* CLIStream_h */
+#endif /* LocalStream_h */
