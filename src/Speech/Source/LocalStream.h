@@ -108,6 +108,18 @@ public:
     
     void Send(OutputStorage& c_OutputStorage);
     
+    //*************************************************************************************
+    // Getters
+    //*************************************************************************************
+    
+    /**
+     *  Get the local stream connection status.
+     *
+     *  \return true if connected, false if not.
+     */
+    
+    bool GetStreamConnected() const noexcept;
+    
 private:
     
     //*************************************************************************************

@@ -36,6 +36,9 @@
 NetServer::NetServer(Configuration const& c_Configuration) noexcept : e_ConnectionState(CONNECT_CONNECTION),
                                                                       b_RunThread(true)
 {
+    MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, "Using remote net server.",
+                                   "NetServer.cpp", __LINE__);
+    
     // Grab connection info
     memset(p_AccountMail, '\0', MRH_SRV_SIZE_ACCOUNT_MAIL);
     strncpy(p_AccountMail,
@@ -247,8 +250,10 @@ void NetServer::ClientUpdate(NetServer* p_Instance) noexcept
             case AUTH_SEND_REQUEST_CONNECTION:
             case AUTH_SEND_REQUEST_COMMUNICATION:
             {
-                MRH_SRV_C_MSG_AUTH_REQUEST_DATA c_Request;
+                c_Logger.Log(MRH_PSBLogger::INFO, "Sending authentication request message...",
+                             "Server.cpp", __LINE__);
                 
+                MRH_SRV_C_MSG_AUTH_REQUEST_DATA c_Request;
                 strncpy(c_Request.p_Mail, p_Instance->p_AccountMail, MRH_SRV_SIZE_ACCOUNT_MAIL);
                 strncpy(c_Request.p_DeviceKey, p_Instance->p_DeviceKey, MRH_SRV_SIZE_DEVICE_KEY);
                 c_Request.u8_Actor = MRH_SRV_CLIENT_PLATFORM;
@@ -277,6 +282,9 @@ void NetServer::ClientUpdate(NetServer* p_Instance) noexcept
                 
                 if (e_Recieved == MRH_SRV_S_MSG_AUTH_CHALLENGE)
                 {
+                    c_Logger.Log(MRH_PSBLogger::INFO, "Recieved authentication challenge message!",
+                                 "Server.cpp", __LINE__);
+                    
                     MRH_SRV_S_MSG_AUTH_CHALLENGE_DATA c_Challenge;
                     
                     if (MRH_SRV_SetNetMessage(&c_Challenge, p_MessageBuffer) < 0)
@@ -318,8 +326,10 @@ void NetServer::ClientUpdate(NetServer* p_Instance) noexcept
             case AUTH_SEND_PROOF_CONNECTION:
             case AUTH_SEND_PROOF_COMMUNICATION:
             {
-                MRH_SRV_C_MSG_AUTH_PROOF_DATA c_Proof;
+                c_Logger.Log(MRH_PSBLogger::INFO, "Sending authentication proof message...",
+                             "Server.cpp", __LINE__);
                 
+                MRH_SRV_C_MSG_AUTH_PROOF_DATA c_Proof;
                 uint8_t p_PasswordHash[MRH_SRV_SIZE_ACCOUNT_PASSWORD] = { '\0' };
                 
                 if ((i_Result = MRH_SRV_CreatePasswordHash(p_PasswordHash, p_Instance->p_AccountPassword, p_Salt, u8_HashType)) < 0)
@@ -357,6 +367,9 @@ void NetServer::ClientUpdate(NetServer* p_Instance) noexcept
                     break;
                 }
                 
+                c_Logger.Log(MRH_PSBLogger::INFO, "Recieved authentication result message!",
+                             "Server.cpp", __LINE__);
+                
                 MRH_SRV_S_MSG_AUTH_RESULT_DATA c_Result;
                 
                 if ((i_Result = MRH_SRV_SetNetMessage(&c_Result, p_MessageBuffer)) < 0)
@@ -387,8 +400,10 @@ void NetServer::ClientUpdate(NetServer* p_Instance) noexcept
                 
             case CHANNEL_SEND_REQUEST:
             {
-                MRH_SRV_C_MSG_CHANNEL_REQUEST_DATA c_Request;
+                c_Logger.Log(MRH_PSBLogger::INFO, "Sending channel request message...",
+                             "Server.cpp", __LINE__);
                 
+                MRH_SRV_C_MSG_CHANNEL_REQUEST_DATA c_Request;
                 strncpy(c_Request.p_Channel, p_Instance->p_ComServerChannel, MRH_SRV_SIZE_SERVER_CHANNEL);
                 
                 if ((i_Result = MRH_SRV_SendMessage(p_Server, MRH_SRV_C_MSG_CHANNEL_REQUEST, &c_Request, NULL)) < 0)
@@ -412,6 +427,9 @@ void NetServer::ClientUpdate(NetServer* p_Instance) noexcept
                 {
                     break;
                 }
+                
+                c_Logger.Log(MRH_PSBLogger::INFO, "Recieved channel response message!",
+                             "Server.cpp", __LINE__);
                 
                 MRH_SRV_S_MSG_CHANNEL_RESPONSE_DATA c_Response;
                 
@@ -453,6 +471,9 @@ void NetServer::ClientUpdate(NetServer* p_Instance) noexcept
                     break;
                 }
                 
+                c_Logger.Log(MRH_PSBLogger::INFO, "Recieved pair request message!",
+                             "Server.cpp", __LINE__);
+                
                 MRH_SRV_C_MSG_PAIR_REQUEST_DATA c_Request;
                 
                 if ((i_Result = MRH_SRV_SetNetMessage(&c_Request, p_MessageBuffer)) < 0)
@@ -473,8 +494,10 @@ void NetServer::ClientUpdate(NetServer* p_Instance) noexcept
             }
             case CLIENT_SEND_CHALLENGE:
             {
-                MRH_SRV_C_MSG_PAIR_CHALLENGE_DATA c_Challenge;
+                c_Logger.Log(MRH_PSBLogger::INFO, "Sending pair challenge message...",
+                             "Server.cpp", __LINE__);
                 
+                MRH_SRV_C_MSG_PAIR_CHALLENGE_DATA c_Challenge;
                 c_Challenge.u8_Actor = MRH_SRV_CLIENT_PLATFORM;
                 c_Challenge.u32_Nonce = (u32_Nonce = rand() % ((uint32_t) - 1));
                 
@@ -499,6 +522,9 @@ void NetServer::ClientUpdate(NetServer* p_Instance) noexcept
                 {
                     break;
                 }
+                
+                c_Logger.Log(MRH_PSBLogger::INFO, "Recieved pair proof message!",
+                             "Server.cpp", __LINE__);
                 
                 MRH_SRV_C_MSG_PAIR_PROOF_DATA c_Proof;
                 
@@ -539,8 +565,10 @@ void NetServer::ClientUpdate(NetServer* p_Instance) noexcept
             }
             case CLIENT_SEND_RESULT:
             {
+                c_Logger.Log(MRH_PSBLogger::INFO, "Sending pair result message...",
+                             "Server.cpp", __LINE__);
+                
                 MRH_SRV_C_MSG_PAIR_RESULT_DATA c_Result;
-
                 c_Result.u8_Result = u8_PairResult;
                 
                 if ((i_Result = MRH_SRV_SendMessage(p_Server, MRH_SRV_C_MSG_PAIR_RESULT, &c_Result, NULL)) < 0)

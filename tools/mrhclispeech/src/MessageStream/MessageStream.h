@@ -48,12 +48,10 @@ public:
     /**
      *  Default constructor.
      *
-     *  \param s_Channel The name identifier of the stream channel.
      *  \param b_KeepAlive If the connection should be kept alive automatically.
      */
     
-    MessageStream(std::string const& s_Channel,
-                  bool b_KeepAlive);
+    MessageStream(bool b_KeepAlive);
     
     /**
      *  Default destructor.
@@ -164,8 +162,6 @@ private:
     std::thread c_Thread;
     std::atomic<bool> b_Update;
     
-    const std::string s_Channel;
-    const std::string s_SocketPath;
     const bool b_KeepAlive;
     std::atomic<bool> b_Connected;
     

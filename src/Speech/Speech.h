@@ -22,9 +22,6 @@
 #ifndef Speech_h
 #define Speech_h
 
-#define MRH_SPEECH_USE_LOCAL_STREAM 1
-#define MRH_SPEECH_USE_NET_SERVER 1
-
 // C / C++
 #include <thread>
 #include <atomic>
@@ -101,12 +98,12 @@ public:
     Method GetMethod() noexcept;
     
     /**
-     *  Check if a speech method was selected.
+     *  Check if speech is usable.
      *
-     *  \return true if selected, false if not.
+     *  \return true if usable, false if not.
      */
     
-    bool GetMethodSelected() noexcept;
+    bool GetUsable() noexcept;
     
 private:
     
@@ -129,6 +126,7 @@ private:
     
     std::thread c_Thread;
     std::atomic<bool> b_Update;
+    std::atomic<Method> e_Method;
     
     OutputStorage c_OutputStorage;
     
@@ -138,9 +136,6 @@ private:
 #if MRH_SPEECH_USE_NET_SERVER > 0
     NetServer c_NetServer;
 #endif
-    
-    std::atomic<Method> e_Method; // Separate for thread safety
-    std::atomic<bool> b_MethodSelected;
     
 protected:
 

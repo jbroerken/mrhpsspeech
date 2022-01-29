@@ -50,7 +50,19 @@ LocalStream::LocalStream(Configuration const& c_Configuration) : c_Input(c_Confi
                                                                  u8_GoogleVoiceGender(c_Configuration.GetGoogleVoiceGender())
 #endif
 #endif
-{}
+{
+#if MRH_API_PROVIDER_CLI > 0
+    MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, "Using local CLI stream.",
+                                   "LocalStream.cpp", __LINE__);
+#else
+    MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, "Using local audio stream. API providers are: "
+#if MRH_API_PROVIDER_GOOGLE_CLOUD_API > 0
+                                                        "[ Google Cloud API ]"
+#endif
+                                                        ".",
+                                   "LocalStream.cpp", __LINE__);
+#endif
+}
 
 LocalStream::~LocalStream() noexcept
 {}
@@ -90,10 +102,10 @@ MRH_Uint32 LocalStream::Retrieve(MRH_Uint32 u32_StringID, bool b_DiscardInput)
     // Recieve as many as possible!
     while (c_Stream.Recieve(c_OpCode.v_Data) == true)
     {
-        // Is this a usable opcode for cli?
-        if (c_OpCode.GetOpCode() != MessageOpCode::STRING_CS_STRING)
+        // Is this a usable opcode for cli and wanted?
+        if (c_OpCode.GetOpCode() != MessageOpCode::STRING_CS_STRING || b_DiscardInput == true)
         {
-            break;
+            continue;
         }
         
         try
@@ -230,13 +242,17 @@ MRH_Uint32 LocalStream::Retrieve(MRH_Uint32 u32_StringID, bool b_DiscardInput)
 #if MRH_API_PROVIDER_CLI > 0
 void LocalStream::Send(OutputStorage& c_OutputStorage)
 {
-    if (c_Stream.GetConnected() == false)
+    if (c_OutputStorage.GetFinishedAvailable() == false)
+    {
+        return;
+    }
+    else if (c_Stream.GetConnected() == false)
     {
         throw Exception("CLI stream is not connected!");
     }
     
     // Send all waiting output
-    while (c_OutputStorage.GetFinishedAvailable() == false)
+    while (c_OutputStorage.GetFinishedAvailable() == true)
     {
         try
         {
@@ -313,3 +329,12 @@ void LocalStream::Send(OutputStorage& c_OutputStorage)
     }
 }
 #endif
+
+//*************************************************************************************
+// Getters
+//*************************************************************************************
+
+bool LocalStream::GetStreamConnected() const noexcept
+{
+    return c_Stream.GetConnected();
+}

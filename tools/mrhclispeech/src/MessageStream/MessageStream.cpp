@@ -37,11 +37,9 @@
 #include "./MessageStream.h"
 
 // Pre-defined
-#ifndef MRH_SPEECH_MESSAGE_STREAM_SOCKET_DIR
-    #define MRH_SPEECH_MESSAGE_STREAM_SOCKET_DIR "/tmp/mrh/"
+#ifndef MRH_SPEECH_MESSAGE_STREAM_SOCKET_PATH
+    #define MRH_SPEECH_MESSAGE_STREAM_SOCKET_PATH "/tmp/mrh/mrhpsspeech.sock"
 #endif
-#define MRH_SPEECH_MESSAGE_STREAM_SOCKET_PREFIX "mrhpsspeech_"
-#define MRH_SPEECH_MESSAGE_STREAM_SOCKET_EXT ".sock"
 
 #define MRH_SPEECH_CLIENT_TIMEOUT_S 300
 
@@ -50,13 +48,7 @@
 // Constructor / Destructor
 //*************************************************************************************
 
-MessageStream::MessageStream(std::string const& s_Channel,
-                             bool b_KeepAlive) : b_Update(true),
-                                                 s_Channel(s_Channel),
-                                                 s_SocketPath(MRH_SPEECH_MESSAGE_STREAM_SOCKET_DIR
-                                                              MRH_SPEECH_MESSAGE_STREAM_SOCKET_PREFIX +
-                                                              s_Channel +
-                                                              MRH_SPEECH_MESSAGE_STREAM_SOCKET_EXT),
+MessageStream::MessageStream(bool b_KeepAlive) : b_Update(true),
                                                  b_KeepAlive(b_KeepAlive),
                                                  b_Connected(false)
 {
@@ -272,11 +264,9 @@ int MessageStream::Connect() noexcept
     if ((i_SocketFD = socket(AF_UNIX, SOCK_SEQPACKET, 0)) < 0)
 #endif
     {
-        std::cout << "[ ERROR ] Failed to create socket for channel "
-                  << s_Channel
-                  << " ("
-                  << s_SocketPath
-                  << "): "
+        std::cout << "[ ERROR ] Failed to create socket "
+                  << MRH_SPEECH_MESSAGE_STREAM_SOCKET_PATH
+                  << ": "
                   << std::string(std::strerror(errno))
                   << " ("
                   << std::to_string(errno)
@@ -292,15 +282,13 @@ int MessageStream::Connect() noexcept
     us_AddressLength = sizeof(c_Address);
     memset(&c_Address, 0, us_AddressLength);
     c_Address.sun_family = AF_UNIX;
-    strcpy(c_Address.sun_path, s_SocketPath.c_str());
+    strcpy(c_Address.sun_path, MRH_SPEECH_MESSAGE_STREAM_SOCKET_PATH);
     
     if (connect(i_SocketFD, (struct sockaddr*)&c_Address, us_AddressLength) < 0)
     {
-        std::cout << "[ ERROR ] Socket connection failed on channel "
-                  << s_Channel
-                  << " ("
-                  << s_SocketPath
-                  << "): "
+        std::cout << "[ ERROR ] Socket connection failed for socket "
+                  << MRH_SPEECH_MESSAGE_STREAM_SOCKET_PATH
+                  << ": "
                   << std::string(std::strerror(errno))
                   << " ("
                   << std::to_string(errno)
@@ -311,11 +299,9 @@ int MessageStream::Connect() noexcept
     }
     else if (fcntl(i_SocketFD, F_SETFL, fcntl(i_SocketFD, F_GETFL, 0) | O_NONBLOCK) < 0)
     {
-        std::cout << "[ ERROR ] Failed to setup socket for channel "
-                  << s_Channel
-                  << " ("
-                  << s_SocketPath
-                  << "): "
+        std::cout << "[ ERROR ] Failed to setup socket "
+                  << MRH_SPEECH_MESSAGE_STREAM_SOCKET_PATH
+                  << ": "
                   << std::string(std::strerror(errno))
                   << " ("
                   << std::to_string(errno)
@@ -325,11 +311,9 @@ int MessageStream::Connect() noexcept
         return CloseConnection(i_SocketFD);
     }
     
-    std::cout << "Connected on channel "
-              << s_Channel
-              << " ("
-              << s_SocketPath
-              << ")."
+    std::cout << "Connected on socket "
+              << MRH_SPEECH_MESSAGE_STREAM_SOCKET_PATH
+              << "."
               << std::endl;
     
     return i_SocketFD;
@@ -339,13 +323,11 @@ int MessageStream::CloseConnection(int i_SocketFD) noexcept
 {
     if (i_SocketFD != -1)
     {
-        std::cout << "Connection closed on channel "
-                  << s_Channel
+        std::cout << "Connection closed for socket "
+                  << MRH_SPEECH_MESSAGE_STREAM_SOCKET_PATH
                   << " ("
-                  << s_SocketPath
-                  << ") for socket "
                   << std::to_string(i_SocketFD)
-                  << "."
+                  << ")."
                   << std::endl;
         
         close(i_SocketFD);

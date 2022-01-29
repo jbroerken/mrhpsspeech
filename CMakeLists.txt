@@ -27,9 +27,11 @@ set(CMAKE_CXX_STANDARD 14)
 #  -------------
 #  Options to use when building with CMake.
 ###
-option(USE_METHOD_CLI "Enable the local CLI text speech method" OFF)
-option(USE_METHOD_SERVER "Enable the server based text speech method" ON)
-option(USE_METHOD_VOICE "Enable the internet based voice speech method" ON)
+option(USE_LOCAL_STREAM "Enable the local stream string and audio communication" ON)
+option(USE_NET_SERVER "Enable the server based communication" ON)
+
+option(API_PROVIDER_CLI "Enable the local CLI provider" OFF)
+option(API_PROVIDER_GOOGLE_CLOUD_API "Enable the google cloud api speech provider" ON)
 
 ###
 #  Project Info
@@ -80,49 +82,42 @@ set(SRC_LIST_CALLBACK "${SRC_DIR_PATH}/Callback/Service/CBAvail.cpp"
                       "${SRC_DIR_PATH}/Callback/Speech/CBRemoteNotification.cpp"
                       "${SRC_DIR_PATH}/Callback/Speech/CBRemoteNotification.h")
                       
-set(SRC_LIST_SPEECH_METHOD)
+set(SRC_LIST_SPEECH_SOURCE)
 
-if(USE_METHOD_CLI MATCHES ON OR USE_METHOD_VOICE MATCHES ON)
-    set(SRC_LIST_SPEECH_METHOD ${SRC_LIST_SPEECH_METHOD}
-                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/IO/MessageRead.cpp"
-                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/IO/MessageRead.h"
-                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/IO/MessageWrite.cpp"
-                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/IO/MessageWrite.h"
-                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/IO/MessagePacket.h"
-                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/MessageStream.cpp"
-                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/MessageStream.h"
-                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/MessageOpCode.cpp"
-                               "${SRC_DIR_PATH}/Speech/Method/MessageStream/MessageOpCode.h")
+if(USE_LOCAL_STREAM MATCHES ON)
+    set(SRC_LIST_SPEECH_SOURCE ${SRC_LIST_SPEECH_SOURCE}
+                               "${SRC_DIR_PATH}/Speech/Source/MessageStream/IO/MessageRead.cpp"
+                               "${SRC_DIR_PATH}/Speech/Source/MessageStream/IO/MessageRead.h"
+                               "${SRC_DIR_PATH}/Speech/Source/MessageStream/IO/MessageWrite.cpp"
+                               "${SRC_DIR_PATH}/Speech/Source/MessageStream/IO/MessageWrite.h"
+                               "${SRC_DIR_PATH}/Speech/Source/MessageStream/IO/MessagePacket.h"
+                               "${SRC_DIR_PATH}/Speech/Source/MessageStream/MessageStream.cpp"
+                               "${SRC_DIR_PATH}/Speech/Source/MessageStream/MessageStream.h"
+                               "${SRC_DIR_PATH}/Speech/Source/MessageStream/MessageOpCode.cpp"
+                               "${SRC_DIR_PATH}/Speech/Source/MessageStream/MessageOpCode.h"
+                               "${SRC_DIR_PATH}/Speech/Source/APIProvider/APIProvider.h"
+                               "${SRC_DIR_PATH}/Speech/Source/LocalStream.cpp"
+                               "${SRC_DIR_PATH}/Speech/Source/LocalStream.h")
+    if(API_PROVIDER_CLI MATCHES OFF)
+        set(SRC_LIST_SPEECH_SOURCE ${SRC_LIST_SPEECH_SOURCE}
+                                   "${SRC_DIR_PATH}/Speech/Source/Audio/AudioBuffer.cpp"
+                                   "${SRC_DIR_PATH}/Speech/Source/Audio/AudioBuffer.h")                             
+        if (API_PROVIDER_GOOGLE_CLOUD_API MATCHES ON)
+            set(SRC_LIST_SPEECH_SOURCE ${SRC_LIST_SPEECH_SOURCE}
+                                       "${SRC_DIR_PATH}/Speech/Source/APIProvider/GoogleCloudAPI.cpp"
+                                       "${SRC_DIR_PATH}/Speech/Source/APIProvider/GoogleCloudAPI.h")
+        endif()
+    endif()
 endif()
 
-if(USE_METHOD_CLI MATCHES ON)
-    set(SRC_LIST_SPEECH_METHOD ${SRC_LIST_SPEECH_METHOD}
-                               "${SRC_DIR_PATH}/Speech/Method/CLI.cpp"
-                               "${SRC_DIR_PATH}/Speech/Method/CLI.h")
-endif()
-
-if(USE_METHOD_SERVER MATCHES ON)
-    set(SRC_LIST_SPEECH_METHOD ${SRC_LIST_SPEECH_METHOD}
-                               "${SRC_DIR_PATH}/Speech/Method/Server.cpp"
-                               "${SRC_DIR_PATH}/Speech/Method/Server.h")
-endif()
-
-if(USE_METHOD_VOICE MATCHES ON)
-    set(SRC_LIST_SPEECH_METHOD ${SRC_LIST_SPEECH_METHOD}
-                               "${SRC_DIR_PATH}/Speech/Method/Voice/AudioStream.cpp"
-                               "${SRC_DIR_PATH}/Speech/Method/Voice/AudioStream.h"
-                               "${SRC_DIR_PATH}/Speech/Method/Voice/AudioTrack.cpp"
-                               "${SRC_DIR_PATH}/Speech/Method/Voice/AudioTrack.h"
-                               "${SRC_DIR_PATH}/Speech/Method/Voice/GoogleSTT.cpp"
-                               "${SRC_DIR_PATH}/Speech/Method/Voice/GoogleSTT.h"
-                               "${SRC_DIR_PATH}/Speech/Method/Voice/GoogleTTS.cpp"
-                               "${SRC_DIR_PATH}/Speech/Method/Voice/GoogleTTS.h"
-                               "${SRC_DIR_PATH}/Speech/Method/Voice.cpp"
-                               "${SRC_DIR_PATH}/Speech/Method/Voice.h")
+if(USE_NET_SERVER MATCHES ON)
+    set(SRC_LIST_SPEECH_SOURCE ${SRC_LIST_SPEECH_SOURCE}
+                               "${SRC_DIR_PATH}/Speech/Source/NetServer.cpp"
+                               "${SRC_DIR_PATH}/Speech/Source/NetServer.h")
 endif()
                  
-set(SRC_LIST_SPEECH "${SRC_DIR_PATH}/Speech/SpeechMethod.cpp"
-                    "${SRC_DIR_PATH}/Speech/SpeechMethod.h"
+set(SRC_LIST_SPEECH "${SRC_DIR_PATH}/Speech/SpeechEvent.cpp"
+                    "${SRC_DIR_PATH}/Speech/SpeechEvent.h"
                     "${SRC_DIR_PATH}/Speech/OutputStorage.cpp"
                     "${SRC_DIR_PATH}/Speech/OutputStorage.h"
                     "${SRC_DIR_PATH}/Speech/Speech.cpp"
@@ -146,7 +141,7 @@ set(SRC_LIST_SERVICE "${SRC_DIR_PATH}/Configuration.cpp"
 #  The target(s) to build.
 ###
 add_executable(mrhpsspeech ${SRC_LIST_CALLBACK}
-                           ${SRC_LIST_SPEECH_METHOD}
+                           ${SRC_LIST_SPEECH_SOURCE}
                            ${SRC_LIST_SPEECH}
                            ${SRC_LIST_SERVICE})
 
@@ -165,14 +160,18 @@ find_library(libmrhevdata NAMES mrhevdata REQUIRED)
 find_library(libmrhpsb NAMES mrhpsb REQUIRED)
 find_library(libmrhvt NAMES mrhvt REQUIRED)
 
-if(USE_METHOD_SERVER MATCHES ON)
+if(USE_LOCAL_STREAM MATCHES ON)
+    if(API_PROVIDER_CLI MATCHES OFF)
+        if(API_PROVIDER_GOOGLE_CLOUD_API MATCHES ON)
+            find_package(google-cloud-cpp REQUIRED)
+        endif()
+    endif()
+endif()
+
+if(USE_NET_SERVER MATCHES ON)
     find_library(libmsquic NAMES msquic REQUIRED)
     find_library(libsodium NAMES sodium REQUIRED)
     find_library(libmrhsrv NAMES mrhsrv REQUIRED)
-endif()
-
-if(USE_METHOD_VOICE MATCHES ON)
-    find_package(google-cloud-cpp REQUIRED)
 endif()
 
 target_link_libraries(mrhpsspeech PUBLIC Threads::Threads)
@@ -182,7 +181,16 @@ target_link_libraries(mrhpsspeech PUBLIC mrhevdata)
 target_link_libraries(mrhpsspeech PUBLIC mrhpsb)
 target_link_libraries(mrhpsspeech PUBLIC mrhvt)
 
-if(USE_METHOD_SERVER MATCHES ON)
+if(USE_LOCAL_STREAM MATCHES ON)
+    if(API_PROVIDER_CLI MATCHES OFF)
+        if(API_PROVIDER_GOOGLE_CLOUD_API MATCHES ON)
+            target_link_libraries(mrhpsspeech PUBLIC google-cloud-cpp::speech)
+            target_link_libraries(mrhpsspeech PUBLIC google-cloud-cpp::texttospeech)
+        endif()
+    endif()
+endif()
+
+if(USE_NET_SERVER MATCHES ON)
     if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
         target_link_libraries(mrhpsspeech PUBLIC
                               "-framework CoreFoundation"
@@ -191,11 +199,6 @@ if(USE_METHOD_SERVER MATCHES ON)
     target_link_libraries(mrhpsspeech PUBLIC msquic)
     target_link_libraries(mrhpsspeech PUBLIC sodium)
     target_link_libraries(mrhpsspeech PUBLIC mrhsrv)
-endif()
-
-if(USE_METHOD_VOICE MATCHES ON)
-    target_link_libraries(mrhpsspeech PUBLIC google-cloud-cpp::speech)
-    target_link_libraries(mrhpsspeech PUBLIC google-cloud-cpp::texttospeech)
 endif()
 
 ###
@@ -208,20 +211,24 @@ target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_CONFIGURATION_PATH="/u
 target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SERVICE_PRINT_INPUT=0)
 target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SERVICE_PRINT_OUTPUT=0)
 
-if(USE_METHOD_CLI MATCHES ON OR USE_METHOD_VOICE MATCHES ON)
-    target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_MESSAGE_STREAM_SOCKET_DIR="/tmp/mrh/")
+if(USE_LOCAL_STREAM MATCHES ON)
+    target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_MESSAGE_STREAM_SOCKET_PATH="/tmp/mrh/mrhpsspeech.sock")
+    target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_USE_LOCAL_STREAM=1)
+    if(API_PROVIDER_CLI MATCHES ON)
+        target_compile_definitions(mrhpsspeech PRIVATE MRH_API_PROVIDER_CLI=1)
+        target_compile_definitions(mrhpsspeech PRIVATE MRH_API_PROVIDER_GOOGLE_CLOUD_API=0)
+    else()
+        target_compile_definitions(mrhpsspeech PRIVATE MRH_API_PROVIDER_CLI=0)
+        if(API_PROVIDER_GOOGLE_CLOUD_API MATCHES ON)
+            target_compile_definitions(mrhpsspeech PRIVATE MRH_API_PROVIDER_GOOGLE_CLOUD_API=1)
+        else()
+            target_compile_definitions(mrhpsspeech PRIVATE MRH_API_PROVIDER_GOOGLE_CLOUD_API=0)
+        endif()
+    endif()
 endif()
 
-if(USE_METHOD_CLI MATCHES ON)
-    target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_USE_METHOD_CLI=1)
-endif()
-
-if(USE_METHOD_SERVER MATCHES ON)
-    target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_USE_METHOD_SERVER=1)
-endif()
-
-if(USE_METHOD_VOICE MATCHES ON)
-    target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_USE_METHOD_VOICE=1)
+if(USE_NET_SERVER MATCHES ON)
+    target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_USE_NET_SERVER=1)
 endif()
 
 ###

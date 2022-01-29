@@ -30,9 +30,6 @@
 #include "./Revision.h"
 #include "./MessageStream/MessageStream.h"
 
-// Pre-defined
-#define MRH_CLI_SPEECH_CHANNEL "speech_cli"
-
 
 //*************************************************************************************
 // Read
@@ -110,8 +107,7 @@ int main(int argc, char* argv[])
     std::setlocale(LC_ALL, argv[1]);
     
     // Create connection
-    MessageStream c_MessageStream(MRH_CLI_SPEECH_CHANNEL,
-                                  true);
+    MessageStream c_MessageStream(true);
     MRH_Uint64 u64_ConnectionTimeoutS = time(NULL) + 60;
     
     do

@@ -72,8 +72,8 @@ namespace MessageOpCode
         
         AUDIO_C_PLAYBACK_FINISHED = 4,          // FinishMessageOpCode::STRING_CS_STRING_DATA
         
-        AUDIO_S_START_RECORDING = 6,            // Start recording audio
-        AUDIO_S_STOP_RECORDING = 7,             // Stop recording audio
+        AUDIO_S_START_RECORDING = 5,            // Start recording audio
+        AUDIO_S_STOP_RECORDING = 6,             // Stop recording audio
         
         /**
          *  Bounds

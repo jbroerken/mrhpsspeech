@@ -62,7 +62,7 @@ void CBAvail::Callback(const MRH_Event* p_Event, MRH_Uint32 u32_GroupID) noexcep
     }
     
     MRH_EvD_Base_ServiceAvail_S_t c_Data;
-    c_Data.u8_Available = (p_Speech->GetMethodSelected() ? MRH_EVD_BASE_RESULT_SUCCESS : MRH_EVD_BASE_RESULT_FAILED);
+    c_Data.u8_Available = (p_Speech->GetUsable() ? MRH_EVD_BASE_RESULT_SUCCESS : MRH_EVD_BASE_RESULT_FAILED);
     c_Data.u32_SupplierID = 0x4d524800;
     c_Data.u32_BinaryID = 0x54414c4b;
     c_Data.u32_Version = 1;
