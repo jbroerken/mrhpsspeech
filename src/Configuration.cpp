@@ -61,14 +61,14 @@ namespace
         SERVER_ACCOUNT_PASSWORD,
         SERVER_DEVICE_KEY,
         SERVER_DEVICE_PASSWORD,
-        SERVER_CONNECTION_ADDRESS,
-        SERVER_CONNECTION_PORT,
-        SERVER_COMMUNICATION_CHANNEL,
-        SERVER_TIMEOUT_S,
+        SERVER_ADDRESS,
+        SERVER_PORT,
+        SERVER_CONNECTION_TIMEOUT_S,
         SERVER_RETRY_WAIT_S,
+        SERVER_RECIEVE_TIMEOUT_S,
         
         // Bounds
-        IDENTIFIER_MAX = SERVER_RETRY_WAIT_S,
+        IDENTIFIER_MAX = SERVER_RECIEVE_TIMEOUT_S,
 
         IDENTIFIER_COUNT = IDENTIFIER_MAX + 1
     };
@@ -99,11 +99,11 @@ namespace
         "AccountPassword",
         "DeviceKey",
         "DevicePassword",
-        "ConnectionAddress",
-        "ConnectionPort",
-        "CommunicationChannel",
-        "TimeoutS",
-        "RetryWaitS"
+        "Address",
+        "Port",
+        "ConnectionTimeoutS",
+        "RetryWaitS",
+        "RecieveTimeoutS"
     };
 }
 
@@ -123,11 +123,11 @@ Configuration::Configuration() noexcept : u32_ServiceMethodWaitMS(100),
                                           s_ServerAccountPassword(""),
                                           s_ServerDeviceKey(""),
                                           s_ServerDevicePassword(""),
-                                          s_ServerConnectionAddress("127.0.0.1"),
-                                          i_ServerConnectionPort(16096),
-                                          s_ServerCommunicationChannel("de.mrh.speech"),
-                                          u32_ServerTimeoutS(60),
-                                          u32_ServerRetryWaitS(300)
+                                          s_ServerAddress("127.0.0.1"),
+                                          i_ServerPort(16096),
+                                          u32_ServerConnectionTimeoutS(60),
+                                          u32_ServerRetryWaitS(300),
+                                          u32_ServerRecieveTimeoutS(30)
 {
     try
     {
@@ -157,11 +157,11 @@ Configuration::Configuration() noexcept : u32_ServiceMethodWaitMS(100),
                 s_ServerAccountPassword = Block.GetValue(p_Identifier[SERVER_ACCOUNT_PASSWORD]);
                 s_ServerDeviceKey = Block.GetValue(p_Identifier[SERVER_DEVICE_KEY]);
                 s_ServerDevicePassword = Block.GetValue(p_Identifier[SERVER_DEVICE_PASSWORD]);
-                s_ServerConnectionAddress = Block.GetValue(p_Identifier[SERVER_CONNECTION_ADDRESS]);
-                i_ServerConnectionPort = std::stoi(Block.GetValue(p_Identifier[SERVER_CONNECTION_PORT]));
-                s_ServerCommunicationChannel = Block.GetValue(p_Identifier[SERVER_COMMUNICATION_CHANNEL]);
-                u32_ServerTimeoutS = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[SERVER_TIMEOUT_S])));
+                s_ServerAddress = Block.GetValue(p_Identifier[SERVER_ADDRESS]);
+                i_ServerPort = std::stoi(Block.GetValue(p_Identifier[SERVER_PORT]));
+                u32_ServerConnectionTimeoutS = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[SERVER_CONNECTION_TIMEOUT_S])));
                 u32_ServerRetryWaitS = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[SERVER_RETRY_WAIT_S])));
+                u32_ServerRecieveTimeoutS = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[SERVER_RECIEVE_TIMEOUT_S])));
             }
         }
     }
@@ -233,27 +233,27 @@ std::string Configuration::GetServerDevicePassword() const noexcept
     return s_ServerDevicePassword;
 }
 
-std::string Configuration::GetServerConnectionAddress() const noexcept
+std::string Configuration::GetServerAddress() const noexcept
 {
-    return s_ServerConnectionAddress;
+    return s_ServerAddress;
 }
 
-int Configuration::GetServerConnectionPort() const noexcept
+int Configuration::GetServerPort() const noexcept
 {
-    return i_ServerConnectionPort;
+    return i_ServerPort;
 }
 
-std::string Configuration::GetServerCommunicationChannel() const noexcept
+MRH_Uint32 Configuration::GetServerConnectionTimeoutS() const noexcept
 {
-    return s_ServerCommunicationChannel;
-}
-
-MRH_Uint32 Configuration::GetServerTimeoutS() const noexcept
-{
-    return u32_ServerTimeoutS;
+    return u32_ServerConnectionTimeoutS;
 }
 
 MRH_Uint32 Configuration::GetServerRetryWaitS() const noexcept
 {
     return u32_ServerRetryWaitS;
+}
+
+MRH_Uint32 Configuration::GetServerRecieveTimeoutS() const noexcept
+{
+    return u32_ServerRecieveTimeoutS;
 }

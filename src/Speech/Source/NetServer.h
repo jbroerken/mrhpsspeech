@@ -106,31 +106,17 @@ private:
     enum ConnectionState
     {
         // Server Connection
-        CONNECT_CONNECTION = 0,
-        CONNECT_COMMUNICATION = 1,
+        CONNECT = 0,
         
         // Authentication
-        AUTH_SEND_REQUEST_CONNECTION = 2,
-        AUTH_SEND_REQUEST_COMMUNICATION = 3,
-        AUTH_RECIEVE_CHALLENGE_CONNECTION = 4,
-        AUTH_RECIEVE_CHALLENGE_COMMUNICATION = 5,
-        AUTH_SEND_PROOF_CONNECTION = 6,
-        AUTH_SEND_PROOF_COMMUNICATION = 7,
-        AUTH_RECIEVE_RESULT_CONNECTION,
-        AUTH_RECIEVE_RESULT_COMMUNICATION,
-        
-        // Channel
-        CHANNEL_SEND_REQUEST,
-        CHANNEL_RECIEVE_RESPONSE,
-        
-        // Client Pairing
-        CLIENT_RECIEVE_REQUEST,
-        CLIENT_SEND_CHALLENGE,
-        CLIENT_RECIEVE_PROOF,
-        CLIENT_SEND_RESULT,
+        AUTH_SEND_REQUEST = 1,
+        AUTH_RECIEVE_CHALLENGE = 2,
+        AUTH_SEND_PROOF = 3,
+        AUTH_RECIEVE_RESULT = 4,
         
         // Exchange Text
-        EXCHANGE_TEXT,
+        REQUEST_TEXT = 5,
+        EXCHANGE_TEXT = 6,
         
         // Bounds
         CONNECTION_STATE_MAX = EXCHANGE_TEXT,
@@ -174,6 +160,17 @@ private:
     
     static MRH_Srv_NetMessage RecieveServerMessage(MRH_Srv_Server* p_Server, std::vector<MRH_Srv_NetMessage> v_Message, uint8_t* p_Buffer, const char* p_Password) noexcept;
     
+    /**
+     *  Check if a message communication is currently in progress.
+     *
+     *  \param u64_TimestampS The time stamp for the communication.
+     *  \param u32_TimeoutS The timeout after which a communication is considered complete.
+     *
+     *  \return true if communicating, false if not.
+     */
+    
+    static bool CommunicationActive(MRH_Uint64 u64_TimestampS, MRH_Uint32 u32_TimeoutS) noexcept;
+    
     //*************************************************************************************
     // Data
     //*************************************************************************************
@@ -183,27 +180,23 @@ private:
     std::atomic<bool> b_RunThread;
     
     // Connection
-    std::atomic<ConnectionState> e_ConnectionState;
-    
     char p_AccountMail[MRH_SRV_SIZE_ACCOUNT_MAIL];
     char p_AccountPassword[MRH_SRV_SIZE_ACCOUNT_PASSWORD];
     
     char p_DeviceKey[MRH_SRV_SIZE_DEVICE_KEY];
     char p_DevicePassword[MRH_SRV_SIZE_DEVICE_PASSWORD];
     
-    char p_ConServerAddress[MRH_SRV_SIZE_SERVER_ADDRESS];
-    int i_ConServerPort;
+    char p_ServerAddress[MRH_SRV_SIZE_SERVER_ADDRESS];
+    int i_ServerPort;
     
-    char p_ComServerChannel[MRH_SRV_SIZE_SERVER_CHANNEL];
-    char p_ComServerAddress[MRH_SRV_SIZE_SERVER_ADDRESS];
-    int i_ComServerPort;
-    
-    MRH_Uint32 u32_TimeoutS;
+    MRH_Uint32 u32_ConnectionTimeoutS;
     MRH_Uint32 u32_ConnectionRetryS;
+    MRH_Uint32 u32_RecieveTimeoutS;
     
     // Recieved
     std::mutex c_RecievedMutex;
     std::list<std::string> l_Recieved;
+    std::atomic<MRH_Uint64> u64_RecieveTimestampS;
     
     // Send
     std::mutex c_SendMutex;

@@ -149,7 +149,7 @@ public:
      *  \return The server connection server address.
      */
     
-    std::string GetServerConnectionAddress() const noexcept;
+    std::string GetServerAddress() const noexcept;
     
     /**
      *  Get the server connection server port.
@@ -157,23 +157,15 @@ public:
      *  \return The server connection server port.
      */
     
-    int GetServerConnectionPort() const noexcept;
+    int GetServerPort() const noexcept;
     
     /**
-     *  Get the server communication server channel.
+     *  Get the server connection timeout in seconds.
      *
-     *  \return The server communication server channel.
+     *  \return The server connection timeout in seconds.
      */
     
-    std::string GetServerCommunicationChannel() const noexcept;
-    
-    /**
-     *  Get the server timeout in seconds.
-     *
-     *  \return The server timeout in seconds.
-     */
-    
-    MRH_Uint32 GetServerTimeoutS() const noexcept;
+    MRH_Uint32 GetServerConnectionTimeoutS() const noexcept;
     
     /**
      *  Get the server connection retry wait time in seconds.
@@ -182,6 +174,14 @@ public:
      */
     
     MRH_Uint32 GetServerRetryWaitS() const noexcept;
+    
+    /**
+     *  Get the server recieve timeout in seconds.
+     *
+     *  \return The server recieve timeout in seconds.
+     */
+    
+    MRH_Uint32 GetServerRecieveTimeoutS() const noexcept;
     
 private:
     
@@ -207,11 +207,11 @@ private:
     std::string s_ServerAccountPassword;
     std::string s_ServerDeviceKey;
     std::string s_ServerDevicePassword;
-    std::string s_ServerConnectionAddress;
-    int i_ServerConnectionPort;
-    std::string s_ServerCommunicationChannel;
-    MRH_Uint32 u32_ServerTimeoutS;
+    std::string s_ServerAddress;
+    int i_ServerPort;
+    MRH_Uint32 u32_ServerConnectionTimeoutS;
     MRH_Uint32 u32_ServerRetryWaitS;
+    MRH_Uint32 u32_ServerRecieveTimeoutS;
     
 protected:
 

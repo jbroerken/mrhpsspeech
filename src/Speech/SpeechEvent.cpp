@@ -91,7 +91,7 @@ void SpeechEvent::InputRecieved(MRH_Uint32 u32_StringID, std::string const& s_St
         MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, "Recieved listen input: [ " +
                                                             s_String +
                                                             " ]",
-                                       "SpeechMethod.cpp", __LINE__);
+                                       "SpeechMEvent.cpp", __LINE__);
 #endif
     }
     catch (std::exception& e)
@@ -131,7 +131,7 @@ void SpeechEvent::OutputPerformed(MRH_Uint32 u32_StringID, MRH_Uint32 u32_GroupI
         MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, "Performed say output: [ " +
                                                             std::to_string(u32_StringID) +
                                                             " ]",
-                                       "SpeechMethod.cpp", __LINE__);
+                                       "SpeechMEvent.cpp", __LINE__);
 #endif
     }
     catch (...)
