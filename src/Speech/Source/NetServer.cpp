@@ -29,8 +29,8 @@
 #include "../SpeechEvent.h"
 
 // Pre-defined
-#ifndef MRH_SPEECH_NET_SERVER_UPDATE_TIME_S
-    #define MRH_SPEECH_NET_SERVER_UPDATE_TIME_S 5
+#ifndef MRH_SPEECH_NET_SERVER_UPDATE_TIME_MS
+    #define MRH_SPEECH_NET_SERVER_UPDATE_TIME_MS 1000
 #endif
 
 
@@ -169,7 +169,7 @@ void NetServer::ClientUpdate(NetServer* p_Instance) noexcept
                 }
                 else
                 {
-                    std::this_thread::sleep_for(std::chrono::seconds(MRH_SPEECH_NET_SERVER_UPDATE_TIME_S));
+                    std::this_thread::sleep_for(std::chrono::milliseconds(MRH_SPEECH_NET_SERVER_UPDATE_TIME_MS));
                 }
                 break;
             }
@@ -376,16 +376,24 @@ void NetServer::ClientUpdate(NetServer* p_Instance) noexcept
                 e_State = NextState(e_State, true);
                 
                 // First, recieve
-                e_Recieved = RecieveServerMessage(p_Server,
-                                                  { MRH_SRV_MSG_TEXT },
-                                                  p_MessageBuffer,
-                                                  p_Instance->p_DevicePassword);
-                
-                // Now recieve text messages
                 MRH_SRV_MSG_TEXT_DATA c_Text;
                 
-                if (e_Recieved == MRH_SRV_MSG_TEXT)
+                while (true)
                 {
+                    e_Recieved = RecieveServerMessage(p_Server,
+                                                      { MRH_SRV_MSG_TEXT },
+                                                      p_MessageBuffer,
+                                                      p_Instance->p_DevicePassword);
+                    
+                    // No (more) text messages?
+                    if (e_Recieved != MRH_SRV_MSG_TEXT)
+                    {
+                        break;
+                    }
+                    
+                    // Get input
+                    memset(c_Text.p_String, '\0', MRH_SRV_SIZE_TEXT_STRING);
+                    
                     if (MRH_SRV_SetNetMessage(&c_Text, p_MessageBuffer) < 0)
                     {
                         c_Logger.Log(MRH_PSBLogger::ERROR, "Failed to set text message!",
@@ -393,7 +401,7 @@ void NetServer::ClientUpdate(NetServer* p_Instance) noexcept
                     }
                     else if (CommunicationActive(c_Text.u64_TimestampS, p_Instance->u32_RecieveTimeoutS) == false)
                     {
-                        c_Logger.Log(MRH_PSBLogger::ERROR, "Recieved outdated message!",
+                        c_Logger.Log(MRH_PSBLogger::WARNING, "Recieved outdated message!",
                                      "Server.cpp", __LINE__);
                     }
                     else
@@ -433,6 +441,7 @@ void NetServer::ClientUpdate(NetServer* p_Instance) noexcept
                     
                     while (s_Full.size() > 0)
                     {
+                        // Copy chars
                         if (s_Full.size() > MRH_SRV_SIZE_TEXT_STRING)
                         {
                             s_Part = s_Full.substr(0, MRH_SRV_SIZE_TEXT_STRING);
@@ -444,8 +453,13 @@ void NetServer::ClientUpdate(NetServer* p_Instance) noexcept
                             s_Full.clear();
                         }
                         
+                        memset(&(c_Text.p_String[s_Part.size()]), '\0', MRH_SRV_SIZE_TEXT_STRING - s_Part.size());
                         strcpy(c_Text.p_String, s_Part.c_str());
                         
+                        // Time stamp the message
+                        c_Text.u64_TimestampS = time(NULL);
+                        
+                        // Prepared, send
                         i_Result = MRH_SRV_SendMessage(p_Server, MRH_SRV_MSG_TEXT, &c_Text, p_Instance->p_DevicePassword);
                         
                         if (i_Result < 0)
@@ -535,7 +549,7 @@ MRH_Srv_NetMessage NetServer::RecieveServerMessage(MRH_Srv_Server* p_Server, std
 
 bool NetServer::CommunicationActive(MRH_Uint64 u64_TimestampS, MRH_Uint32 u32_TimeoutS) noexcept
 {
-    if (u64_TimestampS < (time(NULL) + u32_TimeoutS))
+    if (u64_TimestampS < (time(NULL) - u32_TimeoutS))
     {
         return false;
     }
