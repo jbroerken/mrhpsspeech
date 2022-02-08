@@ -28,6 +28,11 @@
 #include "./NetServer.h"
 #include "../SpeechEvent.h"
 
+// Pre-defined
+#ifndef MRH_SPEECH_NET_SERVER_UPDATE_TIME_S
+    #define MRH_SPEECH_NET_SERVER_UPDATE_TIME_S 5
+#endif
+
 
 //*************************************************************************************
 // Constructor / Destructor
@@ -164,7 +169,7 @@ void NetServer::ClientUpdate(NetServer* p_Instance) noexcept
                 }
                 else
                 {
-                    std::this_thread::sleep_for(std::chrono::seconds(1));
+                    std::this_thread::sleep_for(std::chrono::seconds(MRH_SPEECH_NET_SERVER_UPDATE_TIME_S));
                 }
                 break;
             }
@@ -418,8 +423,8 @@ void NetServer::ClientUpdate(NetServer* p_Instance) noexcept
                     break;
                 }
                 
-                // @TODO: Use message static size as limit when exposed from lib
-                for (size_t i = 0; i < p_Instance->l_Send.size() && i < 32; ++i)
+                i_Result = 0;
+                while (i_Result == 0 && p_Instance->l_Send.size() > 0)
                 {
                     std::string s_Full = p_Instance->l_Send.front();
                     std::string s_Part;
@@ -441,14 +446,12 @@ void NetServer::ClientUpdate(NetServer* p_Instance) noexcept
                         
                         strcpy(c_Text.p_String, s_Part.c_str());
                         
-                        if (MRH_SRV_SendMessage(p_Server, MRH_SRV_MSG_TEXT, &c_Text, p_Instance->p_DevicePassword) < 0)
+                        i_Result = MRH_SRV_SendMessage(p_Server, MRH_SRV_MSG_TEXT, &c_Text, p_Instance->p_DevicePassword);
+                        
+                        if (i_Result < 0)
                         {
                             MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Failed to send text net message!",
                                                            "Server.cpp", __LINE__);
-                            
-                            // End both loops
-                            // @TODO: Replace 32 with static message size once exposed from lib
-                            i = 32;
                             break;
                         }
                     }

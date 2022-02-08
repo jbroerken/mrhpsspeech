@@ -229,6 +229,7 @@ endif()
 
 if(USE_NET_SERVER MATCHES ON)
     target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_USE_NET_SERVER=1)
+    target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_NET_SERVER_UPDATE_TIME_S=5)
 endif()
 
 ###
