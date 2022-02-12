@@ -62,6 +62,14 @@ public:
      */
     
     MRH_Uint32 GetServiceMethodWaitMS() const noexcept;
+    
+    /**
+     *  Get the full voice socket file path.
+     *
+     *  \return The full voice socket file path.
+     */
+    
+    std::string GetVoiceSocketPath() const noexcept;
 
     /**
      *  Get the voice recording KHz.
@@ -112,68 +120,12 @@ public:
     MRH_Uint32 GetGoogleVoiceGender() const noexcept;
     
     /**
-     *  Get the server account mail.
+     *  Get the full server socket file path.
      *
-     *  \return The server account mail.
+     *  \return The full server socket file path.
      */
     
-    std::string GetServerAccountMail() const noexcept;
-    
-    /**
-     *  Get the server account password.
-     *
-     *  \return The server account password.
-     */
-    
-    std::string GetServerAccountPassword() const noexcept;
-    
-    /**
-     *  Get the server device key.
-     *
-     *  \return The server device key.
-     */
-    
-    std::string GetServerDeviceKey() const noexcept;
-    
-    /**
-     *  Get the server device password.
-     *
-     *  \return The server device password.
-     */
-    
-    std::string GetServerDevicePassword() const noexcept;
-    
-    /**
-     *  Get the server connection server address.
-     *
-     *  \return The server connection server address.
-     */
-    
-    std::string GetServerAddress() const noexcept;
-    
-    /**
-     *  Get the server connection server port.
-     *
-     *  \return The server connection server port.
-     */
-    
-    int GetServerPort() const noexcept;
-    
-    /**
-     *  Get the server connection timeout in seconds.
-     *
-     *  \return The server connection timeout in seconds.
-     */
-    
-    MRH_Uint32 GetServerConnectionTimeoutS() const noexcept;
-    
-    /**
-     *  Get the server connection retry wait time in seconds.
-     *
-     *  \return The server connection retry wait time in seconds.
-     */
-    
-    MRH_Uint32 GetServerRetryWaitS() const noexcept;
+    std::string GetServerSocketPath() const noexcept;
     
     /**
      *  Get the server recieve timeout in seconds.
@@ -193,6 +145,7 @@ private:
     MRH_Uint32 u32_ServiceMethodWaitMS;
     
     // Voice
+    std::string s_VoiceSocketPath;
     MRH_Uint32 u32_VoiceRecordingKHz;
     MRH_Uint32 u32_VoicePlaybackKHz;
     MRH_Uint32 u32_VoiceRecordingTimeoutS;
@@ -203,14 +156,7 @@ private:
     MRH_Uint32 u32_GoogleVoiceGender;
     
     // Server
-    std::string s_ServerAccountMail;
-    std::string s_ServerAccountPassword;
-    std::string s_ServerDeviceKey;
-    std::string s_ServerDevicePassword;
-    std::string s_ServerAddress;
-    int i_ServerPort;
-    MRH_Uint32 u32_ServerConnectionTimeoutS;
-    MRH_Uint32 u32_ServerRetryWaitS;
+    std::string s_ServerSocketPath;
     MRH_Uint32 u32_ServerRecieveTimeoutS;
     
 protected:

@@ -29,13 +29,13 @@
 // External
 
 // Project
-#if MRH_SPEECH_USE_LOCAL_STREAM > 0
-#include "./Source/LocalStream.h"
+#if MRH_SPEECH_USE_VOICE > 0
+#include "./Source/Voice.h"
 #endif
 #if MRH_SPEECH_USE_NET_SERVER > 0
 #include "./Source/NetServer.h"
 #endif
-#if MRH_SPEECH_USE_NET_SERVER <= 0 && MRH_SPEECH_USE_LOCAL_STREAM <= 0
+#if MRH_SPEECH_USE_NET_SERVER <= 0 && MRH_SPEECH_USE_VOICE <= 0
 #include "./OutputStorage.h"
 #include "../Configuration.h"
 #endif
@@ -130,8 +130,8 @@ private:
     
     OutputStorage c_OutputStorage;
     
-#if MRH_SPEECH_USE_LOCAL_STREAM > 0
-    LocalStream c_LocalStream;
+#if MRH_SPEECH_USE_VOICE > 0
+    Voice c_Voice;
 #endif
 #if MRH_SPEECH_USE_NET_SERVER > 0
     NetServer c_NetServer;

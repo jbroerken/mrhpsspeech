@@ -27,10 +27,9 @@ set(CMAKE_CXX_STANDARD 14)
 #  -------------
 #  Options to use when building with CMake.
 ###
-option(USE_LOCAL_STREAM "Enable the local stream string and audio communication" ON)
+option(USE_VOICE "Enable the audio based communication" ON)
 option(USE_NET_SERVER "Enable the server based communication" ON)
 
-option(API_PROVIDER_CLI "Enable the local CLI provider" OFF)
 option(API_PROVIDER_GOOGLE_CLOUD_API "Enable the google cloud api speech provider" ON)
 
 ###
@@ -84,29 +83,17 @@ set(SRC_LIST_CALLBACK "${SRC_DIR_PATH}/Callback/Service/CBAvail.cpp"
                       
 set(SRC_LIST_SPEECH_SOURCE)
 
-if(USE_LOCAL_STREAM MATCHES ON)
+if(USE_VOICE MATCHES ON)
     set(SRC_LIST_SPEECH_SOURCE ${SRC_LIST_SPEECH_SOURCE}
-                               "${SRC_DIR_PATH}/Speech/Source/MessageStream/IO/MessageRead.cpp"
-                               "${SRC_DIR_PATH}/Speech/Source/MessageStream/IO/MessageRead.h"
-                               "${SRC_DIR_PATH}/Speech/Source/MessageStream/IO/MessageWrite.cpp"
-                               "${SRC_DIR_PATH}/Speech/Source/MessageStream/IO/MessageWrite.h"
-                               "${SRC_DIR_PATH}/Speech/Source/MessageStream/IO/MessagePacket.h"
-                               "${SRC_DIR_PATH}/Speech/Source/MessageStream/MessageStream.cpp"
-                               "${SRC_DIR_PATH}/Speech/Source/MessageStream/MessageStream.h"
-                               "${SRC_DIR_PATH}/Speech/Source/MessageStream/MessageOpCode.cpp"
-                               "${SRC_DIR_PATH}/Speech/Source/MessageStream/MessageOpCode.h"
+                               "${SRC_DIR_PATH}/Speech/Source/Audio/AudioBuffer.cpp"
+                               "${SRC_DIR_PATH}/Speech/Source/Audio/AudioBuffer.h"
                                "${SRC_DIR_PATH}/Speech/Source/APIProvider/APIProvider.h"
-                               "${SRC_DIR_PATH}/Speech/Source/LocalStream.cpp"
-                               "${SRC_DIR_PATH}/Speech/Source/LocalStream.h")
-    if(API_PROVIDER_CLI MATCHES OFF)
+                               "${SRC_DIR_PATH}/Speech/Source/Voice.cpp"
+                               "${SRC_DIR_PATH}/Speech/Source/Voice.h")                             
+    if(API_PROVIDER_GOOGLE_CLOUD_API MATCHES ON)
         set(SRC_LIST_SPEECH_SOURCE ${SRC_LIST_SPEECH_SOURCE}
-                                   "${SRC_DIR_PATH}/Speech/Source/Audio/AudioBuffer.cpp"
-                                   "${SRC_DIR_PATH}/Speech/Source/Audio/AudioBuffer.h")                             
-        if (API_PROVIDER_GOOGLE_CLOUD_API MATCHES ON)
-            set(SRC_LIST_SPEECH_SOURCE ${SRC_LIST_SPEECH_SOURCE}
-                                       "${SRC_DIR_PATH}/Speech/Source/APIProvider/GoogleCloudAPI.cpp"
-                                       "${SRC_DIR_PATH}/Speech/Source/APIProvider/GoogleCloudAPI.h")
-        endif()
+                                   "${SRC_DIR_PATH}/Speech/Source/APIProvider/GoogleCloudAPI.cpp"
+                                   "${SRC_DIR_PATH}/Speech/Source/APIProvider/GoogleCloudAPI.h")
     endif()
 endif()
 
@@ -159,19 +146,12 @@ find_library(libmrhev NAMES mrhev REQUIRED)
 find_library(libmrhevdata NAMES mrhevdata REQUIRED)
 find_library(libmrhpsb NAMES mrhpsb REQUIRED)
 find_library(libmrhvt NAMES mrhvt REQUIRED)
+find_library(libmrhmstream NAMES mrhmstream REQUIRED)
 
-if(USE_LOCAL_STREAM MATCHES ON)
-    if(API_PROVIDER_CLI MATCHES OFF)
-        if(API_PROVIDER_GOOGLE_CLOUD_API MATCHES ON)
-            find_package(google-cloud-cpp REQUIRED)
-        endif()
+if(USE_VOICE MATCHES ON)
+    if(API_PROVIDER_GOOGLE_CLOUD_API MATCHES ON)
+        find_package(google-cloud-cpp REQUIRED)
     endif()
-endif()
-
-if(USE_NET_SERVER MATCHES ON)
-    find_library(libmsquic NAMES msquic REQUIRED)
-    find_library(libsodium NAMES sodium REQUIRED)
-    find_library(libmrhsrv NAMES mrhsrv REQUIRED)
 endif()
 
 target_link_libraries(mrhpsspeech PUBLIC Threads::Threads)
@@ -180,25 +160,13 @@ target_link_libraries(mrhpsspeech PUBLIC mrhev)
 target_link_libraries(mrhpsspeech PUBLIC mrhevdata)
 target_link_libraries(mrhpsspeech PUBLIC mrhpsb)
 target_link_libraries(mrhpsspeech PUBLIC mrhvt)
+target_link_libraries(mrhpsspeech PUBLIC mrhmstream)
 
-if(USE_LOCAL_STREAM MATCHES ON)
-    if(API_PROVIDER_CLI MATCHES OFF)
-        if(API_PROVIDER_GOOGLE_CLOUD_API MATCHES ON)
-            target_link_libraries(mrhpsspeech PUBLIC google-cloud-cpp::speech)
-            target_link_libraries(mrhpsspeech PUBLIC google-cloud-cpp::texttospeech)
-        endif()
+if(USE_VOICE MATCHES ON)
+    if(API_PROVIDER_GOOGLE_CLOUD_API MATCHES ON)
+        target_link_libraries(mrhpsspeech PUBLIC google-cloud-cpp::speech)
+        target_link_libraries(mrhpsspeech PUBLIC google-cloud-cpp::texttospeech)
     endif()
-endif()
-
-if(USE_NET_SERVER MATCHES ON)
-    if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-        target_link_libraries(mrhpsspeech PUBLIC
-                              "-framework CoreFoundation"
-                              "-framework Security")
-    endif()
-    target_link_libraries(mrhpsspeech PUBLIC msquic)
-    target_link_libraries(mrhpsspeech PUBLIC sodium)
-    target_link_libraries(mrhpsspeech PUBLIC mrhsrv)
 endif()
 
 ###
@@ -211,25 +179,17 @@ target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_CONFIGURATION_PATH="/u
 target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SERVICE_PRINT_INPUT=0)
 target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SERVICE_PRINT_OUTPUT=0)
 
-if(USE_LOCAL_STREAM MATCHES ON)
-    target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_MESSAGE_STREAM_SOCKET_PATH="/tmp/mrh/mrhpsspeech.sock")
-    target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_USE_LOCAL_STREAM=1)
-    if(API_PROVIDER_CLI MATCHES ON)
-        target_compile_definitions(mrhpsspeech PRIVATE MRH_API_PROVIDER_CLI=1)
-        target_compile_definitions(mrhpsspeech PRIVATE MRH_API_PROVIDER_GOOGLE_CLOUD_API=0)
+if(USE_VOICE MATCHES ON)
+    target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_USE_VOICE=1)
+    if(API_PROVIDER_GOOGLE_CLOUD_API MATCHES ON)
+        target_compile_definitions(mrhpsspeech PRIVATE MRH_API_PROVIDER_GOOGLE_CLOUD_API=1)
     else()
-        target_compile_definitions(mrhpsspeech PRIVATE MRH_API_PROVIDER_CLI=0)
-        if(API_PROVIDER_GOOGLE_CLOUD_API MATCHES ON)
-            target_compile_definitions(mrhpsspeech PRIVATE MRH_API_PROVIDER_GOOGLE_CLOUD_API=1)
-        else()
-            target_compile_definitions(mrhpsspeech PRIVATE MRH_API_PROVIDER_GOOGLE_CLOUD_API=0)
-        endif()
+        target_compile_definitions(mrhpsspeech PRIVATE MRH_API_PROVIDER_GOOGLE_CLOUD_API=0)
     endif()
 endif()
 
 if(USE_NET_SERVER MATCHES ON)
     target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_USE_NET_SERVER=1)
-    target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_NET_SERVER_UPDATE_TIME_MS=1000)
 endif()
 
 ###

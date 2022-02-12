@@ -24,37 +24,31 @@
 #include <clocale>
 
 // External
-#include <MRH_Typedefs.h>
+#include <libmrhmstream.h>
 
 // Project
 #include "./Revision.h"
-#include "./MessageStream/MessageStream.h"
 
 
 //*************************************************************************************
 // Read
 //*************************************************************************************
 
-static void Read(MessageStream* p_MessageStream, std::atomic<bool>* p_Update, const char* p_Locale) noexcept
+static void Read(MRH_MessageStream* p_MessageStream, std::atomic<bool>* p_Update) noexcept
 {
     std::vector<MRH_Uint8> v_Data;
     
-    while (*p_Update == true)
+    while (p_MessageStream->GetConnected() == true && *p_Update == true)
     {
-        if (p_MessageStream->GetConnected() == false)
-        {
-            *p_Update = false;
-            break;
-        }
-        else if (p_MessageStream->Recieve(v_Data) == false)
+        if (p_MessageStream->Recieve(v_Data) == false)
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
             continue;
         }
         
-        if (MessageOpCode::GetOpCode(v_Data) == MessageOpCode::STRING_CS_STRING)
+        if (MRH_MessageOpCode::GetOpCode(v_Data) == MRH_MessageOpCode::STRING_CS_STRING)
         {
-            std::cout << MessageOpCode::STRING_CS_STRING_DATA(v_Data).GetString() << std::endl;
+            std::cout << MRH_MessageOpCode::STRING_CS_STRING_DATA(v_Data).GetString() << std::endl;
         }
     }
 }
@@ -63,17 +57,16 @@ static void Read(MessageStream* p_MessageStream, std::atomic<bool>* p_Update, co
 // Write
 //*************************************************************************************
 
-static void Write(MessageStream& c_MessageStream, std::atomic<bool>& b_Update, const char* p_Locale) noexcept
+static void Write(MRH_MessageStream& c_MessageStream) noexcept
 {
     std::string s_Input;
     
-    while (b_Update == true)
+    while (c_MessageStream.GetConnected() == true)
     {
         std::getline(std::cin, s_Input);
     
-        if (c_MessageStream.GetConnected() == false || s_Input.compare("quit") == 0)
+        if (s_Input.compare("quit") == 0)
         {
-            b_Update = false;
             break;
         }
         else if (s_Input.size() == 0)
@@ -81,7 +74,7 @@ static void Write(MessageStream& c_MessageStream, std::atomic<bool>& b_Update, c
             continue;
         }
         
-        MessageOpCode::STRING_CS_STRING_DATA c_OpCode(s_Input);
+        MRH_MessageOpCode::STRING_CS_STRING_DATA c_OpCode(s_Input);
         c_MessageStream.Send(c_OpCode.v_Data);
         s_Input = "";
     }
@@ -99,28 +92,38 @@ int main(int argc, char* argv[])
     // Check params
     if (argc < 2)
     {
+        std::cout << "[ ERROR ] Missing socket parameter!" << std::endl;
+        return EXIT_FAILURE;
+    }
+    else if (argc < 3)
+    {
         std::cout << "[ ERROR ] Missing locale parameter!" << std::endl;
         return EXIT_FAILURE;
     }
     
     // Set locale
-    std::setlocale(LC_ALL, argv[1]);
+    std::setlocale(LC_ALL, argv[2]);
     
     // Create connection
-    MessageStream c_MessageStream(true);
+    MRH_MessageStream c_MessageStream(argv[1],
+                                      false);
     MRH_Uint64 u64_ConnectionTimeoutS = time(NULL) + 60;
     
     do
     {
+        // Wait for connection
         if (c_MessageStream.GetConnected() == true)
         {
             break;
         }
-        
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        else
+        {
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
     }
     while (time(NULL) < u64_ConnectionTimeoutS);
-    
+
+    // Killed because of timeout?
     if (time(NULL) >= u64_ConnectionTimeoutS)
     {
         std::cout << "[ ERROR ] Connection timeout!" << std::endl;
@@ -135,10 +138,11 @@ int main(int argc, char* argv[])
     
     // Connected, R/W start
     std::atomic<bool> b_Update(true);
-    std::thread c_Thread = std::thread(Read, &c_MessageStream, &b_Update, argv[1]);
-    Write(c_MessageStream, b_Update, argv[1]);
+    std::thread c_ReadThread = std::thread(Read, &c_MessageStream, &b_Update);
+    Write(c_MessageStream);
     
     // Clean up and exit
-    c_Thread.join();
+    b_Update = false;
+    c_ReadThread.join();
     return EXIT_SUCCESS;
 }

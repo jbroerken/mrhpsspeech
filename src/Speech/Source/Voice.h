@@ -1,5 +1,5 @@
 /**
- *  MessageStream.h
+ *  Voice.h
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -19,25 +19,23 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef MessageStream_h
-#define MessageStream_h
+#ifndef Voice_h
+#define Voice_h
 
 // C / C++
-#include <thread>
-#include <atomic>
-#include <string>
 
 // External
-#include <MRH_Typedefs.h>
+#include <libmrhpsb/MRH_Callback.h>
+#include <libmrhmstream/MRH_MessageStream.h>
 
 // Project
-#include "./IO/MessageRead.h"
-#include "./IO/MessageWrite.h"
-#include "./MessageOpCode.h"
+#include "./APIProvider/APIProvider.h"
+#include "./Audio/AudioBuffer.h"
+#include "../../Configuration.h"
+#include "../OutputStorage.h"
 
 
-class MessageStream : private MessageRead,
-                      private MessageWrite
+class Voice
 {
 public:
     
@@ -47,130 +45,102 @@ public:
     
     /**
      *  Default constructor.
+     *
+     *  \param c_Configuration The configuration to construct with.
      */
     
-    MessageStream();
+    Voice(Configuration const& c_Configuration);
     
     /**
      *  Default destructor.
      */
     
-    ~MessageStream() noexcept;
+    ~Voice() noexcept;
     
     //*************************************************************************************
-    // Clear
-    //*************************************************************************************
-    
-    /**
-     *  Clear all recieved messages of a type.
-     *
-     *  \param u8_OpCode The type of opcode messages to clear.
-     */
-    
-    void ClearRecieved(MRH_Uint8 u8_OpCode) noexcept;
-    
-    /**
-     *  Clear all recieved messages.
-     */
-    
-    void ClearAllRecieved() noexcept;
-    
-    //*************************************************************************************
-    // Recieve
+    // Recording
     //*************************************************************************************
     
     /**
-     *  Recieve the oldest message.
-     *
-     *  \param v_Data The recieved data.
-     *
-     *  \return true if data was set, false if not.
+     *  Start recording.
      */
     
-    bool Recieve(std::vector<MRH_Uint8>& v_Data);
+    void StartRecording() noexcept;
+    
+    /**
+     *  Stop recording.
+     */
+    
+    void StopRecording() noexcept;
+    
+    //*************************************************************************************
+    // Retrieve
+    //*************************************************************************************
+    
+    /**
+     *  Retrieve recieved data from the voice source.
+     *
+     *  \param u32_StringID The string id to use for the first input.
+     *  \param b_DiscardInput If recieved input should be discarded.
+     *
+     *  \return The new string id after retrieving.
+     */
+    
+    MRH_Uint32 Retrieve(MRH_Uint32 u32_StringID, bool b_DiscardInput);
     
     //*************************************************************************************
     // Send
     //*************************************************************************************
     
     /**
-     *  Send a message.
+     *  Add output to send to the voice source.
      *
-     *  \param v_Data The data to send. The reference is consumed.
+     *  \param c_OutputStorage The output storage to send from.
      */
     
-    void Send(std::vector<MRH_Uint8>& v_Data);
-    
-    /**
-     *  Send a message.
-     *
-     *  \param v_Data The data to send.
-     */
-    
-    void Send(std::vector<MRH_Uint8> const& v_Data);
+    void Send(OutputStorage& c_OutputStorage);
     
     //*************************************************************************************
     // Getters
     //*************************************************************************************
     
     /**
-     *  Check if a connection is active.
+     *  Get the voice source connection status.
      *
-     *  \return true if a connection is active, false if not.
+     *  \return true if connected, false if not.
      */
     
-    bool GetConnected() const noexcept;
+    bool GetSourceConnected() const noexcept;
     
 private:
-    
-    //*************************************************************************************
-    // Update
-    //*************************************************************************************
-    
-    /**
-     *  Update the message stream.
-     *
-     *  \param p_Instance The class instance to update.
-     */
-    
-    static void Update(MessageStream* p_Instance) noexcept;
-    
-    /**
-     *  Wait for a incoming connection.
-     *
-     *  \returns The socket file descriptor on success, -1 on failure.
-     */
-    
-    int AcceptConnection() noexcept;
-    
-    /**
-     *  Close a active connection.
-     *
-     *  \param i_SocketFD The socket to close.
-     *
-     *  \returns Always -1.
-     */
-    
-    int CloseConnection(int i_SocketFD) noexcept;
     
     //*************************************************************************************
     // Data
     //*************************************************************************************
     
-    std::thread c_Thread;
-    std::atomic<bool> b_Update;
+    // Stream
+    MRH_MessageStream c_Stream;
     
-    int i_ConnectionFD;
-    std::atomic<bool> b_ClientConnected;
+    // Input
+    AudioBuffer c_Input;
+    MRH_Uint32 u32_RecordingTimeoutS;
+    MRH_Uint64 u64_LastAudioTimePointS;
     
-    std::mutex c_ReadMutex;
-    std::mutex c_WriteMutex;
+    // Output
+    AudioBuffer c_Output;
+    bool b_OutputSet;
+    MRH_Uint32 u32_OutputID;
+    MRH_Uint32 u32_OutputGroup;
     
-    std::list<std::vector<MRH_Uint8>> l_Read;
-    std::list<std::vector<MRH_Uint8>> l_Write;
+    // Google Cloud API
+    APIProvider e_APIProvider;
+#if MRH_API_PROVIDER_GOOGLE_CLOUD_API > 0
+    std::string s_GoogleLangCode;
+    MRH_Uint8 u8_GoogleVoiceGender;
+#endif
     
 protected:
 
 };
 
-#endif /* MessageStream_h */
+#endif /* Voice_h */

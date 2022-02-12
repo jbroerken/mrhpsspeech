@@ -23,14 +23,11 @@
 #define NetServer_h
 
 // C / C++
-#include <thread>
-#include <mutex>
 #include <atomic>
-#include <vector>
 
 // External
 #include <libmrhpsb/MRH_Callback.h>
-#include <libmrhsrv.h>
+#include <libmrhmstream/MRH_MessageStream.h>
 
 // Project
 #include "../../Configuration.h"
@@ -51,7 +48,7 @@ public:
      *  \param c_Configuration The configuration to construct with.
      */
     
-    NetServer(Configuration const& c_Configuration) noexcept;
+    NetServer(Configuration const& c_Configuration);
     
     /**
      *  Default destructor.
@@ -60,105 +57,43 @@ public:
     ~NetServer() noexcept;
     
     //*************************************************************************************
-    // Retrieve
+    // Exchange
     //*************************************************************************************
     
     /**
-     *  Retrieve recieved input from the server.
+     *  Retceive data from the net server client.
+     */
+    
+    void Receive() noexcept;
+    
+    /**
+     *  Proccess recieved data from the net server client.
      *
      *  \param u32_StringID The string id to use for the first input.
+     *  \param c_OutputStorage The output storage to send from.
      *
      *  \return The new string id after retrieving.
      */
     
-    MRH_Uint32 Retrieve(MRH_Uint32 u32_StringID);
-    
-    //*************************************************************************************
-    // Send
-    //*************************************************************************************
-    
-    /**
-     *  Add output to send to the server.
-     *
-     *  \param c_OutputStorage The output storage to send from.
-     */
-    
-    void Send(OutputStorage& c_OutputStorage);
+    MRH_Uint32 Exchange(MRH_Uint32 u32_StringID, OutputStorage& c_OutputStorage) noexcept;
     
     //*************************************************************************************
     // Getters
     //*************************************************************************************
     
     /**
-     *  Check if a app client is connected.
+     *  Check if a server communication is active.
      *
-     *  \return true if connected, false if not.
+     *  \return true if active, false if not.
      */
     
-    bool GetAppClientConnected() const noexcept;
+    bool GetCommunicationActive() const noexcept;
     
 private:
     
     //*************************************************************************************
-    // Types
+    // Getters
     //*************************************************************************************
-
-    enum ConnectionState
-    {
-        // Server Connection
-        CONNECT = 0,
-        
-        // Authentication
-        AUTH_SEND_REQUEST = 1,
-        AUTH_RECIEVE_CHALLENGE = 2,
-        AUTH_SEND_PROOF = 3,
-        AUTH_RECIEVE_RESULT = 4,
-        
-        // Exchange Text
-        REQUEST_TEXT = 5,
-        EXCHANGE_TEXT = 6,
-        
-        // Bounds
-        CONNECTION_STATE_MAX = EXCHANGE_TEXT,
-        
-        CONNECTION_STATE_COUNT = CONNECTION_STATE_MAX + 1
-    };
-    
-    //*************************************************************************************
-    // Client
-    //*************************************************************************************
-    
-    /**
-     *  Update the location platform client.
-     *
-     *  \param p_Instance The instance to update with.
-     */
-    
-    static void ClientUpdate(NetServer* p_Instance) noexcept;
-    
-    /**
-     *  Get the next connection state.
-     *
-     *  \param e_State The current connection state.
-     *  \param b_Failed If the current state failed or not.
-     *
-     *  \return The next connection state.
-     */
-    
-    static ConnectionState NextState(ConnectionState e_State, bool b_Failed) noexcept;
-    
-    /**
-     *  Recieve a message from a server.
-     *
-     *  \param p_Server The server to recieve from.
-     *  \param v_Message The wanted messages.
-     *  \param p_Buffer The buffer used to store a wanted message.
-     *  \param p_Password The password to use for message decryption.
-     *
-     *  \return The first matching recieved message on success, MRH_SRV_CS_MSG_UNK on failure.
-     */
-    
-    static MRH_Srv_NetMessage RecieveServerMessage(MRH_Srv_Server* p_Server, std::vector<MRH_Srv_NetMessage> v_Message, uint8_t* p_Buffer, const char* p_Password) noexcept;
     
     /**
      *  Check if a message communication is currently in progress.
@@ -169,38 +104,21 @@ private:
      *  \return true if communicating, false if not.
      */
     
-    static bool CommunicationActive(MRH_Uint64 u64_TimestampS, MRH_Uint32 u32_TimeoutS) noexcept;
+    static bool GetCommunicationActive(MRH_Uint64 u64_TimestampS, MRH_Uint32 u32_TimeoutS) noexcept;
     
     //*************************************************************************************
     // Data
     //*************************************************************************************
     
-    // Thread
-    std::thread c_Thread;
-    std::atomic<bool> b_RunThread;
+    // Stream
+    MRH_MessageStream c_Stream;
     
-    // Connection
-    char p_AccountMail[MRH_SRV_SIZE_ACCOUNT_MAIL];
-    char p_AccountPassword[MRH_SRV_SIZE_ACCOUNT_PASSWORD];
-    
-    char p_DeviceKey[MRH_SRV_SIZE_DEVICE_KEY];
-    char p_DevicePassword[MRH_SRV_SIZE_DEVICE_PASSWORD];
-    
-    char p_ServerAddress[MRH_SRV_SIZE_SERVER_ADDRESS];
-    int i_ServerPort;
-    
-    MRH_Uint32 u32_ConnectionTimeoutS;
-    MRH_Uint32 u32_ConnectionRetryS;
-    MRH_Uint32 u32_RecieveTimeoutS;
-    
-    // Recieved
-    std::mutex c_RecievedMutex;
+    // Messages
     std::list<std::string> l_Recieved;
-    std::atomic<MRH_Uint64> u64_RecieveTimestampS;
     
-    // Send
-    std::mutex c_SendMutex;
-    std::list<std::string> l_Send;
+    // Communication Timeout
+    std::atomic<MRH_Uint64> u64_RecieveTimestampS;
+    MRH_Uint32 u32_RecieveTimeoutS;
     
 protected:
 

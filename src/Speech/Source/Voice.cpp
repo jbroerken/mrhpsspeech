@@ -1,5 +1,5 @@
 /**
- *  LocalStream.cpp
+ *  Voice.cpp
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -23,10 +23,11 @@
 
 // External
 #include <libmrhpsb/MRH_PSBLogger.h>
+#include <libmrhmstream/MRH_MessageOpCode.h>
 
 // Project
-#include "./LocalStream.h"
-#if MRH_API_PROVIDER_CLI <= 0
+#include "./Voice.h"
+#if MRH_API_PROVIDER_GOOGLE_CLOUD_API > 0
 #include "./APIProvider/GoogleCloudAPI.h"
 #endif
 #include "../SpeechEvent.h"
@@ -36,94 +37,49 @@
 // Constructor / Destructor
 //*************************************************************************************
 
-#if MRH_API_PROVIDER_CLI > 0
-LocalStream::LocalStream(Configuration const& c_Configuration)
-#else
-LocalStream::LocalStream(Configuration const& c_Configuration) : c_Input(c_Configuration.GetVoiceRecordingKHz()),
-                                                                 u32_RecordingTimeoutS(c_Configuration.GetVoiceRecordingTimeoutS()),
-                                                                 u64_LastAudioTimePointS(time(NULL)),
-                                                                 c_Output(c_Configuration.GetVoicePlaybackKHz()),
-                                                                 b_OutputSet(false),
-                                                                 e_APIProvider(static_cast<APIProvider>(c_Configuration.GetVoiceAPIProvider())),
+Voice::Voice(Configuration const& c_Configuration) : c_Stream(c_Configuration.GetVoiceSocketPath(),
+                                                              true),
+                                                     c_Input(c_Configuration.GetVoiceRecordingKHz()),
+                                                     u32_RecordingTimeoutS(c_Configuration.GetVoiceRecordingTimeoutS()),
+                                                     u64_LastAudioTimePointS(time(NULL)),
+                                                     c_Output(c_Configuration.GetVoicePlaybackKHz()),
+                                                     b_OutputSet(false),
+                                                     e_APIProvider(static_cast<APIProvider>(c_Configuration.GetVoiceAPIProvider())),
 #if MRH_API_PROVIDER_GOOGLE_CLOUD_API > 0
-                                                                 s_GoogleLangCode(c_Configuration.GetGoogleLanguageCode()),
-                                                                 u8_GoogleVoiceGender(c_Configuration.GetGoogleVoiceGender())
-#endif
+                                                     s_GoogleLangCode(c_Configuration.GetGoogleLanguageCode()),
+                                                     u8_GoogleVoiceGender(c_Configuration.GetGoogleVoiceGender())
 #endif
 {
-#if MRH_API_PROVIDER_CLI > 0
-    MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, "Using local CLI stream.",
-                                   "LocalStream.cpp", __LINE__);
-#else
     MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, "Using local audio stream. API providers are: "
 #if MRH_API_PROVIDER_GOOGLE_CLOUD_API > 0
                                                         "[ Google Cloud API ]"
 #endif
                                                         ".",
                                    "LocalStream.cpp", __LINE__);
-#endif
 }
 
-LocalStream::~LocalStream() noexcept
+Voice::~Voice() noexcept
 {}
 
 //*************************************************************************************
 // Recording
 //*************************************************************************************
 
-#if MRH_API_PROVIDER_CLI <= 0
-void LocalStream::StartRecording() noexcept
+void Voice::StartRecording() noexcept
 {
-    c_Stream.Send({ MessageOpCode::AUDIO_S_STOP_RECORDING });
+    c_Stream.Send({ MRH_MessageOpCode::AUDIO_S_STOP_RECORDING });
 }
 
-void LocalStream::StopRecording() noexcept
+void Voice::StopRecording() noexcept
 {
-    c_Stream.Send({ MessageOpCode::AUDIO_S_START_RECORDING });
+    c_Stream.Send({ MRH_MessageOpCode::AUDIO_S_START_RECORDING });
 }
-#endif
 
 //*************************************************************************************
 // Listen
 //*************************************************************************************
 
-#if MRH_API_PROVIDER_CLI > 0
-MRH_Uint32 LocalStream::Retrieve(MRH_Uint32 u32_StringID, bool b_DiscardInput)
-{
-    // No client or data, do nothing
-    if (c_Stream.GetConnected() == false)
-    {
-        return u32_StringID;
-    }
-    
-    // Recieve data
-    MessageOpCode::STRING_CS_STRING_DATA c_OpCode("");
-    
-    // Recieve as many as possible!
-    while (c_Stream.Recieve(c_OpCode.v_Data) == true)
-    {
-        // Is this a usable opcode for cli and wanted?
-        if (c_OpCode.GetOpCode() != MessageOpCode::STRING_CS_STRING || b_DiscardInput == true)
-        {
-            continue;
-        }
-        
-        try
-        {
-            SpeechEvent::InputRecieved(u32_StringID, c_OpCode.GetString());
-            ++u32_StringID;
-        }
-        catch (Exception& e)
-        {
-            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, e.what(),
-                                           "CLIStream.cpp", __LINE__);
-        }
-    }
-    
-    return u32_StringID;
-}
-#else
-MRH_Uint32 LocalStream::Retrieve(MRH_Uint32 u32_StringID, bool b_DiscardInput)
+MRH_Uint32 Voice::Retrieve(MRH_Uint32 u32_StringID, bool b_DiscardInput)
 {
     // No client or data, do nothing
     if (c_Stream.GetConnected() == false)
@@ -151,11 +107,11 @@ MRH_Uint32 LocalStream::Retrieve(MRH_Uint32 u32_StringID, bool b_DiscardInput)
                  *  Input
                  */
                 
-                case MessageOpCode::AUDIO_CS_AUDIO:
+                case MRH_MessageOpCode::AUDIO_CS_AUDIO:
                 {
                     // @NOTE: Messages are sent / recieved in sequence
                     //        Adding them in a loop adds them correctly
-                    MessageOpCode::AUDIO_CS_AUDIO_DATA c_Message(v_Data);
+                    MRH_MessageOpCode::AUDIO_CS_AUDIO_DATA c_Message(v_Data);
                     c_Input.AddAudio(c_Message.GetAudioBuffer(),
                                      c_Message.GetSampleCount());
                     
@@ -168,7 +124,7 @@ MRH_Uint32 LocalStream::Retrieve(MRH_Uint32 u32_StringID, bool b_DiscardInput)
                  *  Output
                  */
                     
-                case MessageOpCode::AUDIO_C_PLAYBACK_FINISHED:
+                case MRH_MessageOpCode::AUDIO_C_PLAYBACK_FINISHED:
                 {
                     if (b_OutputSet == true)
                     {
@@ -233,46 +189,12 @@ MRH_Uint32 LocalStream::Retrieve(MRH_Uint32 u32_StringID, bool b_DiscardInput)
     c_Input.Clear(c_Input.GetKHz());
     return u32_StringID;
 }
-#endif
 
 //*************************************************************************************
 // Send
 //*************************************************************************************
 
-#if MRH_API_PROVIDER_CLI > 0
-void LocalStream::Send(OutputStorage& c_OutputStorage)
-{
-    if (c_OutputStorage.GetFinishedAvailable() == false)
-    {
-        return;
-    }
-    else if (c_Stream.GetConnected() == false)
-    {
-        throw Exception("CLI stream is not connected!");
-    }
-    
-    // Send all waiting output
-    while (c_OutputStorage.GetFinishedAvailable() == true)
-    {
-        try
-        {
-            auto String = c_OutputStorage.GetFinishedString();
-            
-            // Send over CLI
-            c_Stream.Send(MessageOpCode::STRING_CS_STRING_DATA(String.s_String).v_Data);
-            
-            // Immediatly inform of performed
-            SpeechEvent::OutputPerformed(String.u32_StringID,
-                                         String.u32_GroupID);
-        }
-        catch (Exception& e)
-        {
-            throw;
-        }
-    }
-}
-#else
-void LocalStream::Send(OutputStorage& c_OutputStorage)
+void Voice::Send(OutputStorage& c_OutputStorage)
 {
     if (c_OutputStorage.GetFinishedAvailable() == false)
     {
@@ -312,8 +234,8 @@ void LocalStream::Send(OutputStorage& c_OutputStorage)
         }
         
         // Add output to send
-        MessageOpCode::AUDIO_CS_AUDIO_DATA c_Message(c_Output.GetBuffer(),
-                                                     c_Output.GetSampleCount());
+        MRH_MessageOpCode::AUDIO_CS_AUDIO_DATA c_Message(c_Output.GetBuffer(),
+                                                         c_Output.GetSampleCount());
         c_Output.Clear(c_Output.GetKHz());
         c_Stream.Send(c_Message.v_Data);
         
@@ -328,13 +250,12 @@ void LocalStream::Send(OutputStorage& c_OutputStorage)
         throw;
     }
 }
-#endif
 
 //*************************************************************************************
 // Getters
 //*************************************************************************************
 
-bool LocalStream::GetStreamConnected() const noexcept
+bool Voice::GetSourceConnected() const noexcept
 {
     return c_Stream.GetConnected();
 }

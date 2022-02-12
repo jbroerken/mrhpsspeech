@@ -60,16 +60,7 @@ file(MAKE_DIRECTORY ${BUILD_DIR_PATH})
 ###
 set(SRC_DIR_PATH "${CMAKE_SOURCE_DIR}/src/")
 
-set(SRC_LIST_ALL "${SRC_DIR_PATH}/MessageStream/IO/MessageRead.cpp"
-                 "${SRC_DIR_PATH}/MessageStream/IO/MessageRead.h"
-                 "${SRC_DIR_PATH}/MessageStream/IO/MessageWrite.cpp"
-                 "${SRC_DIR_PATH}/MessageStream/IO/MessageWrite.h"
-                 "${SRC_DIR_PATH}/MessageStream/IO/MessagePacket.h"
-                 "${SRC_DIR_PATH}/MessageStream/MessageStream.cpp"
-                 "${SRC_DIR_PATH}/MessageStream/MessageStream.h"
-                 "${SRC_DIR_PATH}/MessageStream/MessageOpCode.cpp"
-                 "${SRC_DIR_PATH}/MessageStream/MessageOpCode.h"
-                 "${SRC_DIR_PATH}/Exception.h"
+set(SRC_LIST_ALL "${SRC_DIR_PATH}/Exception.h"
                  "${SRC_DIR_PATH}/Main.cpp"
                  "${SRC_DIR_PATH}/Revision.h")
 
@@ -95,15 +86,10 @@ set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 
 find_package(Threads REQUIRED)
+find_library(libmrhmstream NAMES mrhmstream REQUIRED)
 
 target_link_libraries(mrhclispeech PUBLIC Threads::Threads)
-
-###
-#  Source Definitions
-#  ------------------
-#  Preprocessor source definitions.
-###
-target_compile_definitions(mrhclispeech PRIVATE MRH_SPEECH_MESSAGE_STREAM_SOCKET_PATH="/tmp/mrh/mrhpsspeech.sock")
+target_link_libraries(mrhclispeech PUBLIC mrhmstream)
 
 ###
 #  Install

@@ -33,15 +33,15 @@
 //*************************************************************************************
 
 Speech::Speech(Configuration const& c_Configuration) : b_Update(true),
-#if MRH_SPEECH_USE_LOCAL_STREAM > 0
-                                                       c_LocalStream(c_Configuration),
+#if MRH_SPEECH_USE_VOICE > 0
+                                                       c_Voice(c_Configuration),
 #endif
 #if MRH_SPEECH_USE_NET_SERVER > 0
                                                        c_NetServer(c_Configuration),
 #endif
                                                        e_Method(LOCAL)
 {
-#if MRH_SPEECH_USE_NET_SERVER <= 0 && MRH_SPEECH_USE_LOCAL_STREAM <= 0
+#if MRH_SPEECH_USE_NET_SERVER <= 0 && MRH_SPEECH_USE_VOICE <= 0
     throw Exception("No usable speech methods!");
 #endif
     
@@ -72,8 +72,8 @@ void Speech::Update(Speech* p_Instance, MRH_Uint32 u32_MethodWaitMS) noexcept
     OutputStorage& c_OutputStorage = p_Instance->c_OutputStorage;
     
     // Select sources
-#if MRH_SPEECH_USE_LOCAL_STREAM > 0
-    LocalStream& c_LocalStream = p_Instance->c_LocalStream;
+#if MRH_SPEECH_USE_VOICE > 0
+    Voice& c_Voice = p_Instance->c_Voice;
 #endif
 #if MRH_SPEECH_USE_NET_SERVER > 0
     NetServer& c_NetServer = p_Instance->c_NetServer;
@@ -94,37 +94,31 @@ void Speech::Update(Speech* p_Instance, MRH_Uint32 u32_MethodWaitMS) noexcept
          */
         
 #if MRH_SPEECH_USE_NET_SERVER > 0
+        // Receive server messages
+        c_NetServer.Receive();
+        
         // Connected?
-        if (c_NetServer.GetAppClientConnected() == true)
+        if (c_NetServer.GetCommunicationActive() == true)
         {
             // Switch to remote method
             if (p_Instance->e_Method != REMOTE)
             {
-#if MRH_SPEECH_USE_LOCAL_STREAM > 0 && MRH_API_PROVIDER_CLI <= 0
-                c_LocalStream.StopRecording();
+#if MRH_SPEECH_USE_VOICE > 0
+                c_Voice.StopRecording();
 #endif
                 p_Instance->e_Method = REMOTE;
             }
             
             // Exchange server messages
-            try
-            {
-                u32_StringID = c_NetServer.Retrieve(u32_StringID);
-                c_NetServer.Send(c_OutputStorage);
-            }
-            catch (Exception& e)
-            {
-                c_Logger.Log(MRH_PSBLogger::ERROR, e.what(),
-                             "Speech.cpp", __LINE__);
-            }
+            u32_StringID = c_NetServer.Exchange(u32_StringID, c_OutputStorage);
         }
         else
         {
             // No connection, use local
             if (p_Instance->e_Method == REMOTE)
             {
-#if MRH_SPEECH_USE_LOCAL_STREAM > 0 && MRH_API_PROVIDER_CLI <= 0
-                c_LocalStream.StartRecording();
+#if MRH_SPEECH_USE_VOICE > 0
+                c_Voice.StartRecording();
 #endif
                 p_Instance->e_Method = LOCAL;
             }
@@ -132,26 +126,25 @@ void Speech::Update(Speech* p_Instance, MRH_Uint32 u32_MethodWaitMS) noexcept
 #endif
         
         /**
-         *  Local Stream
+         *  Voice
          */
         
-#if MRH_SPEECH_USE_LOCAL_STREAM > 0
+#if MRH_SPEECH_USE_VOICE > 0
         try
         {
-            // Recieve local stream input based on
-            // remote connection
+            // Remote in use, retrieve and discard input
             if (p_Instance->e_Method == REMOTE)
             {
                 // Server in use, discard input but recieve finished output
                 // before returning
-                c_LocalStream.Retrieve(0, true);
+                c_Voice.Retrieve(0, true);
                 continue;
             }
             
-            // Local stream in use, get input and performed output
+            // Voice in use, get input and performed output
             // before sending output
-            u32_StringID = c_LocalStream.Retrieve(u32_StringID, false);
-            c_LocalStream.Send(c_OutputStorage);
+            u32_StringID = c_Voice.Retrieve(u32_StringID, false);
+            c_Voice.Send(c_OutputStorage);
         }
         catch (Exception& e)
         {
@@ -180,13 +173,13 @@ bool Speech::GetUsable() noexcept
 {
     bool b_Usable = false;
     
-#if MRH_SPEECH_USE_LOCAL_STREAM > 0
-    b_Usable = c_LocalStream.GetStreamConnected();
+#if MRH_SPEECH_USE_VOICE > 0
+    b_Usable = c_Voice.GetSourceConnected();
 #endif
 #if MRH_SPEECH_USE_NET_SERVER > 0
     if (b_Usable == false)
     {
-        b_Usable = c_NetServer.GetAppClientConnected();
+        b_Usable = c_NetServer.GetCommunicationActive();
     }
 #endif
     

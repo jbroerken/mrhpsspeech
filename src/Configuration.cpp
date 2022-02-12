@@ -47,9 +47,10 @@ namespace
         SERVICE_METHOD_WAIT_MS = 4,
         
         // Voice Key
-        VOICE_RECORDING_KHZ = 5,
-        VOICE_PLAYBACK_KHZ = 6,
-        VOICE_RECORDING_TIMEOUT_S = 7,
+        VOICE_SOCKET_PATH = 5,
+        VOICE_RECORDING_KHZ = 6,
+        VOICE_PLAYBACK_KHZ = 7,
+        VOICE_RECORDING_TIMEOUT_S,
         VOICE_API_PROVIDER,
         
         // Google API Key
@@ -57,14 +58,7 @@ namespace
         GOOGLE_API_VOICE_GENDER,
         
         // Server Key
-        SERVER_ACCOUNT_MAIL,
-        SERVER_ACCOUNT_PASSWORD,
-        SERVER_DEVICE_KEY,
-        SERVER_DEVICE_PASSWORD,
-        SERVER_ADDRESS,
-        SERVER_PORT,
-        SERVER_CONNECTION_TIMEOUT_S,
-        SERVER_RETRY_WAIT_S,
+        SERVER_SOCKET_PATH,
         SERVER_RECIEVE_TIMEOUT_S,
         
         // Bounds
@@ -85,6 +79,7 @@ namespace
         "MethodWaitMS",
         
         // Voice Key
+        "SocketPath",
         "RecordingKHz",
         "PlaybackKHz",
         "RecordingTimeoutS",
@@ -95,14 +90,7 @@ namespace
         "VoiceGender",
         
         // Server Key
-        "AccountMail",
-        "AccountPassword",
-        "DeviceKey",
-        "DevicePassword",
-        "Address",
-        "Port",
-        "ConnectionTimeoutS",
-        "RetryWaitS",
+        "SocketPath",
         "RecieveTimeoutS"
     };
 }
@@ -113,20 +101,14 @@ namespace
 //*************************************************************************************
 
 Configuration::Configuration() noexcept : u32_ServiceMethodWaitMS(100),
+                                          s_VoiceSocketPath("/tmp/mrh/mrhpsspeech_voice.sock"),
                                           u32_VoiceRecordingKHz(16000),
                                           u32_VoicePlaybackKHz(16000),
                                           u32_VoiceRecordingTimeoutS(3),
                                           u8_VoiceAPIProvider(0),
                                           s_GoogleLangCode("en"),
                                           u32_GoogleVoiceGender(0),
-                                          s_ServerAccountMail(""),
-                                          s_ServerAccountPassword(""),
-                                          s_ServerDeviceKey(""),
-                                          s_ServerDevicePassword(""),
-                                          s_ServerAddress("127.0.0.1"),
-                                          i_ServerPort(16096),
-                                          u32_ServerConnectionTimeoutS(60),
-                                          u32_ServerRetryWaitS(300),
+                                          s_ServerSocketPath("/tmp/mrh/mrhpsspeech_netserver.sock"),
                                           u32_ServerRecieveTimeoutS(30)
 {
     try
@@ -141,6 +123,7 @@ Configuration::Configuration() noexcept : u32_ServiceMethodWaitMS(100),
             }
             else if (Block.GetName().compare(p_Identifier[BLOCK_VOICE]) == 0)
             {
+                s_VoiceSocketPath = Block.GetValue(p_Identifier[VOICE_SOCKET_PATH]);
                 u32_VoiceRecordingKHz = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[VOICE_RECORDING_KHZ])));
                 u32_VoicePlaybackKHz = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[VOICE_PLAYBACK_KHZ])));
                 u32_VoiceRecordingTimeoutS = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[VOICE_RECORDING_TIMEOUT_S])));
@@ -153,14 +136,7 @@ Configuration::Configuration() noexcept : u32_ServiceMethodWaitMS(100),
             }
             else if (Block.GetName().compare(p_Identifier[BLOCK_SERVER]) == 0)
             {
-                s_ServerAccountMail = Block.GetValue(p_Identifier[SERVER_ACCOUNT_MAIL]);
-                s_ServerAccountPassword = Block.GetValue(p_Identifier[SERVER_ACCOUNT_PASSWORD]);
-                s_ServerDeviceKey = Block.GetValue(p_Identifier[SERVER_DEVICE_KEY]);
-                s_ServerDevicePassword = Block.GetValue(p_Identifier[SERVER_DEVICE_PASSWORD]);
-                s_ServerAddress = Block.GetValue(p_Identifier[SERVER_ADDRESS]);
-                i_ServerPort = std::stoi(Block.GetValue(p_Identifier[SERVER_PORT]));
-                u32_ServerConnectionTimeoutS = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[SERVER_CONNECTION_TIMEOUT_S])));
-                u32_ServerRetryWaitS = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[SERVER_RETRY_WAIT_S])));
+                s_ServerSocketPath = Block.GetValue(p_Identifier[SERVER_SOCKET_PATH]);
                 u32_ServerRecieveTimeoutS = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[SERVER_RECIEVE_TIMEOUT_S])));
             }
         }
@@ -181,6 +157,11 @@ Configuration::~Configuration() noexcept
 MRH_Uint32 Configuration::GetServiceMethodWaitMS() const noexcept
 {
     return u32_ServiceMethodWaitMS;
+}
+
+std::string Configuration::GetVoiceSocketPath() const noexcept
+{
+    return s_VoiceSocketPath;
 }
 
 MRH_Uint32 Configuration::GetVoiceRecordingKHz() const noexcept
@@ -213,44 +194,9 @@ MRH_Uint32 Configuration::GetGoogleVoiceGender() const noexcept
     return u32_GoogleVoiceGender;
 }
 
-std::string Configuration::GetServerAccountMail() const noexcept
+std::string Configuration::GetServerSocketPath() const noexcept
 {
-    return s_ServerAccountMail;
-}
-
-std::string Configuration::GetServerAccountPassword() const noexcept
-{
-    return s_ServerAccountPassword;
-}
-
-std::string Configuration::GetServerDeviceKey() const noexcept
-{
-    return s_ServerDeviceKey;
-}
-
-std::string Configuration::GetServerDevicePassword() const noexcept
-{
-    return s_ServerDevicePassword;
-}
-
-std::string Configuration::GetServerAddress() const noexcept
-{
-    return s_ServerAddress;
-}
-
-int Configuration::GetServerPort() const noexcept
-{
-    return i_ServerPort;
-}
-
-MRH_Uint32 Configuration::GetServerConnectionTimeoutS() const noexcept
-{
-    return u32_ServerConnectionTimeoutS;
-}
-
-MRH_Uint32 Configuration::GetServerRetryWaitS() const noexcept
-{
-    return u32_ServerRetryWaitS;
+    return s_ServerSocketPath;
 }
 
 MRH_Uint32 Configuration::GetServerRecieveTimeoutS() const noexcept
