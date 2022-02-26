@@ -29,10 +29,9 @@ This project requires other libraries and headers to function:
 Dependency List:
 libmrhbf: https://github.com/jbroerken/libmrhbf/
 libmrhevdata: https://github.com/jbroerken/libmrhevdata/
-libmrhev: https://github.com/jbroerken/libmrhev/
 libmrhpsb: https://github.com/jbroerken/libmrhpsb/
 mrhshared: https://github.com/jbroerken/mrhshared/
-Sodium: https://libsodium.gitbook.io/doc/
+libsodium: https://libsodium.gitbook.io/doc/
 google-cloud-cpp: https://github.com/googleapis/google-cloud-cpp
 
 For more information about the requirements, check the "Building" section found in the documentation.
