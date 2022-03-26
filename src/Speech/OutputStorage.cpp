@@ -87,7 +87,7 @@ void OutputStorage::AddString(MRH_EvD_S_String_U const& c_String, MRH_Uint32 u32
         
 #if MRH_SPEECH_SERVICE_PRINT_OUTPUT > 0
         MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, "Recieved say output: [ " +
-                                                            c_String.p_String +
+                                                            std::string(c_String.p_String) +
                                                             " (ID: " +
                                                             std::to_string(c_String.u32_ID) +
                                                             ")]",
