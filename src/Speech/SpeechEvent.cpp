@@ -23,7 +23,6 @@
 
 // External
 #include <libmrhevdata.h>
-#include <libmrhvt/String/MRH_SpeechString.h>
 #include <libmrhpsb/MRH_EventStorage.h>
 #include <libmrhpsb/MRH_PSBLogger.h>
 
@@ -45,63 +44,39 @@
 
 void SpeechEvent::InputRecieved(MRH_Uint32 u32_StringID, std::string const& s_String)
 {
-    MRH_EventStorage& c_Storage = MRH_EventStorage::Singleton();
+    // Create string data first
+    MRH_EvD_L_String_S c_Data;
     
-    MRH_Event* p_Event = NULL;
-    MRH_EvD_S_String_U c_Data;
+    memset((c_Data.p_String), '\0', MRH_EVD_S_STRING_BUFFER_MAX_TERMINATED);
+    strncpy(c_Data.p_String, s_String.c_str(), MRH_EVD_S_STRING_BUFFER_MAX);
+    c_Data.u32_ID = u32_StringID;
     
-    // Split string
+    // Now build event
+    MRH_Event* p_Event = MRH_EVD_CreateSetEvent(MRH_EVENT_LISTEN_STRING_S, &c_Data);
+    
+    if (p_Event == NULL)
+    {
+        throw Exception("Failed to create listen string event!");
+    }
+    
+    // Created, now add to event storage
     try
     {
-        std::map<MRH_Uint32, std::string> m_Part(MRH_SpeechString::SplitString(s_String));
-        
-        memset((c_Data.p_String), '\0', MRH_EVD_S_STRING_BUFFER_MAX_TERMINATED);
-        
-        for (auto It = m_Part.begin(); It != m_Part.end(); ++It)
-        {
-            if (It == --(m_Part.end()))
-            {
-                memset((c_Data.p_String), '\0', MRH_EVD_S_STRING_BUFFER_MAX_TERMINATED);
-                c_Data.u8_Type = MRH_EVD_L_STRING_END;
-            }
-            else
-            {
-                c_Data.u8_Type = MRH_EVD_L_STRING_UNFINISHED;
-            }
-            
-            strcpy((c_Data.p_String), (It->second.c_str()));
-            
-            c_Data.u32_ID = u32_StringID;
-            c_Data.u32_Part = It->first;
-            
-            if (p_Event == NULL && (p_Event = MRH_EVD_CreateEvent(MRH_EVENT_LISTEN_STRING_S, NULL, 0)) == NULL)
-            {
-                continue;
-            }
-            else if (MRH_EVD_SetEvent(p_Event, MRH_EVENT_LISTEN_STRING_S, &c_Data) < 0)
-            {
-                continue;
-            }
-            
-            c_Storage.Add(p_Event);
-            p_Event = NULL;
-        }
+        MRH_EventStorage::Singleton().Add(p_Event);
         
 #if MRH_SPEECH_SERVICE_PRINT_INPUT > 0
         MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, "Recieved listen input: [ " +
                                                             s_String +
-                                                            " ]",
-                                       "SpeechMEvent.cpp", __LINE__);
+                                                            " (ID: " +
+                                                            std::to_string(u32_StringID) +
+                                                            ")]",
+                                       "SpeechEvent.cpp", __LINE__);
 #endif
     }
-    catch (std::exception& e)
-    {
-        throw Exception("Failed to create input events!");
-    }
-    
-    if (p_Event != NULL)
+    catch (MRH_PSBException& e)
     {
         MRH_EVD_DestroyEvent(p_Event);
+        throw Exception("Failed to send input: " + e.what2());
     }
 }
 
@@ -131,7 +106,7 @@ void SpeechEvent::OutputPerformed(MRH_Uint32 u32_StringID, MRH_Uint32 u32_GroupI
         MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, "Performed say output: [ " +
                                                             std::to_string(u32_StringID) +
                                                             " ]",
-                                       "SpeechMEvent.cpp", __LINE__);
+                                       "SpeechEvent.cpp", __LINE__);
 #endif
     }
     catch (...)

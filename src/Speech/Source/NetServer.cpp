@@ -101,7 +101,7 @@ MRH_Uint32 NetServer::Exchange(MRH_Uint32 u32_StringID, OutputStorage& c_OutputS
     }
     
     // Output
-    if (c_OutputStorage.GetFinishedAvailable() == false)
+    if (c_OutputStorage.GetAvailable() == false)
     {
         return u32_StringID;
     }
@@ -112,11 +112,11 @@ MRH_Uint32 NetServer::Exchange(MRH_Uint32 u32_StringID, OutputStorage& c_OutputS
         return u32_StringID;
     }
     
-    while (c_OutputStorage.GetFinishedAvailable() == true)
+    while (c_OutputStorage.GetAvailable() == true)
     {
         try
         {
-            auto String = c_OutputStorage.GetFinishedString();
+            auto String = c_OutputStorage.GetString();
             
             // Send to client
             c_Stream.Send(MRH_MessageOpCode::STRING_CS_STRING_DATA(String.s_String).v_Data);

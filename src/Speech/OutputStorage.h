@@ -29,7 +29,6 @@
 
 // External
 #include <libmrhevdata/Version/1/MRH_EvSay_V1.h>
-#include <libmrhvt/String/MRH_SpeechString.h>
 
 // Project
 #include "../Exception.h"
@@ -89,20 +88,14 @@ public:
     ~OutputStorage() noexcept;
     
     //*************************************************************************************
-    // Reset
+    // Clear
     //*************************************************************************************
     
     /**
-     *  Reset all unfinished output. This function is thread safe.
+     *  Clear all current output. This function is thread safe.
      */
     
-    void ResetUnfinished() noexcept;
-    
-    /**
-     *  Reset all finished output. This function is thread safe.
-     */
-    
-    void ResetFinished() noexcept;
+    void Clear() noexcept;
     
     //*************************************************************************************
     // Add
@@ -122,20 +115,20 @@ public:
     //*************************************************************************************
     
     /**
-     *  Check if a finished string is available. This function is thread safe.
+     *  Check if output is available. This function is thread safe.
      *
      *  \return true if available, false if not.
      */
     
-    bool GetFinishedAvailable() noexcept;
+    bool GetAvailable() noexcept;
     
     /**
-     *  Get the next finished UTF-8 string. This function is thread safe.
+     *  Get the next UTF-8 output string. This function is thread safe.
      *
-     *  \return The next finished UTF-8 string with its string id.
+     *  \return The next UTF-8 output string with its string id.
      */
     
-    String GetFinishedString();
+    String GetString();
     
 private:
     
@@ -143,18 +136,11 @@ private:
     // Data
     //*************************************************************************************
     
-    // one Mutex for adding event data, one for finished strings
-    std::mutex c_UnfinishedMutex;
-    std::mutex c_FinishedMutex;
-    
-    // Unfinished strings (<String ID, <String, Group ID>>
-    std::unordered_map<MRH_Uint32, std::pair<MRH_SpeechString, MRH_Uint32>> m_Unfinished;
-    
-    // Finished output
-    std::list<String> l_Finished; // UTF-8
+    std::mutex c_Mutex;
+    std::deque<String> dq_Output; // UTF-8
     
 protected:
 
 };
 
-#endif /* CBAvail_h */
+#endif /* OutputStorage_h */

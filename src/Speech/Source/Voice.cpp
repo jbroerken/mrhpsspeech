@@ -196,7 +196,7 @@ MRH_Uint32 Voice::Retrieve(MRH_Uint32 u32_StringID, bool b_DiscardInput)
 
 void Voice::Send(OutputStorage& c_OutputStorage)
 {
-    if (c_OutputStorage.GetFinishedAvailable() == false)
+    if (c_OutputStorage.GetAvailable() == false)
     {
         return;
     }
@@ -217,7 +217,7 @@ void Voice::Send(OutputStorage& c_OutputStorage)
     // Nothing sent, send next output
     try
     {
-        auto String = c_OutputStorage.GetFinishedString();
+        auto String = c_OutputStorage.GetString();
         
         switch (e_APIProvider)
         {
