@@ -27,14 +27,14 @@
 
 // External
 #include <libmrhpsb/MRH_Callback.h>
-#include <libmrhmstream/MRH_MessageStream.h>
 
 // Project
 #include "../../Configuration.h"
+#include "../LocalStream.h"
 #include "../OutputStorage.h"
 
 
-class NetServer
+class NetServer : private LocalStream
 {
 public:
     
@@ -57,25 +57,30 @@ public:
     ~NetServer() noexcept;
     
     //*************************************************************************************
-    // Exchange
+    // Receive
     //*************************************************************************************
     
     /**
-     *  Retceive data from the net server client.
-     */
-    
-    void Receive() noexcept;
-    
-    /**
-     *  Proccess recieved data from the net server client.
+     *  Receive input data from the net server client.
      *
      *  \param u32_StringID The string id to use for the first input.
-     *  \param c_OutputStorage The output storage to send from.
      *
      *  \return The new string id after retrieving.
      */
     
-    MRH_Uint32 Exchange(MRH_Uint32 u32_StringID, OutputStorage& c_OutputStorage) noexcept;
+    MRH_Uint32 Receive(MRH_Uint32 u32_StringID) noexcept;
+    
+    //*************************************************************************************
+    // Send
+    //*************************************************************************************
+    
+    /**
+     *  Send output to the net server client.
+     *
+     *  \param c_OutputStorage The output storage to send from.
+     */
+    
+    void Send(OutputStorage& c_OutputStorage) noexcept;
     
     //*************************************************************************************
     // Getters
@@ -109,12 +114,6 @@ private:
     //*************************************************************************************
     // Data
     //*************************************************************************************
-    
-    // Stream
-    MRH_MessageStream c_Stream;
-    
-    // Messages
-    std::list<std::string> l_Recieved;
     
     // Communication Timeout
     std::atomic<MRH_Uint64> u64_RecieveTimestampS;

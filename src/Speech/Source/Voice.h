@@ -26,16 +26,16 @@
 
 // External
 #include <libmrhpsb/MRH_Callback.h>
-#include <libmrhmstream/MRH_MessageStream.h>
 
 // Project
 #include "./APIProvider/APIProvider.h"
 #include "./Audio/AudioBuffer.h"
 #include "../../Configuration.h"
+#include "../LocalStream.h"
 #include "../OutputStorage.h"
 
 
-class Voice
+class Voice : private LocalStream
 {
 public:
     
@@ -110,16 +110,13 @@ public:
      *  \return true if connected, false if not.
      */
     
-    bool GetSourceConnected() const noexcept;
+    bool GetSourceConnected() noexcept;
     
 private:
     
     //*************************************************************************************
     // Data
     //*************************************************************************************
-    
-    // Stream
-    MRH_MessageStream c_Stream;
     
     // Input
     AudioBuffer c_Input;

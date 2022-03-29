@@ -103,7 +103,9 @@ if(USE_NET_SERVER MATCHES ON)
                                "${SRC_DIR_PATH}/Speech/Source/NetServer.h")
 endif()
                  
-set(SRC_LIST_SPEECH "${SRC_DIR_PATH}/Speech/SpeechEvent.cpp"
+set(SRC_LIST_SPEECH "${SRC_DIR_PATH}/Speech/LocalStream.cpp"
+                    "${SRC_DIR_PATH}/Speech/LocalStream.h"
+                    "${SRC_DIR_PATH}/Speech/SpeechEvent.cpp"
                     "${SRC_DIR_PATH}/Speech/SpeechEvent.h"
                     "${SRC_DIR_PATH}/Speech/OutputStorage.cpp"
                     "${SRC_DIR_PATH}/Speech/OutputStorage.h"
@@ -145,7 +147,7 @@ find_library(libmrhbf NAMES mrhbf REQUIRED)
 find_library(libmrhev NAMES mrhev REQUIRED)
 find_library(libmrhevdata NAMES mrhevdata REQUIRED)
 find_library(libmrhpsb NAMES mrhpsb REQUIRED)
-find_library(libmrhmstream NAMES mrhmstream REQUIRED)
+find_library(libmrhls NAMES mrhls REQUIRED)
 
 if(USE_VOICE MATCHES ON)
     if(API_PROVIDER_GOOGLE_CLOUD_API MATCHES ON)
@@ -158,7 +160,7 @@ target_link_libraries(mrhpsspeech PUBLIC mrhbf)
 target_link_libraries(mrhpsspeech PUBLIC mrhev)
 target_link_libraries(mrhpsspeech PUBLIC mrhevdata)
 target_link_libraries(mrhpsspeech PUBLIC mrhpsb)
-target_link_libraries(mrhpsspeech PUBLIC mrhmstream)
+target_link_libraries(mrhpsspeech PUBLIC mrhls)
 
 if(USE_VOICE MATCHES ON)
     if(API_PROVIDER_GOOGLE_CLOUD_API MATCHES ON)
@@ -174,8 +176,8 @@ endif()
 ###
 target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SERVICE_THREAD_COUNT=2)
 target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_CONFIGURATION_PATH="/usr/local/etc/mrh/mrhpservice/Speech.conf")
-target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SERVICE_PRINT_INPUT=0)
-target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SERVICE_PRINT_OUTPUT=0)
+target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SERVICE_PRINT_INPUT=1)
+target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SERVICE_PRINT_OUTPUT=1)
 
 if(USE_VOICE MATCHES ON)
     target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_USE_VOICE=1)

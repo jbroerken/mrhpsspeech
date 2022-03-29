@@ -23,7 +23,6 @@
 
 // External
 #include <libmrhpsb/MRH_PSBLogger.h>
-#include <libmrhmstream/MRH_MessageOpCode.h>
 
 // Project
 #include "./NetServer.h"
@@ -34,8 +33,7 @@
 // Constructor / Destructor
 //*************************************************************************************
 
-NetServer::NetServer(Configuration const& c_Configuration) : c_Stream(c_Configuration.GetServerSocketPath(),
-                                                                      true),
+NetServer::NetServer(Configuration const& c_Configuration) : LocalStream(c_Configuration.GetServerSocketPath()),
                                                              u64_RecieveTimestampS(0),
                                                              u32_RecieveTimeoutS(c_Configuration.GetServerRecieveTimeoutS())
 {
@@ -47,81 +45,97 @@ NetServer::~NetServer() noexcept
 {}
 
 //*************************************************************************************
-// Exchange
+// Receive
 //*************************************************************************************
 
-void NetServer::Receive() noexcept
+MRH_Uint32 NetServer::Receive(MRH_Uint32 u32_StringID) noexcept
 {
-    // No stream client or data, do nothing
-    if (c_Stream.GetConnected() == false)
+    MRH_StreamMessage e_Message;
+    void* p_Data;
+    std::string s_String;
+    
+    // Read all messages recieved
+    while (LocalStream::Receive(e_Message, p_Data) == true)
     {
-        return;
-    }
-    
-    // Recieve data
-    MRH_MessageOpCode::STRING_CS_STRING_DATA c_OpCode("");
-    
-    // Recieve as many as possible!
-    size_t us_OldReceived = l_Recieved.size();
-    
-    while (c_Stream.Recieve(c_OpCode.v_Data) == true)
-    {
-        // Is this a usable opcode?
-        if (c_OpCode.GetOpCode() != MRH_MessageOpCode::STRING_CS_STRING)
+        if (e_Message == MRH_LSM_STRING)
         {
-            continue;
+            try
+            {
+                s_String = std::string(((MRH_LSM_String_Data*)p_Data)->p_String,
+                                       ((MRH_LSM_String_Data*)p_Data)->u32_Size);
+            
+                SpeechEvent::InputRecieved(u32_StringID, std::string());
+                ++u32_StringID;
+            }
+            catch (Exception& e)
+            {
+                MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, e.what(),
+                                               "NetServer.cpp", __LINE__);
+            }
         }
         
-        l_Recieved.emplace_back(c_OpCode.GetString());
+        if (LocalStream::DestroyMessage(e_Message, p_Data) != NULL)
+        {
+            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Message deallocation failed!",
+                                           "NetServer.cpp", __LINE__);
+        }
     }
     
-    if (us_OldReceived != l_Recieved.size())
+    // If the string is > 0 then we recieved new info
+    if (s_String.size() > 0)
     {
         u64_RecieveTimestampS = time(NULL);
     }
+    
+    // Return new string id
+    return u32_StringID;
 }
 
-MRH_Uint32 NetServer::Exchange(MRH_Uint32 u32_StringID, OutputStorage& c_OutputStorage) noexcept
+//*************************************************************************************
+// Send
+//*************************************************************************************
+
+void NetServer::Send(OutputStorage& c_OutputStorage) noexcept
 {
-    // Input
-    try
-    {
-        for (auto It = l_Recieved.begin(); It != l_Recieved.end();)
-        {
-            SpeechEvent::InputRecieved(u32_StringID, *It);
-            ++u32_StringID;
-            
-            It = l_Recieved.erase(It);
-        }
-    }
-    catch (Exception& e)
-    {
-        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, e.what(),
-                                       "NetServer.cpp", __LINE__);
-    }
-    
-    // Output
     if (c_OutputStorage.GetAvailable() == false)
     {
-        return u32_StringID;
+        return;
     }
-    else if (c_Stream.GetConnected() == false)
+    else if (LocalStream::IsConnected() == false)
     {
         MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Net server stream is not connected!",
                                        "NetServer.cpp", __LINE__);
-        return u32_StringID;
+        return;
     }
     
     while (c_OutputStorage.GetAvailable() == true)
     {
         try
         {
+            // Build string first
             auto String = c_OutputStorage.GetString();
             
-            // Send to client
-            c_Stream.Send(MRH_MessageOpCode::STRING_CS_STRING_DATA(String.s_String).v_Data);
+            MRH_StreamMessage e_Message = MRH_LSM_STRING;
+            void* p_Data = (MRH_LSM_String_Data*)malloc(sizeof(MRH_LSM_String_Data));
             
-            // Immediatly inform of performed
+            if (p_Data)
+            {
+                throw Exception("Failed to allocate output data!");
+            }
+            
+            MRH_LSM_String_Data* p_Cast = (MRH_LSM_String_Data*)p_Data;
+            p_Cast->u32_Size = String.s_String.size();
+            
+            if ((p_Cast->p_String = (char*)malloc(p_Cast->u32_Size)) == NULL)
+            {
+                free(p_Cast);
+                throw Exception("Failed to allocate output string!");
+            }
+            
+            strncpy(p_Cast->p_String, String.s_String.c_str(), p_Cast->u32_Size);
+            
+            // Send and set performed
+            LocalStream::Send(e_Message, p_Data);
             SpeechEvent::OutputPerformed(String.u32_StringID,
                                          String.u32_GroupID);
         }
@@ -131,9 +145,6 @@ MRH_Uint32 NetServer::Exchange(MRH_Uint32 u32_StringID, OutputStorage& c_OutputS
                                            "NetServer.cpp", __LINE__);
         }
     }
-    
-    // Result
-    return u32_StringID;
 }
 
 //*************************************************************************************

@@ -47,7 +47,9 @@ Speech::Speech(Configuration const& c_Configuration) : b_Update(true),
     
     try
     {
-        c_Thread = std::thread(Update, this, c_Configuration.GetServiceMethodWaitMS());
+        c_Thread = std::thread(Update, 
+                               this, 
+                               c_Configuration.GetServiceMethodWaitMS());
     }
     catch (std::exception& e)
     {
@@ -94,8 +96,8 @@ void Speech::Update(Speech* p_Instance, MRH_Uint32 u32_MethodWaitMS) noexcept
          */
         
 #if MRH_SPEECH_USE_NET_SERVER > 0
-        // Receive server messages
-        c_NetServer.Receive();
+        // Recieve messages first
+        u32_StringID = c_NetServer.Receive(u32_StringID);
         
         // Connected?
         if (c_NetServer.GetCommunicationActive() == true)
@@ -109,8 +111,8 @@ void Speech::Update(Speech* p_Instance, MRH_Uint32 u32_MethodWaitMS) noexcept
                 p_Instance->e_Method = REMOTE;
             }
             
-            // Exchange server messages
-            u32_StringID = c_NetServer.Exchange(u32_StringID, c_OutputStorage);
+            // Send messages to server
+            c_NetServer.Send(c_OutputStorage);
         }
         else
         {

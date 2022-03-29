@@ -27,6 +27,7 @@ Dependency | Source
 ---------- | ------
 libmrhbf |  https://github.com/jbroerken/libmrhbf/
 libmrhevdata | https://github.com/jbroerken/libmrhevdata/
+libmrhls | https://github.com/jbroerken/libmrhls/
 libmrhpsb | https://github.com/jbroerken/libmrhpsb/
 mrhshared | https://github.com/jbroerken/mrhshared/
 libsodium | https://libsodium.gitbook.io/doc/
