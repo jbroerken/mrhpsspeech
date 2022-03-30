@@ -66,12 +66,18 @@ Voice::~Voice() noexcept
 
 void Voice::StartRecording() noexcept
 {
-    //c_Stream.Send({ MRH_MessageOpCode::AUDIO_S_STOP_RECORDING });
+    MRH_Uint32 u32_Message = MRH_LS_M_AUDIO_START_RECORDING;
+    std::vector<MRH_Uint8> v_Message(&u32_Message, &u32_Message + sizeof(MRH_Uint32));
+    
+    LocalStream::Send(v_Message);
 }
 
 void Voice::StopRecording() noexcept
 {
-    //c_Stream.Send({ MRH_MessageOpCode::AUDIO_S_START_RECORDING });
+    MRH_Uint32 u32_Message = MRH_LS_M_AUDIO_STOP_RECORDING;
+    std::vector<MRH_Uint8> v_Message(&u32_Message, &u32_Message + sizeof(MRH_Uint32));
+    
+    LocalStream::Send(v_Message);
 }
 
 //*************************************************************************************
@@ -92,30 +98,40 @@ MRH_Uint32 Voice::Retrieve(MRH_Uint32 u32_StringID, bool b_DiscardInput)
         return u32_StringID;
     }
     
+    MRH_PSBLogger& c_Logger = MRH_PSBLogger::Singleton();
+    
     // Recieve data
-    MRH_StreamMessage e_Message;
-    void* p_Data;
+    std::vector<MRH_Uint8> v_Message;
+    MRH_LS_M_Audio_Data c_Message;
     
     try
     {
-        while (LocalStream::Receive(e_Message, p_Data) == true)
+        while (LocalStream::Receive(v_Message) == true)
         {
             // Is this a usable opcode?
-            switch (e_Message) // OpCode id size = Uint8
+            switch (MRH_LS_GetBufferMessage(v_Message.data()))
             {
                 /**
                  *  Input
                  */
                 
-                case MRH_LSM_AUDIO:
+                case MRH_LS_M_AUDIO:
                 {
-                    // @NOTE: Messages are sent / recieved in sequence
-                    //        Adding them in a loop adds them correctly
-                    c_Input.AddAudio(((MRH_LSM_Audio_Data*)p_Data)->p_Samples,
-                                     ((MRH_LSM_Audio_Data*)p_Data)->u32_Samples);
-                    
-                    // Increase timer for timeout to transcribe
-                    u64_LastAudioTimePointS = time(NULL);
+                    if (MRH_LS_BufferToMessage(&c_Message, v_Message.data(), v_Message.size()) < 0)
+                    {
+                        c_Logger.Log(MRH_PSBLogger::ERROR, MRH_ERR_GetLocalStreamErrorString(),
+                                     "Voice.cpp", __LINE__);
+                    }
+                    else
+                    {
+                        // @NOTE: Messages are sent / recieved in sequence
+                        //        Adding them in a loop adds them correctly
+                        c_Input.AddAudio(c_Message.p_Samples,
+                                         c_Message.u32_Samples);
+                        
+                        // Increase timer for timeout to transcribe
+                        u64_LastAudioTimePointS = time(NULL);
+                    }
                     break;
                 }
                     
@@ -123,7 +139,7 @@ MRH_Uint32 Voice::Retrieve(MRH_Uint32 u32_StringID, bool b_DiscardInput)
                  *  Output
                  */
                     
-                case MRH_LSM_AUDIO_PLAYBACK_FINISHED:
+                case MRH_LS_M_AUDIO_PLAYBACK_FINISHED:
                 {
                     if (b_OutputSet == true)
                     {
@@ -141,14 +157,6 @@ MRH_Uint32 Voice::Retrieve(MRH_Uint32 u32_StringID, bool b_DiscardInput)
                  */
                     
                 default: { break; }
-            }
-            
-            // Now destroy
-            if (LocalStream::DestroyMessage(e_Message, p_Data) != NULL)
-            {
-                MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "Failed to deallocate recieved message!",
-                                               "Voice.cpp", __LINE__);
-                
             }
         }
     }
@@ -240,33 +248,55 @@ void Voice::Send(OutputStorage& c_OutputStorage)
                 throw Exception("Unknown API provider!");
         }
         
-        // Create output message
-        MRH_StreamMessage e_Message = MRH_LSM_AUDIO;
-        void* p_Data = (MRH_LSM_Audio_Data*)malloc(sizeof(MRH_LSM_Audio_Data));
+        // Create output messages
+        MRH_LS_M_Audio_Data c_Message;
+        std::vector<MRH_Uint8> v_Message(MRH_STREAM_MESSAGE_BUFFER_SIZE, 0);
+        MRH_Uint32 u32_Size;
         
-        if (p_Data)
+        // Set KHz for all
+        c_Message.u32_KHz = c_Output.GetKHz();
+        
+        // @TODO: This is a lot of copying at the moment,
+        //        find a better solution!
+        //        Simply assigning (if possible for message struct) doesn't
+        //        work since there is no guarantee when the message will be 
+        //        sent!
+        size_t us_TotalSize = c_Output.GetSampleCount() * sizeof(MRH_Sint16);
+        MRH_Uint32 u32_SamplesPerMessage = MRH_STREAM_MESSAGE_BUFFER_SIZE - sizeof(MRH_Uint32);
+        MRH_Uint32 u32_CopySize;
+        
+        const MRH_Sint16* p_Current = c_Output.GetBuffer();
+        const MRH_Sint16* p_End = p_Current + us_TotalSize;
+        
+        while (p_Current != p_End)
         {
-            throw Exception("Failed to allocate output data!");
+            // Perform copy to buffer
+            if ((p_End - p_Current) > us_TotalSize)
+            {
+                u32_CopySize = us_TotalSize - (p_End - p_Current);
+            }
+            else
+            {
+                u32_CopySize = u32_SamplesPerMessage;
+            }
+            
+            c_Message.u32_Samples = (u32_CopySize / 2);
+            std::memcpy(c_Message.p_Samples, p_Current, u32_CopySize);
+            
+            p_Current += u32_CopySize;
+            
+            // Send message with copied audio
+            if (MRH_LS_MessageToBuffer(&(v_Message[0]), &u32_Size, MRH_LS_M_AUDIO, &c_Message) < 0)
+            {
+                // @NOTE: No crashing, hope for next message to work
+                continue;
+            }
+            
+            LocalStream::Send(v_Message);
         }
         
-        MRH_LSM_Audio_Data* p_Cast = (MRH_LSM_Audio_Data*)p_Data;
-        p_Cast->u32_KHz = c_Output.GetKHz();
-        p_Cast->u8_Channels = 1; // @NOTE: Change if more supported
-        p_Cast->u32_Samples = c_Output.GetSampleCount();
-        
-        size_t us_SampleSize = p_Cast->u32_Samples * sizeof(MRH_Sint16);
-        
-        if ((p_Cast->p_Samples = (MRH_Sint16*)malloc(us_SampleSize)) == NULL)
-        {
-            free(p_Cast);
-            throw Exception("Failed to allocate output sample buffer!");
-        }
-        
-        memcpy(p_Cast->p_Samples, c_Output.GetBuffer(), us_SampleSize);
-        
-        // Add output to send
+        // Sent, clear
         c_Output.Clear(c_Output.GetKHz());
-        LocalStream::Send(e_Message, p_Data);
         
         // Remember output data
         u32_OutputID = String.u32_StringID;

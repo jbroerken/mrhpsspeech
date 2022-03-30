@@ -22,51 +22,151 @@
 // C / C++
 #include <iostream>
 #include <clocale>
+#include <string>
+#include <atomic>
+#include <thread>
+#include <mutex>
+#include <list>
 
 // External
-#include <libmrhmstream.h>
+#include <libmrhls.h>
 
 // Project
 #include "./Revision.h"
 
 
 //*************************************************************************************
-// Read
+// Data
 //*************************************************************************************
 
-static void Read(MRH_MessageStream* p_MessageStream, std::atomic<bool>* p_Update) noexcept
+namespace
 {
-    std::vector<MRH_Uint8> v_Data;
-    
-    while (p_MessageStream->GetConnected() == true && *p_Update == true)
-    {
-        if (p_MessageStream->Recieve(v_Data) == false)
-        {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            continue;
-        }
-        
-        if (MRH_MessageOpCode::GetOpCode(v_Data) == MRH_MessageOpCode::STRING_CS_STRING)
-        {
-            std::cout << MRH_MessageOpCode::STRING_CS_STRING_DATA(v_Data).GetString() << std::endl;
-        }
-    }
+    std::atomic<bool> b_Update(true);
+    std::mutex c_Mutex;
+    MRH_LS_M_String_Data c_Input;
 }
 
 //*************************************************************************************
-// Write
+// Stream
 //*************************************************************************************
 
-static void Write(MRH_MessageStream& c_MessageStream) noexcept
+static void UpdateStream(const char* p_FilePath)
+{
+    // Create connection
+    MRH_LocalStream* p_Stream = MRH_LS_Open(p_FilePath, -1);
+    
+    if (p_Stream == NULL)
+    {
+        std::cout << "[ ERROR ] Failed to create local stream!" << std::endl;
+        b_Update = false;
+        return;
+    }
+    else if (MRH_LS_Connect(p_Stream) < 0)
+    {
+        std::cout << "[ ERROR ] Failed to connect local stream!" << std::endl;
+        b_Update = false;
+        return;
+    }
+    
+    // Update send / recieve
+    MRH_Uint8 p_Send[MRH_STREAM_MESSAGE_BUFFER_SIZE];
+    MRH_Uint8 p_Recieve[MRH_STREAM_MESSAGE_BUFFER_SIZE];
+    MRH_Uint32 u32_SendSize = 0;
+    MRH_Uint32 u32_RecieveSize = 0;
+    
+    while (b_Update == true)
+    {
+        /**
+         *  Connnection
+         */
+        
+        if (MRH_LS_GetConnected(p_Stream) < 0)
+        {
+            std::cout << "[ ERROR ] Local stream connection lost!" << std::endl;
+            b_Update = false;
+            break;
+        }
+        
+        /**
+         *  Send
+         */
+        
+        if (MRH_LS_GetWriteMessageSet(p_Stream) < 0)
+        {
+            std::lock_guard<std::mutex> c_Guard(c_Mutex);
+            
+            if (strnlen(c_Input.p_String, MRH_STREAM_MESSAGE_BUFFER_SIZE) > 0)
+            {
+                if (MRH_LS_MessageToBuffer(p_Send, &u32_SendSize, MRH_LS_M_STRING, &c_Input) < 0)
+                {
+                    std::cout << "[ ERROR ] Failed to set local stream write message!" << std::endl;
+                }
+                else
+                {
+                    memset(c_Input.p_String, '\0', MRH_STREAM_MESSAGE_BUFFER_SIZE);
+                    MRH_LS_Write(p_Stream, p_Send, u32_SendSize); // Ignore error, but set message
+                }
+            }
+        }
+        else if (MRH_LS_Write(p_Stream, p_Send, u32_SendSize) < 0)
+        {
+            std::cout << "[ ERROR ] Failed to write local stream!" << std::endl;
+            b_Update = false;
+        }
+        
+        /**
+         *  Receive
+         */
+        
+        switch (MRH_LS_Read(p_Stream, 100, p_Recieve, &u32_RecieveSize))
+        {
+            case -1:
+            {
+                std::cout << "[ ERROR ] Failed to read local stream!" << std::endl;
+                b_Update = false;
+            }
+                
+            case 0:
+            {
+                MRH_LS_M_String_Data c_Output;
+                
+                if (MRH_LS_BufferToMessage(&c_Output, p_Recieve, u32_RecieveSize) < 0)
+                {
+                    std::cout << "[ ERROR ] Failed to receive local stream message!" << std::endl;
+                }
+                else
+                {
+                    std::cout << c_Output.p_String << std::endl;
+                }
+                break;
+            }
+                
+            default:
+            {
+                break;
+            }
+        }
+    }
+    
+    // Clean Up
+    MRH_LS_Close(p_Stream);
+}
+
+//*************************************************************************************
+// CLI
+//*************************************************************************************
+
+static void ReadCLI() noexcept
 {
     std::string s_Input;
     
-    while (c_MessageStream.GetConnected() == true)
+    while (b_Update == true)
     {
         std::getline(std::cin, s_Input);
     
         if (s_Input.compare("quit") == 0)
         {
+            b_Update = false;
             break;
         }
         else if (s_Input.size() == 0)
@@ -74,8 +174,9 @@ static void Write(MRH_MessageStream& c_MessageStream) noexcept
             continue;
         }
         
-        MRH_MessageOpCode::STRING_CS_STRING_DATA c_OpCode(s_Input);
-        c_MessageStream.Send(c_OpCode.v_Data);
+        std::lock_guard<std::mutex> c_Guard(c_Mutex);
+        
+        strncpy(c_Input.p_String, s_Input.c_str(), MRH_STREAM_MESSAGE_BUFFER_SIZE);
         s_Input = "";
     }
 }
@@ -104,32 +205,6 @@ int main(int argc, char* argv[])
     // Set locale
     std::setlocale(LC_ALL, argv[2]);
     
-    // Create connection
-    MRH_MessageStream c_MessageStream(argv[1],
-                                      false);
-    MRH_Uint64 u64_ConnectionTimeoutS = time(NULL) + 60;
-    
-    do
-    {
-        // Wait for connection
-        if (c_MessageStream.GetConnected() == true)
-        {
-            break;
-        }
-        else
-        {
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-        }
-    }
-    while (time(NULL) < u64_ConnectionTimeoutS);
-
-    // Killed because of timeout?
-    if (time(NULL) >= u64_ConnectionTimeoutS)
-    {
-        std::cout << "[ ERROR ] Connection timeout!" << std::endl;
-        return EXIT_FAILURE;
-    }
-    
     // Inform user
     std::cout << "Connected to service." << std::endl;
     std::cout << "Type input and press the enter key to send." << std::endl;
@@ -137,12 +212,12 @@ int main(int argc, char* argv[])
     std::cout << std::endl;
     
     // Connected, R/W start
-    std::atomic<bool> b_Update(true);
-    std::thread c_ReadThread = std::thread(Read, &c_MessageStream, &b_Update);
-    Write(c_MessageStream);
+    std::thread c_Thread = std::thread(ReadCLI);
+    UpdateStream(argv[1]);
     
     // Clean up and exit
     b_Update = false;
-    c_ReadThread.join();
+    c_Thread.join();
+    
     return EXIT_SUCCESS;
 }

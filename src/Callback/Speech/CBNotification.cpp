@@ -1,5 +1,5 @@
 /**
- *  CBRemoteNotification.cpp
+ *  CBNotification.cpp
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -25,25 +25,32 @@
 #include <libmrhpsb/MRH_PSBLogger.h>
 
 // Project
-#include "./CBRemoteNotification.h"
+#include "./CBNotification.h"
 
 
 //*************************************************************************************
 // Constructor / Destructor
 //*************************************************************************************
 
-CBRemoteNotification::CBRemoteNotification() noexcept
+CBNotification::CBNotification() noexcept
 {}
 
-CBRemoteNotification::~CBRemoteNotification() noexcept
+CBNotification::~CBNotification() noexcept
 {}
 
 //*************************************************************************************
 // Callback
 //*************************************************************************************
 
-void CBRemoteNotification::Callback(const MRH_Event* p_Event, MRH_Uint32 u32_GroupID) noexcept
+void CBNotification::Callback(const MRH_Event* p_Event, MRH_Uint32 u32_GroupID) noexcept
 {
+    // No answer to service event
+    if (p_Event->u32_Type == MRH_EVENT_SAY_NOTIFICATION_SERVICE_U)
+    {
+        return;
+    }
+    
+    // App, inform of NYI
     MRH_EvD_Sys_NotImplemented_S c_Data;
     c_Data.u32_Type = p_Event->u32_Type;
     

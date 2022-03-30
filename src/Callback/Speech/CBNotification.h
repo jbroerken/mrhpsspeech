@@ -1,5 +1,5 @@
 /**
- *  Exception.h
+ *  CBNotification.h
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -19,65 +19,50 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef Exception_h
-#define Exception_h
+#ifndef CBNotification_h
+#define CBNotification_h
 
 // C / C++
-#include <string>
-#include <exception>
+#include <memory>
 
 // External
+#include <libmrhpsb/MRH_Callback.h>
 
 // Project
 
 
-class Exception : public std::exception
+class CBNotification : public MRH_Callback
 {
 public:
-    
+
     //*************************************************************************************
     // Constructor / Destructor
     //*************************************************************************************
     
     /**
-     *  std::string constructor.
-     *
-     *  \param s_Message The error message.
+     *  Default constructor.
      */
     
-    Exception(std::string s_Message) : s_Message(s_Message)
-    {}
-    
-    /**
-     *  const char* constructor.
-     *
-     *  \param p_Message The error message.
-     */
-    
-    Exception(const char* p_Message) : s_Message(p_Message)
-    {}
+    CBNotification() noexcept;
     
     /**
      *  Default destructor.
      */
     
-    ~Exception()
-    {}
+    ~CBNotification() noexcept;
     
     //*************************************************************************************
-    // Getters
+    // Callback
     //*************************************************************************************
     
     /**
-     *  Get the exception string.
+     *  Perform a callback with a recieved service available event.
      *
-     *  \return A const char* string with the error message.
+     *  \param p_Event The recieved service available event.
+     *  \param u32_GroupID The event group id for the user event.
      */
     
-    const char* what() const throw()
-    {
-        return s_Message.c_str();
-    }
+    void Callback(const MRH_Event* p_Event, MRH_Uint32 u32_GroupID) noexcept override;
     
 private:
     
@@ -85,10 +70,8 @@ private:
     // Data
     //*************************************************************************************
     
-    std::string s_Message;
-    
 protected:
-    
+
 };
 
-#endif /* Exception_h */
+#endif /* CBNotification_h */

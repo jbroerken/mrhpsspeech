@@ -27,7 +27,7 @@
 #include <mutex>
 #include <atomic>
 #include <deque>
-#include <utility>
+#include <vector>
 
 // External
 #include <libmrhls/MRH_StreamMessage.h>
@@ -75,10 +75,10 @@ private:
     std::atomic<bool> b_Connected;
     
     std::mutex c_ReceiveMutex;
-    std::deque<std::pair<MRH_StreamMessage, void*>> dq_Received;
+    std::deque<std::vector<MRH_Uint8>> dq_Received;
     
     std::mutex c_SendMutex;
-    std::deque<std::pair<MRH_StreamMessage, void*>> dq_Send;
+    std::deque<std::vector<MRH_Uint8>> dq_Send;
     
 protected:
     
@@ -99,17 +99,6 @@ protected:
     //*************************************************************************************
     
     /**
-     *  Destroy a message.
-     *  
-     *  \param e_Message The message type.
-     *  \param p_Data The message data to destroy.
-     *  
-     *  \return NULL on success, the given data on failure.
-     */
-    
-    void* DestroyMessage(MRH_StreamMessage e_Message, void* p_Data) noexcept;
-    
-    /**
      *  Clear all received messages.
      */
     
@@ -128,11 +117,10 @@ protected:
     /**
      *  Add a message to send.
      *  
-     *  \param e_Message The message type. The data is consumed.
-     *  \param p_Data The message data. The data is consumed.
+     *  \param v_Data The message data. The data is consumed.
      */
     
-    void Send(MRH_StreamMessage& e_Message, void*& p_Data);
+    void Send(std::vector<MRH_Uint8>& v_Data);
     
     //*************************************************************************************
     // Receive
@@ -141,13 +129,12 @@ protected:
     /**
      *  Receive a read message.
      *  
-     *  \param e_Message The received message type.
-     *  \param p_Data The received message data.
+     *  \param v_Data The received message data.
      *  
      *  \return true if a message was received, false if not.
      */
     
-    bool Receive(MRH_StreamMessage& e_Message, void*& p_Data) noexcept;
+    bool Receive(std::vector<MRH_Uint8>& v_Data) noexcept;
     
     //*************************************************************************************
     // Getters

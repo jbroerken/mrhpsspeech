@@ -60,8 +60,7 @@ file(MAKE_DIRECTORY ${BUILD_DIR_PATH})
 ###
 set(SRC_DIR_PATH "${CMAKE_SOURCE_DIR}/src/")
 
-set(SRC_LIST_ALL "${SRC_DIR_PATH}/Exception.h"
-                 "${SRC_DIR_PATH}/Main.cpp"
+set(SRC_LIST_ALL "${SRC_DIR_PATH}/Main.cpp"
                  "${SRC_DIR_PATH}/Revision.h")
 
 #########################################################################
@@ -86,10 +85,10 @@ set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 
 find_package(Threads REQUIRED)
-find_library(libmrhmstream NAMES mrhmstream REQUIRED)
+find_library(libmrhls NAMES mrhls REQUIRED)
 
 target_link_libraries(mrhclispeech PUBLIC Threads::Threads)
-target_link_libraries(mrhclispeech PUBLIC mrhmstream)
+target_link_libraries(mrhclispeech PUBLIC mrhls)
 
 ###
 #  Install

@@ -78,8 +78,8 @@ set(SRC_LIST_CALLBACK "${SRC_DIR_PATH}/Callback/Service/CBAvail.cpp"
                       "${SRC_DIR_PATH}/Callback/Speech/CBSayString.h"
                       "${SRC_DIR_PATH}/Callback/Speech/CBSpeechMethod.cpp"
                       "${SRC_DIR_PATH}/Callback/Speech/CBSpeechMethod.h"
-                      "${SRC_DIR_PATH}/Callback/Speech/CBRemoteNotification.cpp"
-                      "${SRC_DIR_PATH}/Callback/Speech/CBRemoteNotification.h")
+                      "${SRC_DIR_PATH}/Callback/Speech/CBNotification.cpp"
+                      "${SRC_DIR_PATH}/Callback/Speech/CBNotification.h")
                       
 set(SRC_LIST_SPEECH_SOURCE)
 
@@ -176,8 +176,8 @@ endif()
 ###
 target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SERVICE_THREAD_COUNT=2)
 target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_CONFIGURATION_PATH="/usr/local/etc/mrh/mrhpservice/Speech.conf")
-target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SERVICE_PRINT_INPUT=1)
-target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SERVICE_PRINT_OUTPUT=1)
+target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SERVICE_PRINT_INPUT=0)
+target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_SERVICE_PRINT_OUTPUT=0)
 
 if(USE_VOICE MATCHES ON)
     target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_USE_VOICE=1)

@@ -23,6 +23,7 @@
 
 // External
 #include <libmrhpsb/MRH_PSBLogger.h>
+#include <libmrhls/Error/MRH_LocalStreamError.h>
 
 // Project
 #include "./NetServer.h"
@@ -50,45 +51,46 @@ NetServer::~NetServer() noexcept
 
 MRH_Uint32 NetServer::Receive(MRH_Uint32 u32_StringID) noexcept
 {
-    MRH_StreamMessage e_Message;
-    void* p_Data;
-    std::string s_String;
+    MRH_LS_M_String_Data c_Message;
+    std::vector<MRH_Uint8> v_Message(MRH_STREAM_MESSAGE_BUFFER_SIZE, 0);
+    MRH_Uint32 u32_NextStringID = u32_StringID;
     
     // Read all messages recieved
-    while (LocalStream::Receive(e_Message, p_Data) == true)
+    while (LocalStream::Receive(v_Message) == true)
     {
-        if (e_Message == MRH_LSM_STRING)
+        if (MRH_LS_GetBufferMessage(v_Message.data()) != MRH_LS_M_STRING)
         {
-            try
-            {
-                s_String = std::string(((MRH_LSM_String_Data*)p_Data)->p_String,
-                                       ((MRH_LSM_String_Data*)p_Data)->u32_Size);
-            
-                SpeechEvent::InputRecieved(u32_StringID, std::string());
-                ++u32_StringID;
-            }
-            catch (Exception& e)
-            {
-                MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, e.what(),
-                                               "NetServer.cpp", __LINE__);
-            }
+            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "Unknown local stream message recieved!",
+                                           "NetServer.cpp", __LINE__);
+            continue;
+        }
+        else if (MRH_LS_BufferToMessage(&c_Message, v_Message.data(), v_Message.size()) < 0)
+        {
+            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, MRH_ERR_GetLocalStreamErrorString(),
+                                           "NetServer.cpp", __LINE__);
+            continue;
         }
         
-        if (LocalStream::DestroyMessage(e_Message, p_Data) != NULL)
+        try
         {
-            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Message deallocation failed!",
+            SpeechEvent::InputRecieved(u32_NextStringID, c_Message.p_String); // @NOTE: Always terminated!
+            ++u32_NextStringID;
+        }
+        catch (Exception& e)
+        {
+            MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, e.what(),
                                            "NetServer.cpp", __LINE__);
         }
     }
     
     // If the string is > 0 then we recieved new info
-    if (s_String.size() > 0)
+    if (u32_StringID != u32_NextStringID)
     {
         u64_RecieveTimestampS = time(NULL);
     }
     
     // Return new string id
-    return u32_StringID;
+    return u32_NextStringID;
 }
 
 //*************************************************************************************
@@ -115,27 +117,21 @@ void NetServer::Send(OutputStorage& c_OutputStorage) noexcept
             // Build string first
             auto String = c_OutputStorage.GetString();
             
-            MRH_StreamMessage e_Message = MRH_LSM_STRING;
-            void* p_Data = (MRH_LSM_String_Data*)malloc(sizeof(MRH_LSM_String_Data));
+            MRH_LS_M_String_Data c_Message;
+            std::vector<MRH_Uint8> v_Message(MRH_STREAM_MESSAGE_BUFFER_SIZE, 0);
+            MRH_Uint32 u32_Size;
             
-            if (p_Data)
+            strncpy(c_Message.p_String, String.s_String.c_str(), MRH_STREAM_MESSAGE_BUFFER_SIZE);
+            
+            if (MRH_LS_MessageToBuffer(&(v_Message[0]), &u32_Size, MRH_LS_M_STRING, &c_Message) < 0)
             {
-                throw Exception("Failed to allocate output data!");
+                throw Exception(MRH_ERR_GetLocalStreamErrorString());
             }
             
-            MRH_LSM_String_Data* p_Cast = (MRH_LSM_String_Data*)p_Data;
-            p_Cast->u32_Size = String.s_String.size();
-            
-            if ((p_Cast->p_String = (char*)malloc(p_Cast->u32_Size)) == NULL)
-            {
-                free(p_Cast);
-                throw Exception("Failed to allocate output string!");
-            }
-            
-            strncpy(p_Cast->p_String, String.s_String.c_str(), p_Cast->u32_Size);
+            v_Message.resize(u32_Size);
             
             // Send and set performed
-            LocalStream::Send(e_Message, p_Data);
+            LocalStream::Send(v_Message);
             SpeechEvent::OutputPerformed(String.u32_StringID,
                                          String.u32_GroupID);
         }
