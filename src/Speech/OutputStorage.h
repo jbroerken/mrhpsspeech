@@ -24,8 +24,7 @@
 
 // C / C++
 #include <mutex>
-#include <unordered_map>
-#include <list>
+#include <deque>
 
 // External
 #include <libmrhevdata/Version/1/MRH_EvSay_V1.h>

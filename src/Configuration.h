@@ -43,7 +43,7 @@ public:
      *  Default constructor.
      */
 
-    Configuration() noexcept;
+    Configuration();
 
     /**
      *  Default destructor.

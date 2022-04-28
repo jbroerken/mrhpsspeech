@@ -100,16 +100,16 @@ namespace
 // Constructor / Destructor
 //*************************************************************************************
 
-Configuration::Configuration() noexcept : u32_ServiceMethodWaitMS(100),
-                                          s_VoiceSocketPath("/tmp/mrh/mrhpsspeech_voice.sock"),
-                                          u32_VoiceRecordingKHz(16000),
-                                          u32_VoicePlaybackKHz(16000),
-                                          u32_VoiceRecordingTimeoutS(3),
-                                          u8_VoiceAPIProvider(0),
-                                          s_GoogleLangCode("en"),
-                                          u32_GoogleVoiceGender(0),
-                                          s_ServerSocketPath("/tmp/mrh/mrhpsspeech_netserver.sock"),
-                                          u32_ServerRecieveTimeoutS(30)
+Configuration::Configuration() : u32_ServiceMethodWaitMS(100),
+                                 s_VoiceSocketPath("/tmp/mrh/mrhpsspeech_voice.sock"),
+                                 u32_VoiceRecordingKHz(16000),
+                                 u32_VoicePlaybackKHz(16000),
+                                 u32_VoiceRecordingTimeoutS(3),
+                                 u8_VoiceAPIProvider(0),
+                                 s_GoogleLangCode("en"),
+                                 u32_GoogleVoiceGender(0),
+                                 s_ServerSocketPath("/tmp/mrh/mrhpsspeech_netserver.sock"),
+                                 u32_ServerRecieveTimeoutS(30)
 {
     try
     {

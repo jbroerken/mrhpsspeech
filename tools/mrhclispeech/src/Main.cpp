@@ -20,6 +20,7 @@
  */
 
 // C / C++
+#include <cstring>
 #include <iostream>
 #include <clocale>
 #include <string>

@@ -20,6 +20,7 @@
  */
 
 // C / C++
+#include <cstring>
 
 // External
 #include <libmrhpsb/MRH_PSBLogger.h>
