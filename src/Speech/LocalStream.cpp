@@ -112,6 +112,18 @@ void LocalStream::Update(LocalStream* p_Instance, std::string s_FilePath) noexce
             // Attempt to connect
             if (MRH_LS_Connect(p_Stream) < 0)
             {
+                // Error?
+                if (MRH_ERR_GetLocalStreamError() != MRH_LOCAL_STREAM_ERROR_UNK)
+                {
+                    c_Logger.Log(MRH_PSBLogger::ERROR, "Connect failed: " + 
+                                                       std::string(MRH_ERR_GetLocalStreamErrorString()), 
+                                 "LocalStream.cpp", __LINE__);
+                    
+                    // Reset is important here, so that simply no partner existing won't throw the
+                    // same error again
+                    MRH_ERR_LocalStreamReset();
+                }
+                
                 // Wait before retry if connection error
                 std::this_thread::sleep_for(std::chrono::seconds(1));
                 continue;
@@ -129,6 +141,9 @@ void LocalStream::Update(LocalStream* p_Instance, std::string s_FilePath) noexce
             {
                 c_Logger.Log(MRH_PSBLogger::ERROR, MRH_ERR_GetLocalStreamErrorString(),
                              "LocalStream.cpp", __LINE__);
+                
+                // Reset for connect
+                MRH_ERR_LocalStreamReset();
             }
             else
             {
