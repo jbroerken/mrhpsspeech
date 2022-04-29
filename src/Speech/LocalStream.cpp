@@ -211,6 +211,9 @@ void LocalStream::Update(LocalStream* p_Instance, std::string s_FilePath) noexce
     }
     
     // Termination, close stream
+    c_Logger.Log(MRH_PSBLogger::INFO, "Local stream terminated.",
+                 "LocalStream.cpp", __LINE__);
+    
     MRH_LS_Close(p_Stream);
 }
 
