@@ -45,6 +45,14 @@ CBSayString::~CBSayString() noexcept
 
 void CBSayString::Callback(const MRH_Event* p_Event, MRH_Uint32 u32_GroupID) noexcept
 {
+    // Is any speech method available?
+    if (p_Speech->GetUsable() == false)
+    {
+        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Speech not usable!",
+                                       "CBSayString.cpp", __LINE__);
+        return;
+    }
+    
     MRH_EvD_S_String_U c_Data;
     
     if (MRH_EVD_ReadEvent(&c_Data, p_Event->u32_Type, p_Event) < 0)

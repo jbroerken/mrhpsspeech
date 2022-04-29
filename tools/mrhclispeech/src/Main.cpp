@@ -58,13 +58,13 @@ static void UpdateStream(const char* p_FilePath)
     
     if (p_Stream == NULL)
     {
-        std::cout << "[ ERROR ] Failed to create local stream!" << std::endl;
+        std::cout << "[ ERROR ] Failed to create local stream: " << MRH_ERR_GetLocalStreamErrorString() << std::endl;
         b_Update = false;
         return;
     }
     else if (MRH_LS_Connect(p_Stream) < 0)
     {
-        std::cout << "[ ERROR ] Failed to connect local stream!" << std::endl;
+        std::cout << "[ ERROR ] Failed to connect local stream: " << MRH_ERR_GetLocalStreamErrorString() << std::endl;
         b_Update = false;
         return;
     }
