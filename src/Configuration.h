@@ -120,20 +120,20 @@ public:
     MRH_Uint32 GetGoogleVoiceGender() const noexcept;
     
     /**
-     *  Get the full server socket file path.
+     *  Get the full text string socket file path.
      *
-     *  \return The full server socket file path.
+     *  \return The full text string socket file path.
      */
     
-    std::string GetServerSocketPath() const noexcept;
+    std::string GetTextStringSocketPath() const noexcept;
     
     /**
-     *  Get the server recieve timeout in seconds.
+     *  Get the text string recieve timeout in seconds.
      *
-     *  \return The server recieve timeout in seconds.
+     *  \return The text string recieve timeout in seconds.
      */
     
-    MRH_Uint32 GetServerRecieveTimeoutS() const noexcept;
+    MRH_Uint32 GetTextStringRecieveTimeoutS() const noexcept;
     
 private:
     
@@ -156,8 +156,8 @@ private:
     MRH_Uint32 u32_GoogleVoiceGender;
     
     // Server
-    std::string s_ServerSocketPath;
-    MRH_Uint32 u32_ServerRecieveTimeoutS;
+    std::string s_TextStringSocketPath;
+    MRH_Uint32 u32_TextStringRecieveTimeoutS;
     
 protected:
 

@@ -49,7 +49,7 @@ Voice::Voice(Configuration const& c_Configuration) : LocalStream(c_Configuration
                                                      u8_GoogleVoiceGender(c_Configuration.GetGoogleVoiceGender())
 #endif
 {
-    MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, "Using local audio stream. API providers are: "
+    MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, "Using audio stream communication. API providers are: "
 #if MRH_API_PROVIDER_GOOGLE_CLOUD_API > 0
                                                         "[ Google Cloud API ]"
 #endif
@@ -156,7 +156,12 @@ MRH_Uint32 Voice::Retrieve(MRH_Uint32 u32_StringID, bool b_DiscardInput)
                  *  Default
                  */
                     
-                default: { break; }
+                default: 
+                { 
+                    MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "Unknown local stream message recieved!",
+                                                   "Voice.cpp", __LINE__);
+                    break; 
+                }
             }
         }
     }
@@ -217,7 +222,7 @@ void Voice::Send(OutputStorage& c_OutputStorage)
     }
     else if (LocalStream::IsConnected() == false)
     {
-        throw Exception("Audio stream is not connected!");
+        throw Exception("Audio local stream is not connected!");
     }
     
     // Check if output is currently being sent

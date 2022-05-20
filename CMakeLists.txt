@@ -28,7 +28,7 @@ set(CMAKE_CXX_STANDARD 14)
 #  Options to use when building with CMake.
 ###
 option(USE_VOICE "Enable the audio based communication" ON)
-option(USE_NET_SERVER "Enable the server based communication" ON)
+option(USE_TEXT_STRING "Enable the text string based communication" ON)
 
 option(API_PROVIDER_GOOGLE_CLOUD_API "Enable the google cloud api speech provider" ON)
 
@@ -97,10 +97,10 @@ if(USE_VOICE MATCHES ON)
     endif()
 endif()
 
-if(USE_NET_SERVER MATCHES ON)
+if(USE_TEXT_STRING MATCHES ON)
     set(SRC_LIST_SPEECH_SOURCE ${SRC_LIST_SPEECH_SOURCE}
-                               "${SRC_DIR_PATH}/Speech/Source/NetServer.cpp"
-                               "${SRC_DIR_PATH}/Speech/Source/NetServer.h")
+                               "${SRC_DIR_PATH}/Speech/Source/TextString.cpp"
+                               "${SRC_DIR_PATH}/Speech/Source/TextString.h")
 endif()
                  
 set(SRC_LIST_SPEECH "${SRC_DIR_PATH}/Speech/LocalStream.cpp"
@@ -188,8 +188,8 @@ if(USE_VOICE MATCHES ON)
     endif()
 endif()
 
-if(USE_NET_SERVER MATCHES ON)
-    target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_USE_NET_SERVER=1)
+if(USE_TEXT_STRING MATCHES ON)
+    target_compile_definitions(mrhpsspeech PRIVATE MRH_SPEECH_USE_TEXT_STRING=1)
 endif()
 
 ###

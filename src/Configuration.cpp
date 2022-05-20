@@ -41,7 +41,7 @@ namespace
         BLOCK_SERVICE = 0,
         BLOCK_VOICE = 1,
         BLOCK_GOOGLE_API = 2,
-        BLOCK_SERVER = 3,
+        BLOCK_TEXT_STRING = 3,
         
         // Service Key
         SERVICE_METHOD_WAIT_MS = 4,
@@ -57,12 +57,12 @@ namespace
         GOOGLE_API_LANGUAGE_CODE,
         GOOGLE_API_VOICE_GENDER,
         
-        // Server Key
-        SERVER_SOCKET_PATH,
-        SERVER_RECIEVE_TIMEOUT_S,
+        // Text String Key
+        TEXT_STRING_SOCKET_PATH,
+        TEXT_STRING_RECIEVE_TIMEOUT_S,
         
         // Bounds
-        IDENTIFIER_MAX = SERVER_RECIEVE_TIMEOUT_S,
+        IDENTIFIER_MAX = TEXT_STRING_RECIEVE_TIMEOUT_S,
 
         IDENTIFIER_COUNT = IDENTIFIER_MAX + 1
     };
@@ -73,7 +73,7 @@ namespace
         "Service",
         "Voice",
         "Google Cloud API",
-        "Server",
+        "TextString",
         
         // Service Key
         "MethodWaitMS",
@@ -108,8 +108,8 @@ Configuration::Configuration() : u32_ServiceMethodWaitMS(100),
                                  u8_VoiceAPIProvider(0),
                                  s_GoogleLangCode("en"),
                                  u32_GoogleVoiceGender(0),
-                                 s_ServerSocketPath("/tmp/mrh/mrhpsspeech_netserver.sock"),
-                                 u32_ServerRecieveTimeoutS(30)
+                                 s_TextStringSocketPath("/tmp/mrh/mrhpsspeech_text.sock"),
+                                 u32_TextStringRecieveTimeoutS(30)
 {
     try
     {
@@ -134,10 +134,10 @@ Configuration::Configuration() : u32_ServiceMethodWaitMS(100),
                 s_GoogleLangCode = Block.GetValue(p_Identifier[GOOGLE_API_LANGUAGE_CODE]);
                 u32_GoogleVoiceGender = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[GOOGLE_API_VOICE_GENDER])));
             }
-            else if (Block.GetName().compare(p_Identifier[BLOCK_SERVER]) == 0)
+            else if (Block.GetName().compare(p_Identifier[BLOCK_TEXT_STRING]) == 0)
             {
-                s_ServerSocketPath = Block.GetValue(p_Identifier[SERVER_SOCKET_PATH]);
-                u32_ServerRecieveTimeoutS = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[SERVER_RECIEVE_TIMEOUT_S])));
+                s_TextStringSocketPath = Block.GetValue(p_Identifier[TEXT_STRING_SOCKET_PATH]);
+                u32_TextStringRecieveTimeoutS = static_cast<MRH_Uint32>(std::stoull(Block.GetValue(p_Identifier[TEXT_STRING_RECIEVE_TIMEOUT_S])));
             }
         }
     }
@@ -194,12 +194,12 @@ MRH_Uint32 Configuration::GetGoogleVoiceGender() const noexcept
     return u32_GoogleVoiceGender;
 }
 
-std::string Configuration::GetServerSocketPath() const noexcept
+std::string Configuration::GetTextStringSocketPath() const noexcept
 {
-    return s_ServerSocketPath;
+    return s_TextStringSocketPath;
 }
 
-MRH_Uint32 Configuration::GetServerRecieveTimeoutS() const noexcept
+MRH_Uint32 Configuration::GetTextStringRecieveTimeoutS() const noexcept
 {
-    return u32_ServerRecieveTimeoutS;
+    return u32_TextStringRecieveTimeoutS;
 }

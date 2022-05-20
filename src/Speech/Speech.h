@@ -32,10 +32,10 @@
 #if MRH_SPEECH_USE_VOICE > 0
 #include "./Source/Voice.h"
 #endif
-#if MRH_SPEECH_USE_NET_SERVER > 0
-#include "./Source/NetServer.h"
+#if MRH_SPEECH_USE_TEXT_STRING > 0
+#include "./Source/TextString.h"
 #endif
-#if MRH_SPEECH_USE_NET_SERVER <= 0 && MRH_SPEECH_USE_VOICE <= 0
+#if MRH_SPEECH_USE_TEXT_STRING <= 0 && MRH_SPEECH_USE_VOICE <= 0
 #include "./OutputStorage.h"
 #include "../Configuration.h"
 #endif
@@ -51,10 +51,10 @@ public:
     
     enum Method
     {
-        LOCAL = 0,
-        REMOTE = 1,
+        AUDIO = 0,
+        TEXT_STRING = 1,
         
-        METHOD_MAX = REMOTE,
+        METHOD_MAX = TEXT_STRING,
         
         METHOD_COUNT = METHOD_MAX + 1
     };
@@ -133,8 +133,8 @@ private:
 #if MRH_SPEECH_USE_VOICE > 0
     Voice c_Voice;
 #endif
-#if MRH_SPEECH_USE_NET_SERVER > 0
-    NetServer c_NetServer;
+#if MRH_SPEECH_USE_TEXT_STRING > 0
+    TextString c_TextString;
 #endif
     
 protected:

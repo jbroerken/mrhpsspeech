@@ -1,5 +1,5 @@
 /**
- *  NetServer.cpp
+ *  TextString.cpp
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -27,7 +27,7 @@
 #include <libmrhls/Error/MRH_LocalStreamError.h>
 
 // Project
-#include "./NetServer.h"
+#include "./TextString.h"
 #include "../SpeechEvent.h"
 
 
@@ -35,22 +35,22 @@
 // Constructor / Destructor
 //*************************************************************************************
 
-NetServer::NetServer(Configuration const& c_Configuration) : LocalStream(c_Configuration.GetServerSocketPath()),
-                                                             u64_RecieveTimestampS(0),
-                                                             u32_RecieveTimeoutS(c_Configuration.GetServerRecieveTimeoutS())
+TextString::TextString(Configuration const& c_Configuration) : LocalStream(c_Configuration.GetTextStringSocketPath()),
+                                                               u64_RecieveTimestampS(0),
+                                                               u32_RecieveTimeoutS(c_Configuration.GetTextStringRecieveTimeoutS())
 {
-    MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, "Using remote net server.",
-                                   "NetServer.cpp", __LINE__);
+    MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::INFO, "Using text string communication.",
+                                   "TextString.cpp", __LINE__);
 }
 
-NetServer::~NetServer() noexcept
+TextString::~TextString() noexcept
 {}
 
 //*************************************************************************************
 // Receive
 //*************************************************************************************
 
-MRH_Uint32 NetServer::Receive(MRH_Uint32 u32_StringID) noexcept
+MRH_Uint32 TextString::Receive(MRH_Uint32 u32_StringID) noexcept
 {
     MRH_LS_M_String_Data c_Message;
     std::vector<MRH_Uint8> v_Message(MRH_STREAM_MESSAGE_BUFFER_SIZE, 0);
@@ -62,13 +62,13 @@ MRH_Uint32 NetServer::Receive(MRH_Uint32 u32_StringID) noexcept
         if (MRH_LS_GetBufferMessage(v_Message.data()) != MRH_LS_M_STRING)
         {
             MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::WARNING, "Unknown local stream message recieved!",
-                                           "NetServer.cpp", __LINE__);
+                                           "TextString.cpp", __LINE__);
             continue;
         }
         else if (MRH_LS_BufferToMessage(&c_Message, v_Message.data(), v_Message.size()) < 0)
         {
             MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, MRH_ERR_GetLocalStreamErrorString(),
-                                           "NetServer.cpp", __LINE__);
+                                           "TextString.cpp", __LINE__);
             continue;
         }
         
@@ -80,7 +80,7 @@ MRH_Uint32 NetServer::Receive(MRH_Uint32 u32_StringID) noexcept
         catch (Exception& e)
         {
             MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, e.what(),
-                                           "NetServer.cpp", __LINE__);
+                                           "TextString.cpp", __LINE__);
         }
     }
     
@@ -98,7 +98,7 @@ MRH_Uint32 NetServer::Receive(MRH_Uint32 u32_StringID) noexcept
 // Send
 //*************************************************************************************
 
-void NetServer::Send(OutputStorage& c_OutputStorage) noexcept
+void TextString::Send(OutputStorage& c_OutputStorage) noexcept
 {
     if (c_OutputStorage.GetAvailable() == false)
     {
@@ -106,8 +106,8 @@ void NetServer::Send(OutputStorage& c_OutputStorage) noexcept
     }
     else if (LocalStream::IsConnected() == false)
     {
-        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Net server stream is not connected!",
-                                       "NetServer.cpp", __LINE__);
+        MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, "Text string stream is not connected!",
+                                       "TextString.cpp", __LINE__);
         return;
     }
     
@@ -139,7 +139,7 @@ void NetServer::Send(OutputStorage& c_OutputStorage) noexcept
         catch (Exception& e)
         {
             MRH_PSBLogger::Singleton().Log(MRH_PSBLogger::ERROR, e.what(),
-                                           "NetServer.cpp", __LINE__);
+                                           "TextString.cpp", __LINE__);
         }
     }
 }
@@ -148,12 +148,12 @@ void NetServer::Send(OutputStorage& c_OutputStorage) noexcept
 // Getters
 //*************************************************************************************
 
-bool NetServer::GetCommunicationActive() const noexcept
+bool TextString::GetCommunicationActive() const noexcept
 {
     return GetCommunicationActive(u64_RecieveTimestampS, u32_RecieveTimeoutS);
 }
 
-bool NetServer::GetCommunicationActive(MRH_Uint64 u64_TimestampS, MRH_Uint32 u32_TimeoutS) noexcept
+bool TextString::GetCommunicationActive(MRH_Uint64 u64_TimestampS, MRH_Uint32 u32_TimeoutS) noexcept
 {
     if (u64_TimestampS < (time(NULL) - u32_TimeoutS))
     {

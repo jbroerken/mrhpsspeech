@@ -36,12 +36,12 @@ Speech::Speech(Configuration const& c_Configuration) : b_Update(true),
 #if MRH_SPEECH_USE_VOICE > 0
                                                        c_Voice(c_Configuration),
 #endif
-#if MRH_SPEECH_USE_NET_SERVER > 0
-                                                       c_NetServer(c_Configuration),
+#if MRH_SPEECH_USE_TEXT_STRING > 0
+                                                       c_TextString(c_Configuration),
 #endif
-                                                       e_Method(LOCAL)
+                                                       e_Method(AUDIO)
 {
-#if MRH_SPEECH_USE_NET_SERVER <= 0 && MRH_SPEECH_USE_VOICE <= 0
+#if MRH_SPEECH_USE_TEXT_STRING <= 0 && MRH_SPEECH_USE_VOICE <= 0
     throw Exception("No usable speech methods!");
 #endif
     
@@ -77,8 +77,8 @@ void Speech::Update(Speech* p_Instance, MRH_Uint32 u32_MethodWaitMS) noexcept
 #if MRH_SPEECH_USE_VOICE > 0
     Voice& c_Voice = p_Instance->c_Voice;
 #endif
-#if MRH_SPEECH_USE_NET_SERVER > 0
-    NetServer& c_NetServer = p_Instance->c_NetServer;
+#if MRH_SPEECH_USE_TEXT_STRING > 0
+    TextString& c_TextString = p_Instance->c_TextString;
 #endif
     
     // Shared default string id
@@ -87,42 +87,42 @@ void Speech::Update(Speech* p_Instance, MRH_Uint32 u32_MethodWaitMS) noexcept
     while (p_Instance->b_Update == true)
     {
         // Wait a bit for data
-        // @NOTE: We ALWAYS wait - we want servers and audio devices to have sent
+        // @NOTE: We ALWAYS wait - we want servers, string clients and audio devices to have sent
         //        some data before recieving
         std::this_thread::sleep_for(std::chrono::milliseconds(u32_MethodWaitMS));
         
         /**
-         *  Net Server
+         *  Text String
          */
         
-#if MRH_SPEECH_USE_NET_SERVER > 0
+#if MRH_SPEECH_USE_TEXT_STRING > 0
         // Recieve messages first
-        u32_StringID = c_NetServer.Receive(u32_StringID);
+        u32_StringID = c_TextString.Receive(u32_StringID);
         
         // Connected?
-        if (c_NetServer.GetCommunicationActive() == true)
+        if (c_TextString.GetCommunicationActive() == true)
         {
-            // Switch to remote method
-            if (p_Instance->e_Method != REMOTE)
+            // Switch to text string method
+            if (p_Instance->e_Method != TEXT_STRING)
             {
 #if MRH_SPEECH_USE_VOICE > 0
                 c_Voice.StopRecording();
 #endif
-                p_Instance->e_Method = REMOTE;
+                p_Instance->e_Method = TEXT_STRING;
             }
             
-            // Send messages to server
-            c_NetServer.Send(c_OutputStorage);
+            // Send messages to text string client
+            c_TextString.Send(c_OutputStorage);
         }
         else
         {
-            // No connection, use local
-            if (p_Instance->e_Method == REMOTE)
+            // No connection, switch to audio again
+            if (p_Instance->e_Method == TEXT_STRING)
             {
 #if MRH_SPEECH_USE_VOICE > 0
                 c_Voice.StartRecording();
 #endif
-                p_Instance->e_Method = LOCAL;
+                p_Instance->e_Method = AUDIO;
             }
         }
 #endif
@@ -134,11 +134,10 @@ void Speech::Update(Speech* p_Instance, MRH_Uint32 u32_MethodWaitMS) noexcept
 #if MRH_SPEECH_USE_VOICE > 0
         try
         {
-            // Remote in use, retrieve and discard input
-            if (p_Instance->e_Method == REMOTE)
+            // Text string in use, retrieve and discard input
+            if (p_Instance->e_Method == TEXT_STRING)
             {
-                // Server in use, discard input but recieve finished output
-                // before returning
+                // Discard input but recieve finished output before returning
                 c_Voice.Retrieve(0, true);
                 continue;
             }
@@ -178,10 +177,10 @@ bool Speech::GetUsable() noexcept
 #if MRH_SPEECH_USE_VOICE > 0
     b_Usable = c_Voice.GetSourceConnected();
 #endif
-#if MRH_SPEECH_USE_NET_SERVER > 0
+#if MRH_SPEECH_USE_TEXT_STRING > 0
     if (b_Usable == false)
     {
-        b_Usable = c_NetServer.GetCommunicationActive();
+        b_Usable = c_TextString.GetCommunicationActive();
     }
 #endif
     

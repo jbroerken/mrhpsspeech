@@ -53,12 +53,12 @@ void CBSpeechMethod::Callback(const MRH_Event* p_Event, MRH_Uint32 u32_GroupID) 
         
         switch (p_Speech->GetMethod())
         {
-            case Speech::REMOTE:
-                c_Data.u8_Method = MRH_EVD_L_SPEECH_REMOTE;
+            case Speech::TEXT_STRING:
+                c_Data.u8_Method = MRH_EVD_L_SPEECH_TEXT_STRING;
                 break;
                 
             default:
-                c_Data.u8_Method = MRH_EVD_L_SPEECH_LOCAL;
+                c_Data.u8_Method = MRH_EVD_L_SPEECH_AUDIO;
                 break;
         }
         
@@ -71,12 +71,12 @@ void CBSpeechMethod::Callback(const MRH_Event* p_Event, MRH_Uint32 u32_GroupID) 
         
         switch (p_Speech->GetMethod())
         {
-            case Speech::REMOTE:
-                c_Data.u8_Method = MRH_EVD_S_SPEECH_REMOTE;
+            case Speech::TEXT_STRING:
+                c_Data.u8_Method = MRH_EVD_S_SPEECH_TEXT_STRING;
                 break;
                 
             default:
-                c_Data.u8_Method = MRH_EVD_S_SPEECH_LOCAL;
+                c_Data.u8_Method = MRH_EVD_S_SPEECH_AUDIO;
                 break;
         }
         

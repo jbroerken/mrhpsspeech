@@ -1,5 +1,5 @@
 /**
- *  NetServer.h
+ *  TextString.h
  *
  *  This file is part of the MRH project.
  *  See the AUTHORS file for Copyright information.
@@ -19,8 +19,8 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef NetServer_h
-#define NetServer_h
+#ifndef TextString_h
+#define TextString_h
 
 // C / C++
 #include <atomic>
@@ -34,7 +34,7 @@
 #include "../OutputStorage.h"
 
 
-class NetServer : private LocalStream
+class TextString : private LocalStream
 {
 public:
     
@@ -48,20 +48,20 @@ public:
      *  \param c_Configuration The configuration to construct with.
      */
     
-    NetServer(Configuration const& c_Configuration);
+    TextString(Configuration const& c_Configuration);
     
     /**
      *  Default destructor.
      */
     
-    ~NetServer() noexcept;
+    ~TextString() noexcept;
     
     //*************************************************************************************
     // Receive
     //*************************************************************************************
     
     /**
-     *  Receive input data from the net server client.
+     *  Receive input data from the text string client.
      *
      *  \param u32_StringID The string id to use for the first input.
      *
@@ -75,7 +75,7 @@ public:
     //*************************************************************************************
     
     /**
-     *  Send output to the net server client.
+     *  Send output to the text string client.
      *
      *  \param c_OutputStorage The output storage to send from.
      */
@@ -87,7 +87,7 @@ public:
     //*************************************************************************************
     
     /**
-     *  Check if a server communication is active.
+     *  Check if a text string communication is active.
      *
      *  \return true if active, false if not.
      */
@@ -123,4 +123,4 @@ protected:
 
 };
 
-#endif /* NetServer_h */
+#endif /* TextString_h */
