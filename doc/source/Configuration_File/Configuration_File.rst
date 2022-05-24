@@ -17,10 +17,12 @@ the text string settings in the **TextString** block.
 Individual API provider settings for text to speech and speech to text are also found in their 
 own individual blocks, which should be named after the API itself.
 
-.. note:: 
+API Provider Settings Info
+--------------------------
+.. toctree::
+   :maxdepth: 1
 
-    Specific API provider settings are not listed here. Please check the 
-    provided configuration files for explanations on API provider settings.
+   API_Provider/Google_Cloud_API
 
 
 Service Block
@@ -76,8 +78,8 @@ The TextString block stores the following values:
 
 Example
 -------
-The following example shows a user service configuration file with 
-default locations and names:
+The following example shows a speech service configuration file with 
+default values:
 
 .. code-block:: c
 
