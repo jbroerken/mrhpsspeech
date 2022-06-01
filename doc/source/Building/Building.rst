@@ -77,11 +77,14 @@ of the target use case.
     * - MRH_SPEECH_SERVICE_PRINT_OUTPUT
       - Print received speech output to console.
     * - MRH_SPEECH_USE_VOICE
-      - Enable voice based speech input and output.
+      - Enable voice based speech input and output. This is set by 
+        the USE_VOICE option.
     * - MRH_API_PROVIDER_GOOGLE_CLOUD_API
-      - Use the Google Cloud API for speech processing.
+      - Use the Google Cloud API for speech processing. This is set 
+        by the API_PROVIDER_GOOGLE_CLOUD_API option.
     * - MRH_SPEECH_USE_TEXT_STRING
-      - Use text string based input and output.
+      - Use text string based input and output. This is set by the 
+        USE_TEXT_STRING option.
 
 
 Build Process

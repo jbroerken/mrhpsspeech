@@ -3,3 +3,8 @@
 #  mrhpsspeech ToDo
 #
 ###
+
+Speech Output Audio Copying:
+----------------------------
+- Reduce copying of audio data from internal 
+  audio buffer to message data buffer.

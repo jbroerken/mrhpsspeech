@@ -23,4 +23,7 @@ work locally on the machine or both.
    Service_Info/Service_Info
    Building/Building
    Configuration_File/Configuration_File
+   Speech_Method/Speech_Method
+   Speech_Input/Speech_Input
+   Speech_Output/Speech_Output
    Callbacks/Callbacks
