@@ -37,7 +37,7 @@ option(API_PROVIDER_GOOGLE_CLOUD_API "Enable the google cloud api speech provide
 #  ------------
 #  General simple information about our project.
 ###
-project(mrhpsspeech VERSION 1.0.0
+project(mrhpsspeech VERSION 1.0.1
                     DESCRIPTION "MRH speech platform service executable"
                     LANGUAGES CXX)
 
