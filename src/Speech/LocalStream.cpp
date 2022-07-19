@@ -79,8 +79,8 @@ void LocalStream::Update(LocalStream* p_Instance, std::string s_FilePath) noexce
     }
     
     // Now begin exchange
-    MRH_Uint8 p_Send[MRH_STREAM_MESSAGE_BUFFER_SIZE];
-    MRH_Uint8 p_Recieve[MRH_STREAM_MESSAGE_BUFFER_SIZE];
+    MRH_Uint8 p_Send[MRH_STREAM_MESSAGE_TOTAL_SIZE];
+    MRH_Uint8 p_Recieve[MRH_STREAM_MESSAGE_TOTAL_SIZE];
     MRH_Uint32 u32_SendSize;
     MRH_Uint32 u32_RecieveSize;
     

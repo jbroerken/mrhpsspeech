@@ -250,7 +250,7 @@ void Voice::Send(OutputStorage& c_OutputStorage)
         
         // Create output messages
         MRH_LS_M_Audio_Data c_Message;
-        std::vector<MRH_Uint8> v_Message(MRH_STREAM_MESSAGE_BUFFER_SIZE, 0);
+        std::vector<MRH_Uint8> v_Message(MRH_STREAM_MESSAGE_TOTAL_SIZE, 0);
         MRH_Uint32 u32_Size;
         
         // Set KHz for all
@@ -262,11 +262,11 @@ void Voice::Send(OutputStorage& c_OutputStorage)
         //        work since there is no guarantee when the message will be 
         //        sent!
         size_t us_TotalSize = c_Output.GetSampleCount() * sizeof(MRH_Sint16);
-        MRH_Uint32 u32_SamplesPerMessage = MRH_STREAM_MESSAGE_BUFFER_SIZE - sizeof(MRH_Uint32);
+        MRH_Uint32 u32_SamplesPerMessage = MRH_STREAM_MESSAGE_AUDIO_BUFFER_SIZE;
         MRH_Uint32 u32_CopySize;
         
-        const MRH_Sint16* p_Current = c_Output.GetBuffer();
-        const MRH_Sint16* p_End = p_Current + us_TotalSize;
+        const MRH_Uint8* p_Current = (const MRH_Uint8*)(c_Output.GetBuffer());
+        const MRH_Uint8* p_End = p_Current + us_TotalSize;
         
         while (p_Current != p_End)
         {
