@@ -10,6 +10,7 @@
 
 1.0.1:
 ------
+- Send start recording request on initial voice socket connection.
 - Added the correct packages to CMakeLists.txt for the google-cloud-cpp requirements.
 - Added missing headers.
 - Fixed a bug causing local stream messages to fail if they reached the full send / receive size.

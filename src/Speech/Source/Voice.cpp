@@ -37,6 +37,7 @@ Voice::Voice(Configuration const& c_Configuration) : LocalStream(c_Configuration
                                                      c_Input(c_Configuration.GetVoiceRecordingKHz()),
                                                      u32_RecordingTimeoutS(c_Configuration.GetVoiceRecordingTimeoutS()),
                                                      u64_LastAudioTimePointS(time(NULL)),
+                                                     b_InitialRecording(false),
                                                      c_Output(c_Configuration.GetVoicePlaybackKHz()),
                                                      b_OutputSet(false),
                                                      e_APIProvider(static_cast<APIProvider>(c_Configuration.GetVoiceAPIProvider())),
@@ -91,7 +92,22 @@ MRH_Uint32 Voice::Retrieve(MRH_Uint32 u32_StringID, bool b_DiscardInput)
             b_OutputSet = false;
         }
         
+        // Reset recording start on connection request
+        if (b_InitialRecording == false)
+        {
+            b_InitialRecording = true;
+        }
+        
         return u32_StringID;
+    }
+    
+    // Request recording start
+    // @NOTE: We do this on every connection to make sure the new
+    //        audio supplier knows it's OK to start recording!
+    if (b_InitialRecording == false)
+    {
+        StartRecording();
+        b_InitialRecording = true;
     }
     
     MRH_PSBLogger& c_Logger = MRH_PSBLogger::Singleton();

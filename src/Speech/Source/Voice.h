@@ -117,6 +117,7 @@ private:
     AudioBuffer c_Input;
     MRH_Uint32 u32_RecordingTimeoutS;
     MRH_Uint64 u64_LastAudioTimePointS;
+    bool b_InitialRecording;
     
     // Output
     AudioBuffer c_Output;
