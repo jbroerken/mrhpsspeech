@@ -151,7 +151,8 @@ find_library(libmrhls NAMES mrhls REQUIRED)
 
 if(USE_VOICE MATCHES ON)
     if(API_PROVIDER_GOOGLE_CLOUD_API MATCHES ON)
-        find_package(google-cloud-cpp REQUIRED)
+        find_package(google_cloud_cpp_speech REQUIRED)
+        find_package(google_cloud_cpp_texttospeech REQUIRED)
     endif()
 endif()
 

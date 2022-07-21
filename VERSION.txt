@@ -7,3 +7,11 @@
 1.0.0:
 ------
 - Initial release.
+
+1.0.1:
+------
+- Added the correct packages to CMakeLists.txt for the google-cloud-cpp requirements.
+- Added missing headers.
+- Fixed a bug causing local stream messages to fail if they reached the full send / receive size.
+- Fixed a bug which could cause wrong pointer advancement for voice output.
+- Fixed a bug causing output message creation to fail.

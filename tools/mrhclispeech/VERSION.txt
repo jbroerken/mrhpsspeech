@@ -7,3 +7,8 @@
 1.0.0:
 ------
 - Initial release.
+
+1.0.1:
+------
+- Updated mrhclispeech message buffer sizes.
+- Set mrhclispeech licence to Apache 2.0.
